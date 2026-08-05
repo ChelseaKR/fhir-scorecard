@@ -56,6 +56,27 @@ into. See [ROADMAP.md](ROADMAP.md) for what a production public service still ne
 importantly, for the constraint that governs it: search traffic scales with registry size, and
 registry size is gated on payers publishing base URLs.
 
+## Use the data
+
+| Artifact | What it is |
+|---|---|
+| `dataset.csv` | One row per endpoint, flat, with a documented schema |
+| `dataset.schema.json` | Column names, types, and meanings |
+| `api/index.json` | Every endpoint with links to its detail and its page |
+| `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift |
+| `scorecards.json` | The complete graded payload in one file |
+
+A read-only MCP server exposes the same data to an assistant:
+
+```bash
+fhir-scorecard mcp --site site
+```
+
+It reads only the published dataset files. There is deliberately no tool that probes an endpoint:
+a model deciding to fetch arbitrary URLs is a much larger security surface than one reading a
+file this project already publishes. Its `grading_method` tool returns the documented limits, so
+an assistant can be told what the numbers do not mean.
+
 ## Quick start
 
 ```bash

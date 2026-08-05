@@ -30,34 +30,37 @@ project's credibility is the asset; the page count follows it, not the other way
 
 ---
 
-## Phase 1: indexable surface
+## Phase 1: indexable surface — done
 
 *Goal: every endpoint and organization is a real URL a search engine can find and a person can
 read.*
 
-- [ ] **Per-endpoint pages** at `/endpoint/<id>/`, each with its grade, findings with spec
+- [x] **Per-endpoint pages** at `/endpoint/<id>/`, each with its grade, findings with spec
       citations, availability, drift history, and verification provenance
-- [ ] **Per-organization pages** at `/org/<slug>/` for organizations with more than one surface
+- [x] **Per-organization pages** at `/org/<slug>/` for organizations with more than one surface
       (Cigna already has Patient Access plus Provider Directory)
-- [ ] **Kind index pages** at `/payers/`, `/ehr/`, `/reference/`, since "payer FHIR API status"
+- [x] **Kind index pages** at `/payers/`, `/ehr/`, `/reference/`, since "payer FHIR API status"
       is the query that should land somewhere useful
-- [ ] `sitemap.xml`, `robots.txt`, canonical URLs, and per-page titles and meta descriptions
+- [x] `sitemap.xml`, `robots.txt`, canonical URLs, and per-page titles and meta descriptions
       written from the data rather than templated boilerplate
-- [ ] **JSON-LD**: `Dataset` on the index, `WebAPI` / `Organization` on endpoint pages
-- [ ] **Methodology page** at `/how-we-grade/` explaining every finding code and its citation,
+- [x] **JSON-LD**: `Dataset` on the index, `WebAPI` / `Organization` on endpoint pages
+- [x] **Methodology page** at `/how-we-grade/` explaining every finding code and its citation,
       linked from every finding
-- [ ] Static-site generation stays deterministic and dependency-free, same as the grader
+- [x] Static-site generation stays deterministic and dependency-free, same as the grader
 
-## Phase 2: it is a dataset, not just a page
+## Phase 2: it is a dataset, not just a page — mostly done
 
 *Goal: the data is reusable, citable, and machine-consumable by someone who never visits.*
 
-- [ ] `dataset.json` and `dataset.csv` at stable URLs, versioned, with a schema doc
-- [ ] `CITATION.cff` and a monthly dated release so the dataset can be cited in research
-- [ ] A read-only **API surface** (`/api/endpoint/<id>.json`) served as static files
+- [x] `dataset.csv` at a stable URL with a Table Schema style `dataset.schema.json`
+- [x] `CITATION.cff` so the dataset can be cited
+- [x] A read-only **API surface** (`/api/index.json`, `/api/endpoint/<id>.json`) as static files
+- [x] **MCP server** (`fhir-scorecard mcp`), read-only over the published dataset, with a
+      `grading_method` tool that returns the documented limits so an assistant can be told what
+      the numbers do not mean
 - [ ] **Historical archive**: dated snapshots so availability and drift can be studied over time,
       which is the part nobody else has
-- [ ] **MCP server** so the dataset is queryable from an assistant, matching `gtfs-scorecard`
+- [ ] A monthly dated dataset release, signed
 
 ## Phase 3: participation
 

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.chelseakr/fhir-scorecard",
+  "description": "Read-only access to grades for publicly observable FHIR endpoints across payers, providers, and EHR vendors.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/ChelseaKR/fhir-scorecard",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "fhir-scorecard",
+      "version": "0.1.0",
+      "transport": { "type": "stdio" },
+      "runtimeArguments": [
+        { "type": "positional", "value": "mcp" },
+        { "type": "named", "name": "--site", "value": "site", "isRequired": false }
+      ]
+    }
+  ]
+}

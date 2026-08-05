@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+title: "fhir-scorecard: grades for publicly observable FHIR endpoints"
+message: "If you use this dataset, please cite it."
+type: dataset
+authors:
+  - family-names: Kelly-Reif
+    given-names: Chelsea
+repository-code: "https://github.com/ChelseaKR/fhir-scorecard"
+url: "https://chelseakr.github.io/fhir-scorecard/"
+abstract: >-
+  Deterministic grades for the public discovery surfaces of FHIR endpoints across health payers,
+  providers, EHR vendors, and reference servers. Derived only from unauthenticated
+  CapabilityStatement and SMART discovery documents, with spec-cited findings, capability drift
+  tracking, and daily availability observations. Observational; not an audit, a ranking of care
+  quality, or a statement about regulatory compliance.
+keywords:
+  - FHIR
+  - health information exchange
+  - interoperability
+  - CMS interoperability rule
+  - Patient Access API
+  - open data
+license: Apache-2.0
+version: 0.1.0
+date-released: "2026-08-05"

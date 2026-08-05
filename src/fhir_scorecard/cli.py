@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from fhir_scorecard.capability import parse_capability, parse_smart
+from fhir_scorecard.dataset import write_dataset
 from fhir_scorecard.drift import load_history, observe, save_history
 from fhir_scorecard.fetch import FetchResult, fetch_json
 from fhir_scorecard.grading import Scorecard, build_scorecard
@@ -87,6 +88,10 @@ def main(argv: list[str] | None = None) -> int:
     grade.add_argument("--vantage", default="unspecified",
                        help="label for where this run measured from; latency is single-vantage "
                             "and a network path difference must not be read as a server change")
+    mcp = sub.add_parser(
+        "mcp", help="serve the published dataset over MCP (stdio, read-only)")
+    mcp.add_argument("--site", type=Path, default=Path("site"),
+                     help="directory containing a generated api/index.json")
     recheck = sub.add_parser(
         "recheck",
         help="re-probe previously rejected candidates; reports only, never edits the registry")
@@ -95,6 +100,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "recheck":
         return _recheck(args.candidates)
+
+    if args.command == "mcp":
+        from fhir_scorecard.mcp import serve
+        return serve(args.site)
 
     if args.offline and args.fixtures is None:
         print("--offline requires --fixtures", file=sys.stderr)
@@ -121,6 +130,8 @@ def main(argv: list[str] | None = None) -> int:
         render_html(scorecards, generated_at=generated_at, vantage=args.vantage),
         encoding="utf-8")
     _write_site(scorecards, endpoints, args.out, args.origin, generated_at)
+    write_dataset(args.out, scorecards, endpoints, origin=args.origin.rstrip("/"),
+                  generated_at=generated_at, vantage=args.vantage)
 
     for s in scorecards:
         print(f"{s.grade}  {s.endpoint_id}")

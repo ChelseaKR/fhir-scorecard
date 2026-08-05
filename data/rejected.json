@@ -1,0 +1,75 @@
+{
+  "policy": "Machine-readable mirror of the rejections narrated in CANDIDATES.md, so they can be re-probed on a schedule. A candidate that starts answering is NOT promoted automatically: verification means confirming the publisher is who the entry claims, which a fetch cannot decide.",
+  "rejected": [
+    {
+      "id": "kaiser",
+      "name": "Kaiser Permanente",
+      "base_url": "https://healthy.kaiserpermanente.org/fhir/r4",
+      "last_outcome": "HTTP 410 Gone (2026-08-05, unchanged across two probes)",
+      "source": "guessed pattern"
+    },
+    {
+      "id": "centene",
+      "name": "Centene",
+      "base_url": "https://production.api.centene.com/fhir/patientaccess/r4",
+      "last_outcome": "DNS did not resolve (2026-08-05, unchanged across two probes)",
+      "source": "guessed pattern"
+    },
+    {
+      "id": "capital-bluecross",
+      "name": "Capital Blue Cross",
+      "base_url": "https://patientaccess-api.capbluecross.com/r4",
+      "last_outcome": "DNS did not resolve (2026-08-05)",
+      "source": "developer portal documentation"
+    },
+    {
+      "id": "capital-bluecross-demo",
+      "name": "Capital Blue Cross (demo)",
+      "base_url": "https://patientaccess-api-demo.capbluecross.com/r4",
+      "last_outcome": "DNS did not resolve (2026-08-05)",
+      "source": "developer portal documentation"
+    },
+    {
+      "id": "humana-sandbox",
+      "name": "Humana sandbox",
+      "base_url": "https://fhir.humana.com/sandbox/api",
+      "last_outcome": "HTTP 403 (2026-08-04)",
+      "source": "developer portal documentation"
+    },
+    {
+      "id": "humana-provider-directory",
+      "name": "Humana Provider Directory",
+      "base_url": "https://fhir.humana.com/api/ProviderDirectory",
+      "last_outcome": "HTTP 400 (2026-08-05)",
+      "source": "developer portal documentation"
+    },
+    {
+      "id": "cigna-r4-alt",
+      "name": "Cigna (alternate path)",
+      "base_url": "https://fhir.cigna.com/r4",
+      "last_outcome": "HTTP 403 (2026-08-04)",
+      "source": "guessed pattern"
+    },
+    {
+      "id": "acentra-sandbox",
+      "name": "Acentra Health sandbox",
+      "base_url": "https://sandbox.mhbapp.com/fhir/r4",
+      "last_outcome": "HTTP 403 (2026-08-05)",
+      "source": "developer portal documentation"
+    },
+    {
+      "id": "elevance-totalview",
+      "name": "Elevance Health TotalView",
+      "base_url": "https://totalview.healthos.elevancehealth.com/fhir",
+      "last_outcome": "answered HTML, not a CapabilityStatement (2026-08-05)",
+      "source": "developer portal documentation"
+    },
+    {
+      "id": "uhc-optum-public",
+      "name": "UnitedHealthcare / Optum public",
+      "base_url": "https://public.fhir.flex.optum.com/R4",
+      "last_outcome": "DNS did not resolve (2026-08-04)",
+      "source": "guessed pattern"
+    }
+  ]
+}

@@ -14,6 +14,7 @@ from fhir_scorecard.fetch import FetchResult, fetch_json
 from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.registry import Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import render_html, to_json
+from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
 
 
 def _offline_fetch(fixtures: Path, endpoint_id: str, filename: str, url: str) -> FetchResult:
@@ -45,6 +46,18 @@ def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
                            drift_events=drift.recorded_events)
 
 
+def _recheck(candidates_path: Path) -> int:
+    try:
+        candidates = load_candidates(candidates_path)
+    except (OSError, ValueError) as exc:
+        print(f"candidates error: {exc}", file=sys.stderr)
+        return 2
+    results = [reprobe(c) for c in candidates]
+    print(format_report(results))
+    # Exit 0 either way: a candidate that starts answering is news, not a failure.
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="fhir-scorecard")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -59,7 +72,14 @@ def main(argv: list[str] | None = None) -> int:
     grade.add_argument("--vantage", default="unspecified",
                        help="label for where this run measured from; latency is single-vantage "
                             "and a network path difference must not be read as a server change")
+    recheck = sub.add_parser(
+        "recheck",
+        help="re-probe previously rejected candidates; reports only, never edits the registry")
+    recheck.add_argument("--candidates", type=Path, default=Path("data/rejected.json"))
     args = parser.parse_args(argv)
+
+    if args.command == "recheck":
+        return _recheck(args.candidates)
 
     if args.offline and args.fixtures is None:
         print("--offline requires --fixtures", file=sys.stderr)

@@ -129,3 +129,34 @@ def test_vantage_recorded_in_outputs(tmp_path: Path) -> None:
     r2 = next(f for d in alpha["dimensions"] for f in d["findings"] if f["code"] == "R2")
     assert "github-actions/ubuntu-latest" in r2["message"]
     assert "github-actions/ubuntu-latest" in (out / "index.html").read_text()
+
+
+def test_recheck_reports_without_touching_registry(tmp_path: Path, monkeypatch) -> None:
+    """A candidate that starts answering is reported, never auto-promoted: verification means
+    confirming the publisher, which a fetch cannot decide."""
+    from fhir_scorecard import cli as cli_mod
+    from fhir_scorecard.fetch import FetchResult as FR
+
+    path = tmp_path / "rejected.json"
+    path.write_text(json.dumps({"rejected": [
+        {"id": "revived", "name": "Revived Plan", "base_url": "https://a.test/r4",
+         "last_outcome": "HTTP 404"},
+        {"id": "still-dead", "name": "Still Dead", "base_url": "https://b.test/r4",
+         "last_outcome": "DNS"},
+    ]}))
+
+    def fake_fetch(url: str, **kwargs: object) -> FR:
+        if url.startswith("https://a.test"):
+            return FR(url=url, ok=True, status=200, elapsed_ms=5,
+                      body=json.dumps(good_capability()).encode(), error=None)
+        return FR(url=url, ok=False, status=None, elapsed_ms=0, body=b"", error="URLError")
+
+    monkeypatch.setattr("fhir_scorecard.reprobe.fetch_json", fake_fetch)
+    assert cli_mod.main(["recheck", "--candidates", str(path)]) == 0
+
+
+def test_recheck_bad_candidates_file_is_error(tmp_path: Path) -> None:
+    from fhir_scorecard import cli as cli_mod
+    path = tmp_path / "rejected.json"
+    path.write_text(json.dumps({"rejected": [{"id": "x"}]}))
+    assert cli_mod.main(["recheck", "--candidates", str(path)]) == 2

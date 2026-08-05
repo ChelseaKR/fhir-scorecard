@@ -48,6 +48,14 @@ tool is runnable out of the box. Payer endpoints are added only after live verif
 CapabilityStatement, confirm the publisher matches the claimed organization, record the method and
 date in the entry). Unverified entries are never shipped. See `CONTRIBUTING.md`.
 
+## The site
+
+Every endpoint, organization, and category gets its own indexable page with a canonical URL,
+description, and structured data, plus a sitemap and a methodology page that every finding links
+into. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and, more
+importantly, for the constraint that governs it: search traffic scales with registry size, and
+registry size is gated on payers publishing base URLs.
+
 ## Quick start
 
 ```bash

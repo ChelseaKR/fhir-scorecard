@@ -44,8 +44,10 @@ def test_cli_offline_end_to_end(tmp_path: Path, capsys: object) -> None:
     assert grades["beta-dark"] == "F"  # missing fixture = unreachable = fail closed
     assert "disclaimer" in payload
 
-    html_out = (out / "index.html").read_text()
-    assert "Alpha Reference" in html_out and "lang=\"en\"" in html_out
+    home = (out / "index.html").read_text()
+    assert 'lang="en"' in home and "FHIR Scorecard" in home
+    alpha_page = (out / "endpoint" / "alpha" / "index.html").read_text()
+    assert "Alpha Reference" in alpha_page
 
     # Drift history persists across runs; a capability change surfaces in the next report.
     assert json.loads(history.read_text())["alpha"]["first_seen"]
@@ -56,7 +58,8 @@ def test_cli_offline_end_to_end(tmp_path: Path, capsys: object) -> None:
     alpha = next(s for s in json.loads((out / "scorecards.json").read_text())["scorecards"]
                  if s["endpoint_id"] == "alpha")
     assert any("software_version" in e for e in alpha["drift_events"])
-    assert "Capability changes" in (out / "index.html").read_text()
+    assert "Declared capability changes" in (
+        out / "endpoint" / "alpha" / "index.html").read_text()
 
 
 def test_cli_offline_requires_fixtures(tmp_path: Path) -> None:
@@ -128,7 +131,8 @@ def test_vantage_recorded_in_outputs(tmp_path: Path) -> None:
     alpha = next(s for s in payload["scorecards"] if s["endpoint_id"] == "alpha")
     r2 = next(f for d in alpha["dimensions"] for f in d["findings"] if f["code"] == "R2")
     assert "github-actions/ubuntu-latest" in r2["message"]
-    assert "github-actions/ubuntu-latest" in (out / "index.html").read_text()
+    assert "github-actions/ubuntu-latest" in (
+        out / "endpoint" / "alpha" / "index.html").read_text()
 
 
 def test_recheck_reports_without_touching_registry(tmp_path: Path, monkeypatch) -> None:

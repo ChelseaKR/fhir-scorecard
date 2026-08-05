@@ -15,6 +15,18 @@ from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.registry import Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import render_html, to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
+from fhir_scorecard.site import (
+    DEFAULT_ORIGIN,
+    endpoint_page,
+    home_page,
+    how_we_grade_page,
+    kind_page,
+    org_page,
+    org_slug,
+    robots,
+    sitemap,
+    write_page,
+)
 
 
 def _offline_fetch(fixtures: Path, endpoint_id: str, filename: str, url: str) -> FetchResult:
@@ -70,6 +82,8 @@ def main(argv: list[str] | None = None) -> int:
     grade.add_argument("--fixtures", type=Path, default=None)
     grade.add_argument("--history", type=Path, default=Path("data/history.json"),
                        help="capability drift history file (read and updated each run)")
+    grade.add_argument("--origin", default=DEFAULT_ORIGIN,
+                       help="canonical site origin, used for canonical URLs and the sitemap")
     grade.add_argument("--vantage", default="unspecified",
                        help="label for where this run measured from; latency is single-vantage "
                             "and a network path difference must not be read as a server change")
@@ -106,9 +120,48 @@ def main(argv: list[str] | None = None) -> int:
     (args.out / "index.html").write_text(
         render_html(scorecards, generated_at=generated_at, vantage=args.vantage),
         encoding="utf-8")
+    _write_site(scorecards, endpoints, args.out, args.origin, generated_at)
+
     for s in scorecards:
         print(f"{s.grade}  {s.endpoint_id}")
     return 0
+
+
+def _write_site(scorecards: list[Scorecard], endpoints: list[Endpoint], out: Path,
+                origin: str, generated_at: str) -> None:
+    """One indexable page per endpoint, organization, and category, plus sitemap and robots."""
+    origin = origin.rstrip("/")
+    by_id = {e.endpoint_id: e for e in endpoints}
+    pages = [home_page(scorecards, origin), how_we_grade_page(origin)]
+
+    for card in scorecards:
+        entry = by_id.get(card.endpoint_id)
+        pages.append(endpoint_page(
+            card,
+            base_url=entry.base_url if entry else "",
+            verified=(f"{entry.verified_method} (recorded {entry.verified_date})"
+                      if entry else "verification record unavailable"),
+            origin=origin,
+        ))
+
+    by_kind: dict[str, list[Scorecard]] = {}
+    for card in scorecards:
+        by_kind.setdefault(card.kind, []).append(card)
+    pages.extend(kind_page(kind, cards, origin) for kind, cards in by_kind.items())
+
+    # Organization pages only where an organization actually has more than one surface;
+    # a page that duplicates a single endpoint page is thin content, not a search surface.
+    by_org: dict[str, list[Scorecard]] = {}
+    for card in scorecards:
+        by_org.setdefault(org_slug(card.name), []).append(card)
+    for cards in by_org.values():
+        if len(cards) > 1:
+            pages.append(org_page(cards[0].name.split("(")[0].strip(), cards, origin))
+
+    for page in pages:
+        write_page(out, page, origin, generated_at)
+    (out / "sitemap.xml").write_text(sitemap(pages, origin), encoding="utf-8")
+    (out / "robots.txt").write_text(robots(origin), encoding="utf-8")
 
 
 if __name__ == "__main__":

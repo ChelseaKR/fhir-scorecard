@@ -57,7 +57,7 @@ def _score(findings: list[Finding]) -> int:
     return round(100 * earned / total) if total else 0
 
 
-def grade_reachability(metadata: FetchResult) -> DimensionScore:
+def grade_reachability(metadata: FetchResult, *, vantage: str = "unspecified") -> DimensionScore:
     findings: list[Finding] = []
     reachable = metadata.ok
     findings.append(Finding(
@@ -75,7 +75,8 @@ def grade_reachability(metadata: FetchResult) -> DimensionScore:
         points = 40 if fast else (20 if acceptable else 0)
         findings.append(Finding(
             code="R2", ok=fast, points=points, max_points=40,
-            message=f"/metadata responded in {metadata.elapsed_ms} ms (single vantage point)",
+            message=(f"/metadata responded in {metadata.elapsed_ms} ms "
+                     f"(single vantage point: {vantage})"),
             citation=_FHIR_HTTP,
         ))
     else:
@@ -172,10 +173,11 @@ def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:
 def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
                     facts: CapabilityFacts, smart: SmartFacts, *,
                     kind: str = "reference",
+                    vantage: str = "unspecified",
                     observed_since: str | None = None,
                     drift_events: tuple[str, ...] = ()) -> Scorecard:
     dimensions = (
-        grade_reachability(metadata),
+        grade_reachability(metadata, vantage=vantage),
         grade_transparency(facts),
         grade_interop(facts, smart),
     )

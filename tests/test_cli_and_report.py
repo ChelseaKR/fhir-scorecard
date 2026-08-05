@@ -110,3 +110,22 @@ def test_report_groups_by_kind_and_never_ranks_across() -> None:
     assert "EHR vendor sandboxes (1)" in html_out
     # Two separate tables, not one merged ranking.
     assert html_out.count("<table>") == 2
+
+
+def test_vantage_recorded_in_outputs(tmp_path: Path) -> None:
+    """Latency is single-vantage; the run must say where it measured from."""
+    fixtures = tmp_path / "fixtures" / "alpha"
+    fixtures.mkdir(parents=True)
+    (fixtures / "metadata.json").write_text(json.dumps(good_capability()))
+    (fixtures / "smart.json").write_text(json.dumps(good_smart()))
+    out = tmp_path / "site"
+    assert main(["grade", "--registry", str(_registry(tmp_path)), "--offline",
+                 "--fixtures", str(tmp_path / "fixtures"), "--out", str(out),
+                 "--history", str(tmp_path / "h.json"),
+                 "--vantage", "github-actions/ubuntu-latest"]) == 0
+    payload = json.loads((out / "scorecards.json").read_text())
+    assert payload["vantage"] == "github-actions/ubuntu-latest"
+    alpha = next(s for s in payload["scorecards"] if s["endpoint_id"] == "alpha")
+    r2 = next(f for d in alpha["dimensions"] for f in d["findings"] if f["code"] == "R2")
+    assert "github-actions/ubuntu-latest" in r2["message"]
+    assert "github-actions/ubuntu-latest" in (out / "index.html").read_text()

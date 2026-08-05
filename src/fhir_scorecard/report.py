@@ -9,10 +9,12 @@ from dataclasses import asdict
 from fhir_scorecard.grading import Scorecard
 
 
-def to_json(scorecards: list[Scorecard], *, generated_at: str) -> str:
+def to_json(scorecards: list[Scorecard], *, generated_at: str,
+            vantage: str = "unspecified") -> str:
     payload = {
         "generator": "fhir-scorecard",
         "generated_at": generated_at,
+        "vantage": vantage,
         "disclaimer": ("Observational snapshot of public, unauthenticated FHIR discovery "
                        "surfaces. Not an audit, a ranking of care quality, or a statement "
                        "about any organization's regulatory compliance."),
@@ -82,7 +84,8 @@ def _summary_table(scorecards: list[Scorecard]) -> str:
     return "".join(tables)
 
 
-def render_html(scorecards: list[Scorecard], *, generated_at: str) -> str:
+def render_html(scorecards: list[Scorecard], *, generated_at: str,
+                vantage: str = "unspecified") -> str:
     body = _summary_table(scorecards) + "".join(_card(s) for s in scorecards)
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -108,8 +111,9 @@ th, td {{ text-align: left; padding: .35rem .5rem; border-bottom: 1px solid #eee
 <header>
 <h1>FHIR Scorecard</h1>
 <p>Deterministic grades for publicly observable FHIR endpoint surfaces. Generated
-{html.escape(generated_at)}. No patient data is ever accessed; only public
-<code>/metadata</code> and SMART discovery documents are graded.</p>
+{html.escape(generated_at)} from a single vantage point ({html.escape(vantage)}).
+No patient data is ever accessed; only public <code>/metadata</code> and SMART discovery
+documents are graded. Grades are comparable only within a kind.</p>
 </header>
 <main>
 {body}

@@ -65,9 +65,35 @@ ranks across them.
 | Elevance TotalView /r4 | totalview.healthos.elevancehealth.com/fhir/r4 | Rejected: answered HTML, not a CapabilityStatement |
 | Logica Health sandbox | api.logicahealth.org/fhirserver/open | Rejected: DNS did not resolve |
 
-Running total across three waves: **11 of 32 probed endpoints** expose an unauthenticated
-CapabilityStatement. Restricted to payers it is **6 of 22**. EHR vendors publish open sandboxes
-as a matter of course; payers largely do not, which is the asymmetry this dataset documents.
+## 2026-08-05 (fourth wave) and a correction to the headline statistic
 
-Next: state Medicaid managed-care plans; plans whose portals advertise an explicitly open
-sandbox; re-probe rejected payers periodically, since a 404 today may be a live endpoint later.
+Probed ten Medicaid managed-care and regional plans using the URL pattern many payers follow
+(`patientaccess.<company>.com/fhir/r4`), plus re-probes of two earlier failures. **All twelve
+failed**, ten of them because the hostname does not resolve.
+
+| Candidate | Outcome |
+|---|---|
+| Healthfirst NY, Molina, EmblemHealth, HCSC/BCBSIL, Wellcare, CareFirst, Premera, BCBS MA, Highmark, Point32Health | Rejected: DNS did not resolve (pattern guesses) |
+| Kaiser Permanente (re-probe) | Rejected: HTTP 410 Gone, unchanged since 2026-08-05 wave 2 |
+| Centene (re-probe) | Rejected: DNS did not resolve, unchanged |
+
+**Correction.** Earlier waves reported "6 of 22 payer candidates verified." That number
+conflated two different populations: endpoints whose base URL was **documented** on a public
+developer portal, and endpoints whose URL I **guessed** from a naming pattern. A guessed hostname
+that does not resolve says nothing about the payer; it says the guess was wrong. Reporting them
+together inflates a claim about industry practice using my own failed guesses as evidence.
+
+Corrected counts, payers only:
+
+| Population | Probed | Verified |
+|---|---|---|
+| Base URL documented on a public developer portal | 10 | **6** |
+| Base URL guessed from a naming pattern | 18 | **0** |
+
+The defensible claim is the first row, and even that is small-N. The second row is a fact about
+guessing, not about payers. The zero is still informative in one narrow sense: payer FHIR base
+URLs are not predictable from company names, so any registry of them has to be curated from
+documentation rather than generated.
+
+Next: source base URLs from CMS's own payer API listings and individual plan developer portals
+rather than patterns; re-probe rejected payers quarterly, since a 404 today may be live later.

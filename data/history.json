@@ -294,7 +294,14 @@
     ]
   },
   "medplum": {
-    "events": [],
+    "events": [
+      {
+        "changes": [
+          "software_version: '5.1.27-042f741' -> '5.1.28-9e40e9c'"
+        ],
+        "date": "2026-08-05"
+      }
+    ],
     "fingerprint": {
       "declares_oauth_security": true,
       "fhir_version": "4.0.1",
@@ -303,7 +310,7 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "medplum",
-      "software_version": "5.1.27-042f741"
+      "software_version": "5.1.28-9e40e9c"
     },
     "first_seen": "2026-08-05",
     "last_seen": "2026-08-05",

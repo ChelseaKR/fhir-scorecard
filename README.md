@@ -13,8 +13,8 @@ publish a letter grade with a short, prioritized list of findings and spec citat
 
 Everything graded here is **public, unauthenticated surface**:
 
-- `[base]/metadata` — the FHIR CapabilityStatement every server must expose
-- `[base]/.well-known/smart-configuration` — SMART on FHIR discovery
+- `[base]/metadata` , the FHIR CapabilityStatement every server must expose
+- `[base]/.well-known/smart-configuration` , SMART on FHIR discovery
 
 This project **never accesses patient data, never authenticates, and never probes beyond the
 public discovery surface**. One request per resource per run, an identifying User-Agent with a

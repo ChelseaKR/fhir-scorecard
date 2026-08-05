@@ -68,6 +68,17 @@
       "enabled": true
     },
     {
+      "id": "capital-bluecross",
+      "name": "Capital Blue Cross Patient Access API",
+      "kind": "payer",
+      "base_url": "https://patientaccess-api.capbluecross.com/r4",
+      "verification": {
+        "method": "live CapabilityStatement fetch from the github-actions vantage (28 resource types, fhirVersion 4.0.1); base URL published in Capital Blue Cross's own Patient Access API access guide. Not reachable from the davis-ca/residential vantage due to local TLS interception, which is a property of that network rather than the endpoint.",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    },
+    {
       "id": "cigna-provider-directory",
       "name": "Cigna Provider Directory API",
       "kind": "payer_provider_directory",

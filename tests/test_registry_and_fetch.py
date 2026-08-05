@@ -107,7 +107,7 @@ def test_fetch_success_via_injected_opener() -> None:
 
 def test_fetch_network_error_fails_closed() -> None:
     result = fetch_json("https://x.test/metadata", opener=_FakeOpener(raises=TimeoutError()))
-    assert not result.ok and result.error == "TimeoutError"
+    assert not result.ok and result.error == "connection timed out"
 
 
 def test_expects_defaults_to_r4_and_validates(tmp_path: Path) -> None:
@@ -120,3 +120,40 @@ def test_expects_defaults_to_r4_and_validates(tmp_path: Path) -> None:
     assert version_prefix("stu3") == "3."
     assert version_prefix("r5") == "5."
     assert version_prefix("nonsense") == "4."  # falls back to the CMS-required release
+
+
+def test_error_descriptions_distinguish_causes() -> None:
+    """Bare 'URLError' conflates a host that does not exist with one this vantage cannot reach.
+    On 2026-08-05 that ambiguity recorded a live payer endpoint as dead."""
+    import socket
+    import ssl
+    import urllib.error
+
+    from fhir_scorecard.fetch import describe_error
+
+    cert = ssl.SSLCertVerificationError("bad chain")
+    cert.verify_message = "self-signed certificate in certificate chain"
+    tls = describe_error(urllib.error.URLError(cert))
+    assert "TLS certificate verification failed" in tls
+    assert "vantage-local" in tls
+
+    gai = socket.gaierror(8, "nodename nor servname provided")
+    dns = describe_error(urllib.error.URLError(gai))
+    assert "DNS did not resolve" in dns
+
+    assert "timed out" in describe_error(urllib.error.URLError(TimeoutError()))
+    assert "refused" in describe_error(urllib.error.URLError(ConnectionRefusedError()))
+    assert describe_error(ValueError()) == "ValueError"
+
+
+def test_fetch_surfaces_tls_interception(monkeypatch) -> None:
+    import ssl
+    import urllib.error
+
+    cert = ssl.SSLCertVerificationError("bad chain")
+    cert.verify_message = "self-signed certificate in certificate chain"
+
+    result = fetch_json("https://x.test/metadata",
+                        opener=_FakeOpener(raises=urllib.error.URLError(cert)))
+    assert not result.ok
+    assert result.error is not None and "vantage-local" in result.error

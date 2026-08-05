@@ -6,6 +6,7 @@ conservative timeouts. The opener is injectable so tests never touch the network
 
 from __future__ import annotations
 
+import socket
 import ssl
 import time
 import urllib.error
@@ -63,4 +64,38 @@ def fetch_json(
     except (urllib.error.URLError, TimeoutError, ssl.SSLError, OSError) as exc:
         elapsed = int((time.monotonic() - started) * 1000)
         return FetchResult(url=url, ok=False, status=None, elapsed_ms=elapsed,
-                           body=b"", error=type(exc).__name__)
+                           body=b"", error=describe_error(exc))
+
+
+def describe_error(exc: BaseException) -> str:
+    """Name the cause, not just the exception class.
+
+    Bare ``URLError`` conflates three very different things: a host that does not exist, a host
+    this vantage cannot reach, and a TLS handshake this vantage rejects. On 2026-08-05 a live
+    payer endpoint (Capital Blue Cross, HTTP 415 under curl, a full CapabilityStatement from CI)
+    was recorded as dead because a TLS-intercepting middlebox on the probing network produced a
+    certificate error that surfaced only as "URLError". A rejection log is worth nothing if it
+    cannot distinguish "does not exist" from "I could not get there from here".
+    """
+    reason = getattr(exc, "reason", None)
+    if isinstance(reason, ssl.SSLCertVerificationError):
+        return (f"TLS certificate verification failed ({reason.verify_message or reason.reason}); "
+                "likely a vantage-local interception, not an endpoint fault")
+    if isinstance(reason, ssl.SSLError):
+        return f"TLS error: {type(reason).__name__}"
+    if isinstance(reason, socket.gaierror):
+        return f"DNS did not resolve ({reason.strerror or 'gaierror'})"
+    if isinstance(reason, TimeoutError):
+        return "connection timed out"
+    if isinstance(reason, ConnectionRefusedError):
+        return "connection refused"
+    if isinstance(exc, ssl.SSLCertVerificationError):
+        return (f"TLS certificate verification failed ({exc.verify_message or exc.reason}); "
+                "likely a vantage-local interception, not an endpoint fault")
+    if isinstance(exc, socket.gaierror):
+        return f"DNS did not resolve ({exc.strerror or 'gaierror'})"
+    if isinstance(exc, TimeoutError):
+        return "connection timed out"
+    if reason is not None:
+        return f"{type(exc).__name__}: {reason}"
+    return type(exc).__name__

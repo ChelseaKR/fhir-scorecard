@@ -16,20 +16,6 @@
       "source": "guessed pattern"
     },
     {
-      "id": "capital-bluecross",
-      "name": "Capital Blue Cross",
-      "base_url": "https://patientaccess-api.capbluecross.com/r4",
-      "last_outcome": "DNS did not resolve (2026-08-05)",
-      "source": "developer portal documentation"
-    },
-    {
-      "id": "capital-bluecross-demo",
-      "name": "Capital Blue Cross (demo)",
-      "base_url": "https://patientaccess-api-demo.capbluecross.com/r4",
-      "last_outcome": "DNS did not resolve (2026-08-05)",
-      "source": "developer portal documentation"
-    },
-    {
       "id": "humana-sandbox",
       "name": "Humana sandbox",
       "base_url": "https://fhir.humana.com/sandbox/api",

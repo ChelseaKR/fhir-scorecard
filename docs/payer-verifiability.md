@@ -27,18 +27,22 @@ Then I went looking for endpoints to point it at.
 
 ## The finding
 
-Payer candidates fall into two populations that must be counted separately:
+Payer candidates fall into two populations that must be counted separately, and the honest unit
+is the organization rather than the URL:
 
-| Payer candidates | Probed | Verified |
+| Payer organizations | Probed | Verified |
 |---|---|---|
-| Base URL documented on a public developer portal | 10 | **6** |
-| Base URL guessed from a naming pattern | 18 | **0** |
+| Base URL documented on a public developer portal | 9 | **7** |
+| Base URL guessed from a naming pattern | 15 | **0** |
 
-Only the first row supports any claim about payers, and n=10 is small. I am reporting the second
+Only the first row supports any claim about payers, and n=9 is small. I am reporting the second
 row because omitting it would be dishonest, not because it is evidence: a guessed hostname that
-does not resolve tells you the guess was wrong, nothing more. Early drafts of this work conflated
-the two into "6 of 22," which inflated a claim about industry practice using my own bad guesses.
-That was corrected in the repository's candidate log.
+does not resolve tells you the guess was wrong, nothing more.
+
+Both numbers moved during this work, in both directions. An early draft reported "6 of 22,"
+conflating guessed URLs with documented ones and inflating a claim about industry practice using
+my own bad guesses. Later, two endpoints I had recorded as dead turned out to be alive (see
+below). Each correction is in the repository's candidate log rather than quietly folded in.
 
 The one inference the zero does support is narrow and practical: **payer FHIR base URLs are not
 predictable from company names.** Any registry of them has to be curated from documentation,
@@ -97,9 +101,19 @@ surface, which penalized correct behavior. Those findings are now not-applicable
 **Graded R5 servers as failing R4.** The version check assumed R4 universally. Endpoints now
 declare which release they intend to serve and are checked against that.
 
-Three of those four are the same error: treating one API shape's expectations as universal. A
+**Recorded a live endpoint as dead, twice.** Capital Blue Cross's Patient Access API failed my
+probe with a bare `URLError`, so I logged it as unreachable. It is not: a middlebox on my
+network intercepts TLS, and the resulting certificate error surfaced only as that one useless
+word. The quarterly re-probe caught it, because CI runs from a different vantage and got a full
+CapabilityStatement. Errors now name the cause, and "TLS certificate verification failed, likely
+a vantage-local interception" reads very differently from "DNS did not resolve." A rejection log
+is worth nothing if it cannot distinguish *does not exist* from *I could not get there from
+here*.
+
+Three of those five are the same error: treating one API shape's expectations as universal. A
 grader that cannot say "not applicable" will eventually punish something for being correctly
-different.
+different. The last one is a different lesson, and a harder one: an error message that names
+only its exception class can send you to the wrong conclusion with total confidence.
 
 ## Caveats
 
@@ -108,7 +122,7 @@ coarse for that reason. Grades are comparable only within a kind, so the report 
 payer API against an EHR sandbox. Nothing here is an audit, a compliance determination, or a
 statement about anyone's care quality; it is a snapshot of public surfaces on a given day.
 
-Every probe, including all 45 rejections and their failure modes, is in
+Every probe, including all rejections and their failure modes, is in
 [`data/CANDIDATES.md`](../data/CANDIDATES.md). The live scorecard is at
 [chelseakr.github.io/fhir-scorecard](https://chelseakr.github.io/fhir-scorecard/) and regrades
 daily.

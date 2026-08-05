@@ -17,9 +17,16 @@ def _write(tmp_path: Path, rejected: list[dict]) -> Path:
 
 
 def test_shipped_rejected_file_loads() -> None:
+    """Count is not asserted: entries leave this file when a re-probe promotes them into the
+    registry, which is the point of re-probing."""
     cands = load_candidates(Path(__file__).parent.parent / "data" / "rejected.json")
-    assert len(cands) >= 10
+    assert cands
     assert all(c.base_url.startswith("https://") for c in cands)
+    registry = json.loads(
+        (Path(__file__).parent.parent / "data" / "registry.json").read_text())
+    registered = {e["base_url"].rstrip("/") for e in registry["endpoints"]}
+    # A candidate cannot be both rejected and registered.
+    assert not registered & {c.base_url for c in cands}
 
 
 def test_missing_fields_refused(tmp_path: Path) -> None:

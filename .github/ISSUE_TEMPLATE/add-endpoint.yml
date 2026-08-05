@@ -1,0 +1,74 @@
+name: Add or correct an endpoint
+description: Tell us about a public FHIR endpoint we are missing or have wrong
+title: "[endpoint] "
+labels: ["registry"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. If we recorded your endpoint as unreachable and it is not, we would rather be
+        corrected than counted right. This has already happened once: a live payer endpoint was
+        logged as dead because a middlebox on the probing network intercepted TLS.
+
+        Only public, unauthenticated surfaces are graded. We never register for API access,
+        never authenticate, and never request patient data.
+  - type: input
+    id: organization
+    attributes:
+      label: Organization
+      placeholder: Example Health Plan
+    validations:
+      required: true
+  - type: input
+    id: base_url
+    attributes:
+      label: FHIR base URL
+      description: "The base, not the metadata path. We append /metadata ourselves."
+      placeholder: https://fhir.example.com/r4
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Category
+      description: Grades are only comparable within a category.
+      options:
+        - Payer Patient Access API
+        - Payer Provider Directory API
+        - Provider or health system API
+        - EHR vendor sandbox
+        - Reference or test server
+    validations:
+      required: true
+  - type: dropdown
+    id: fhir_release
+    attributes:
+      label: FHIR release
+      description: Endpoints are graded against the release they intend to serve.
+      options: ["R4", "R5", "STU3"]
+    validations:
+      required: true
+  - type: input
+    id: documentation
+    attributes:
+      label: Public documentation URL
+      description: >
+        Where this base URL is published. This is how we confirm the publisher is who the entry
+        claims, which is what "verified" means here. Entries without it are not added.
+      placeholder: https://example.com/developers
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: Corrections to an existing entry, or context on what we got wrong.
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Please confirm
+      options:
+        - label: This base URL is intended to be publicly reachable without authentication
+          required: true
+        - label: I am not asking you to authenticate, register, or request patient data
+          required: true

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 from fhir_scorecard.capability import CapabilityFacts, SmartFacts
 from fhir_scorecard.fetch import FetchResult
+from fhir_scorecard.vantage import Consensus
 
 _FHIR_CAPS = "https://hl7.org/fhir/R4/capabilitystatement.html"
 _FHIR_HTTP = "https://hl7.org/fhir/R4/http.html"
@@ -44,6 +45,8 @@ class Scorecard:
     grade: str
     reachable: bool
     dimensions: tuple[DimensionScore, ...]
+    # Multi-vantage reconciliation summary, when more than one vantage reported.
+    vantage_note: str = ""
     # Grades are only comparable within a kind; the report groups by it and never ranks across.
     kind: str = "reference"
     # Drift is informational, not scored (a capability change is often a legitimate upgrade).
@@ -60,26 +63,39 @@ def _score(findings: list[Finding]) -> int:
     return round(100 * earned / total) if total else 0
 
 
-def grade_reachability(metadata: FetchResult, *, vantage: str = "unspecified") -> DimensionScore:
+def grade_reachability(metadata: FetchResult, *, vantage: str = "unspecified",
+                       consensus: Consensus | None = None) -> DimensionScore:
+    """Grade reachability, preferring a multi-vantage consensus when one is available.
+
+    One vantage reaching an endpoint settles that it is reachable; one vantage failing settles
+    nothing. Single-vantage runs fall back to what this run saw, and say so.
+    """
     findings: list[Finding] = []
-    reachable = metadata.ok
-    findings.append(Finding(
-        code="R1", ok=reachable, points=60 if reachable else 0, max_points=60,
-        message="/metadata answers with HTTP 2xx over HTTPS" if reachable
-        else f"/metadata unreachable: {metadata.error or f'HTTP {metadata.status}'}",
-        citation=_FHIR_HTTP,
-    ))
+    reachable = consensus.reachable if consensus is not None else metadata.ok
+    if consensus is not None:
+        r1_message = ("/metadata answers with HTTP 2xx over HTTPS: " + consensus.detail
+                      if reachable else "/metadata " + consensus.detail)
+    elif reachable:
+        r1_message = "/metadata answers with HTTP 2xx over HTTPS"
+    else:
+        r1_message = f"/metadata unreachable: {metadata.error or f'HTTP {metadata.status}'}"
+    findings.append(Finding(code="R1", ok=reachable, points=60 if reachable else 0,
+                            max_points=60, message=r1_message, citation=_FHIR_HTTP))
     if reachable:
         # Latency is measured from a single vantage point per run, so bands are deliberately
         # coarse (2026-08-05): a ~1s network difference between vantages must not flip a grade.
         # The raw milliseconds are always reported for readers who care about the exact number.
-        fast = metadata.elapsed_ms <= 3000
-        acceptable = metadata.elapsed_ms <= 8000
+        elapsed = consensus.elapsed_ms if consensus is not None else metadata.elapsed_ms
+        fast = elapsed <= 3000
+        acceptable = elapsed <= 8000
         points = 40 if fast else (20 if acceptable else 0)
+        if consensus is not None and consensus.vantages > 1:
+            where = f"median across {consensus.agreeing} reachable vantages"
+        else:
+            where = f"single vantage point: {vantage}"
         findings.append(Finding(
             code="R2", ok=fast, points=points, max_points=40,
-            message=(f"/metadata responded in {metadata.elapsed_ms} ms "
-                     f"(single vantage point: {vantage})"),
+            message=f"/metadata responded in {elapsed} ms ({where})",
             citation=_FHIR_HTTP,
         ))
     else:
@@ -203,21 +219,26 @@ def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
                     kind: str = "reference",
                     version_prefix: str = "4.",
                     vantage: str = "unspecified",
+                    consensus: Consensus | None = None,
                     observed_since: str | None = None,
                     drift_events: tuple[str, ...] = (),
                     availability: str = "") -> Scorecard:
     dimensions = (
-        grade_reachability(metadata, vantage=vantage),
+        grade_reachability(metadata, vantage=vantage, consensus=consensus),
         grade_transparency(facts, version_prefix=version_prefix),
         grade_interop(facts, smart, kind=kind),
     )
     return Scorecard(
         endpoint_id=endpoint_id,
         name=name,
-        grade=letter(dimensions, reachable=metadata.ok),
-        reachable=metadata.ok,
+        # The reconciled view decides the grade: an endpoint another vantage reached is not an
+        # F just because this network could not get to it.
+        grade=letter(dimensions,
+                     reachable=consensus.reachable if consensus is not None else metadata.ok),
+        reachable=consensus.reachable if consensus is not None else metadata.ok,
         dimensions=dimensions,
         kind=kind,
+        vantage_note=consensus.detail if consensus is not None and consensus.vantages > 1 else "",
         observed_since=observed_since,
         drift_events=drift_events,
         availability=availability,

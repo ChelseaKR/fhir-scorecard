@@ -134,6 +134,8 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
   <dt>Base URL</dt><dd><code>{html.escape(base_url)}</code></dd>
   <dt>Category</dt><dd>{html.escape(kind_label)}</dd>
   <dt>Availability</dt><dd>{html.escape(card.availability or "not yet recorded")}</dd>
+  {f'<dt>Vantage agreement</dt><dd>{html.escape(card.vantage_note)}</dd>'
+   if card.vantage_note else ''}
 </dl>
 {_findings_html(card)}
 {drift}
@@ -356,6 +358,7 @@ the full write-up</a>, including the measurement errors this project made and co
 its citation</li>
 <li><a href="https://github.com/ChelseaKR/fhir-scorecard">Source, registry, and
 candidate log</a></li>
+<li><a href="/fhir-scorecard/claim/">Add, correct, or remove an endpoint</a></li>
 </ul>
 <p class="caveat">Observational snapshots of public surfaces. Not audits, not rankings of care
 quality, not statements about anyone's regulatory compliance.</p>
@@ -397,6 +400,42 @@ _FINDING_DOCS = [
     ("I3", "Declared security", "Does the CapabilityStatement declare an OAuth/SMART service?",
      "Not applicable to Provider Directory APIs, for the same reason as I2."),
 ]
+
+
+def claim_page(origin: str) -> Page:
+    body = """
+<nav aria-label="Breadcrumb"><a href="/fhir-scorecard/">Home</a></nav>
+<h1>Add, correct, or remove an endpoint</h1>
+<p class="lede">If we got something wrong about your organization, we would rather be corrected
+than counted right.</p>
+<h2>We are missing your endpoint</h2>
+<p>Payer FHIR base URLs are not predictable from company names, so this registry is built one
+developer portal at a time and is certainly incomplete. Absence from this list means no public
+base URL was found, not that no API exists.</p>
+<p><a href="https://github.com/ChelseaKR/fhir-scorecard/issues/new?template=add-endpoint.yml">Tell
+us about an endpoint</a>. We need the base URL and a link to where it is published, because
+confirming the publisher is who the entry claims is what verification means here. Nothing is
+added on an unverified submission.</p>
+<h2>Something here is wrong</h2>
+<p>This has happened. A live payer endpoint was recorded as dead because a middlebox on the
+probing network intercepted TLS and the error surfaced as one uninformative word. That is why
+probing now runs from several vantages and why reaching an endpoint from anywhere settles that
+it is up.</p>
+<p><a href="https://github.com/ChelseaKR/fhir-scorecard/issues/new?template=remove-or-dispute.yml">Dispute
+or remove an entry</a>. You do not need to prove anything first.</p>
+<h2>What we do to your servers</h2>
+<p>At most two unauthenticated GET requests per run: <code>/metadata</code> and
+<code>/.well-known/smart-configuration</code>. Requests carry an identifying User-Agent with a
+contact address. We never authenticate, never register for API access, never request patient
+data, and never probe beyond those two paths.</p>
+<p class="caveat">Grades describe observable properties of public documents. They are not
+audits, not compliance determinations, and not statements about care quality.</p>
+"""
+    return Page(path="claim",
+                title="Add, correct, or remove a FHIR endpoint listing",
+                description=("Submit a public FHIR endpoint, correct a mistake, or ask to be "
+                             "removed. What this project does and does not do to your servers."),
+                body=body, changefreq="monthly", priority="0.6")
 
 
 def how_we_grade_page(origin: str) -> Page:

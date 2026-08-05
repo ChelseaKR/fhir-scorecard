@@ -122,3 +122,18 @@ def test_single_surface_orgs_get_no_thin_org_page(tmp_path: Path) -> None:
                  "--history", str(tmp_path / "h.json")]) == 0
     assert (out / "endpoint" / "solo" / "index.html").is_file()
     assert not (out / "org").exists()
+
+
+def test_claim_page_states_what_we_do_to_servers(tmp_path: Path) -> None:
+    """The claim flow has to say plainly what probing does, or it is asking for trust blindly."""
+    from fhir_scorecard.site import claim_page
+    page = claim_page("https://example.test")
+    # Normalized, because the source wraps at 100 columns and the promises span line breaks.
+    flat = " ".join(page.body.split())
+    assert "never authenticate" in flat
+    assert "never request patient data" in flat
+    assert "two unauthenticated GET requests" in flat
+    assert "add-endpoint.yml" in flat
+    assert "remove-or-dispute.yml" in flat
+    # It must own the mistake that motivated multi-vantage probing.
+    assert "intercepted TLS" in flat

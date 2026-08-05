@@ -18,6 +18,7 @@ from fhir_scorecard.report import render_html, to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
 from fhir_scorecard.site import (
     DEFAULT_ORIGIN,
+    claim_page,
     endpoint_page,
     home_page,
     how_we_grade_page,
@@ -28,6 +29,7 @@ from fhir_scorecard.site import (
     sitemap,
     write_page,
 )
+from fhir_scorecard.vantage import VantageProbe, load_probe_files, reconcile, write_probes
 
 
 def _offline_fetch(fixtures: Path, endpoint_id: str, filename: str, url: str) -> FetchResult:
@@ -40,7 +42,9 @@ def _offline_fetch(fixtures: Path, endpoint_id: str, filename: str, url: str) ->
 
 
 def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
-                    history: dict[str, Any], today: str, vantage: str) -> Scorecard:
+                    history: dict[str, Any], today: str, vantage: str,
+                    other_probes: dict[str, list[VantageProbe]],
+                    probes_seen: dict[str, VantageProbe]) -> Scorecard:
     metadata_url = f"{endpoint.base_url}/metadata"
     smart_url = f"{endpoint.base_url}/.well-known/smart-configuration"
     if offline and fixtures is not None:
@@ -51,9 +55,30 @@ def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
         smart = fetch_json(smart_url)
     facts = parse_capability(metadata.body) if metadata.ok else parse_capability(b"")
     smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
-    drift = observe(history, endpoint.endpoint_id, facts, today, reachable=metadata.ok)
+
+    mine = VantageProbe(
+        vantage=vantage, reachable=metadata.ok, elapsed_ms=metadata.elapsed_ms,
+        error=metadata.error,
+        capability=metadata.body.decode("utf-8", "replace") if metadata.ok else None,
+        smart=smart.body.decode("utf-8", "replace") if smart.ok else None)
+    probes_seen[endpoint.endpoint_id] = mine
+    all_probes = [mine, *other_probes.get(endpoint.endpoint_id, [])]
+    consensus = reconcile(all_probes) if len(all_probes) > 1 else None
+
+    # Availability reflects the reconciled view: an endpoint another vantage reached was up,
+    # whatever this network saw.
+    was_up = consensus.reachable if consensus is not None else metadata.ok
+
+    # If this vantage was blocked but another retrieved the documents, grade their content
+    # rather than scoring zero for material we simply never received.
+    if not metadata.ok and consensus is not None and consensus.capability:
+        facts = parse_capability(consensus.capability.encode("utf-8"))
+        if consensus.smart:
+            smart_facts = parse_smart(consensus.smart.encode("utf-8"))
+
+    drift = observe(history, endpoint.endpoint_id, facts, today, reachable=was_up)
     return build_scorecard(endpoint.endpoint_id, endpoint.name, metadata, facts, smart_facts,
-                           kind=endpoint.kind, vantage=vantage,
+                           kind=endpoint.kind, vantage=vantage, consensus=consensus,
                            version_prefix=version_prefix(endpoint.expects),
                            observed_since=drift.first_seen,
                            drift_events=drift.recorded_events,
@@ -85,6 +110,10 @@ def main(argv: list[str] | None = None) -> int:
                        help="capability drift history file (read and updated each run)")
     grade.add_argument("--origin", default=DEFAULT_ORIGIN,
                        help="canonical site origin, used for canonical URLs and the sitemap")
+    grade.add_argument("--probes-out", type=Path, default=None,
+                       help="write this run's per-endpoint probe results for later merging")
+    grade.add_argument("--probes-in", type=Path, nargs="*", default=None,
+                       help="probe files from other vantages to reconcile with this run")
     grade.add_argument("--vantage", default="unspecified",
                        help="label for where this run measured from; latency is single-vantage "
                             "and a network path difference must not be read as a server change")
@@ -117,10 +146,15 @@ def main(argv: list[str] | None = None) -> int:
 
     today = time.strftime("%Y-%m-%d", time.gmtime())
     history = load_history(args.history)
+    other_probes = load_probe_files(list(args.probes_in or []))
+    probes_seen: dict[str, VantageProbe] = {}
     scorecards = [_grade_endpoint(e, offline=args.offline, fixtures=args.fixtures,
-                                  history=history, today=today, vantage=args.vantage)
+                                  history=history, today=today, vantage=args.vantage,
+                                  other_probes=other_probes, probes_seen=probes_seen)
                   for e in endpoints]
     save_history(args.history, history)
+    if args.probes_out is not None:
+        write_probes(args.probes_out, args.vantage, probes_seen)
 
     generated_at = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
     args.out.mkdir(parents=True, exist_ok=True)
@@ -143,7 +177,7 @@ def _write_site(scorecards: list[Scorecard], endpoints: list[Endpoint], out: Pat
     """One indexable page per endpoint, organization, and category, plus sitemap and robots."""
     origin = origin.rstrip("/")
     by_id = {e.endpoint_id: e for e in endpoints}
-    pages = [home_page(scorecards, origin), how_we_grade_page(origin)]
+    pages = [home_page(scorecards, origin), how_we_grade_page(origin), claim_page(origin)]
 
     for card in scorecards:
         entry = by_id.get(card.endpoint_id)

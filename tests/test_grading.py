@@ -186,3 +186,43 @@ def test_version_checked_against_declared_intent() -> None:
     assert next(f for f in as_r5.findings if f.code == "T1").ok
     assert as_r5.score > as_r4.score
     assert "expected 5.x" in next(f for f in as_r5.findings if f.code == "T1").message
+
+
+def test_consensus_rescues_a_vantage_local_failure(good_capability_bytes: bytes,
+                                                   good_smart_bytes: bytes) -> None:
+    """The real 2026-08-05 case: a live payer endpoint looked dead from one network because a
+    middlebox intercepted TLS. Another vantage reaching it must settle the question."""
+    from fhir_scorecard.vantage import VantageProbe, reconcile
+
+    blocked = FetchResult(url="https://x.test/metadata", ok=False, status=None, elapsed_ms=0,
+                          body=b"", error="TLS certificate verification failed")
+    consensus = reconcile([
+        VantageProbe("home", False, 0, "TLS certificate verification failed"),
+        VantageProbe("ci", True, 640),
+    ])
+    card = build_scorecard("cap", "Capital", blocked,
+                           parse_capability(good_capability_bytes),
+                           parse_smart(good_smart_bytes), consensus=consensus)
+    assert card.reachable
+    assert card.grade != "F"
+    assert "property of that network" in card.vantage_note
+    r1 = next(f for f in card.dimensions[0].findings if f.code == "R1")
+    assert r1.ok
+
+    # Without the second vantage, the same run still fails closed.
+    alone = build_scorecard("cap", "Capital", blocked,
+                            parse_capability(good_capability_bytes),
+                            parse_smart(good_smart_bytes))
+    assert not alone.reachable and alone.grade == "F"
+
+
+def test_unanimous_failure_still_grades_f(good_capability_bytes: bytes) -> None:
+    from fhir_scorecard.vantage import VantageProbe, reconcile
+    down = FetchResult(url="https://x.test/metadata", ok=False, status=404, elapsed_ms=0,
+                       body=b"", error="HTTP 404")
+    consensus = reconcile([VantageProbe("home", False, 0, "HTTP 404"),
+                           VantageProbe("ci", False, 0, "HTTP 404")])
+    card = build_scorecard("gone", "Gone", down, parse_capability(b""), parse_smart(b""),
+                           consensus=consensus)
+    assert not card.reachable and card.grade == "F"
+    assert "unreachable from all 2" in card.vantage_note

@@ -164,3 +164,53 @@ def test_recheck_bad_candidates_file_is_error(tmp_path: Path) -> None:
     path = tmp_path / "rejected.json"
     path.write_text(json.dumps({"rejected": [{"id": "x"}]}))
     assert cli_mod.main(["recheck", "--candidates", str(path)]) == 2
+
+
+def test_blocked_vantage_grades_on_borrowed_documents(tmp_path: Path) -> None:
+    """End to end: the local vantage cannot reach the endpoint, a peer vantage can, and the
+    result is a real grade rather than an F for documents we never received."""
+    from fhir_scorecard.vantage import VantageProbe, write_probes
+
+    registry = tmp_path / "registry.json"
+    registry.write_text(json.dumps({"endpoints": [
+        {"id": "blocked", "name": "Blocked Health", "kind": "payer",
+         "base_url": "https://blocked.test/r4",
+         "verification": {"method": "fixture", "date": "2026-08-05"}}]}))
+
+    peer = tmp_path / "peer.json"
+    write_probes(peer, "peer-vantage", {"blocked": VantageProbe(
+        "peer-vantage", True, 400,
+        capability=json.dumps(good_capability()), smart=json.dumps(good_smart()))})
+
+    out = tmp_path / "site"
+    # No fixture directory for "blocked", so the local probe fails.
+    assert main(["grade", "--registry", str(registry), "--offline",
+                 "--fixtures", str(tmp_path / "none"), "--out", str(out),
+                 "--history", str(tmp_path / "h.json"),
+                 "--probes-in", str(peer), "--vantage", "local"]) == 0
+
+    detail = json.loads((out / "api" / "endpoint" / "blocked.json").read_text())
+    assert detail["endpoint"]["reachable"] == "true"
+    assert detail["endpoint"]["grade"] != "F"
+    assert int(detail["endpoint"]["transparency_score"]) > 0
+
+
+def test_probes_out_records_this_runs_observations(tmp_path: Path) -> None:
+    from fhir_scorecard.vantage import load_probe_files
+
+    registry = tmp_path / "registry.json"
+    registry.write_text(json.dumps({"endpoints": [
+        {"id": "alpha", "name": "Alpha", "kind": "payer", "base_url": "https://a.test/r4",
+         "verification": {"method": "fixture", "date": "2026-08-05"}}]}))
+    d = tmp_path / "fixtures" / "alpha"
+    d.mkdir(parents=True)
+    (d / "metadata.json").write_text(json.dumps(good_capability()))
+    probes = tmp_path / "probes.json"
+    assert main(["grade", "--registry", str(registry), "--offline",
+                 "--fixtures", str(tmp_path / "fixtures"), "--out", str(tmp_path / "site"),
+                 "--history", str(tmp_path / "h.json"),
+                 "--probes-out", str(probes), "--vantage", "runner-1"]) == 0
+    loaded = load_probe_files([probes])
+    assert loaded["alpha"][0].vantage == "runner-1"
+    assert loaded["alpha"][0].reachable
+    assert loaded["alpha"][0].capability  # documents carried for peers to borrow

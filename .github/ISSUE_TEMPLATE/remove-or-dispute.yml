@@ -1,0 +1,34 @@
+name: Dispute or remove an entry
+description: Ask us to correct or take down something about your organization
+title: "[dispute] "
+labels: ["registry", "dispute"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project measures public surfaces and takes a non-adversarial posture. If an entry is
+        wrong, or you would rather not be listed, say so and we will correct or remove it.
+        We do not require you to prove anything first.
+  - type: input
+    id: endpoint
+    attributes:
+      label: Which entry
+      placeholder: "endpoint id or organization name"
+    validations:
+      required: true
+  - type: dropdown
+    id: request
+    attributes:
+      label: What are you asking for
+      options:
+        - Correct a fact
+        - Remove the entry
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: Details
+    validations:
+      required: true

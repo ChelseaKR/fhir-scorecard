@@ -44,13 +44,15 @@ def test_software_change_recorded_with_message() -> None:
 
 
 def test_profile_changes_summarized_not_enumerated() -> None:
+    """Changes are summarized; the history never stores or replays every profile URL."""
     history: dict[str, Any] = {}
     observe(history, "x", _facts(), "2026-08-04")
     doc = good_capability()
     rest = doc["rest"][0]["resource"]  # type: ignore[index]
-    rest[0]["supportedProfile"] = ["http://example.test/new-profile"]
+    rest[0]["supportedProfile"] = ["http://example.test/a", "http://example.test/b"]
     result = observe(history, "x", parse_capability(json.dumps(doc).encode()), "2026-08-05")
-    assert any("profiles added" in c or "profiles removed" in c for c in result.changes)
+    assert any("declared profiles" in c for c in result.changes)
+    assert not any("http" in c for c in result.changes)
 
 
 def test_outage_does_not_read_as_drift() -> None:
@@ -86,3 +88,78 @@ def test_corrupt_history_fails_open_to_empty(tmp_path: Path) -> None:
     path.write_text("{not json")
     assert load_history(path) == {}
     assert load_history(tmp_path / "missing.json") == {}
+
+
+def test_availability_accumulates_and_is_gated_until_enough_data() -> None:
+    from fhir_scorecard.drift import MIN_OBSERVATIONS_TO_REPORT
+    history: dict[str, Any] = {}
+    for day in range(1, 5):
+        r = observe(history, "x", _facts(), f"2026-08-{day:02d}")
+    assert r.availability.observations == 4
+    assert r.availability.reachable == 4
+    assert not r.availability.reportable
+    assert "reported once" in r.availability.summary()
+
+    for day in range(5, MIN_OBSERVATIONS_TO_REPORT + 5):
+        r = observe(history, "x", _facts(), f"2026-08-{day:02d}")
+    assert r.availability.reportable
+    assert "100%" in r.availability.summary()
+
+
+def test_outage_counts_against_availability() -> None:
+    history: dict[str, Any] = {}
+    observe(history, "x", _facts(), "2026-08-01")
+    r = observe(history, "x", parse_capability(b"<html>502</html>"), "2026-08-02")
+    assert r.availability.observations == 2
+    assert r.availability.reachable == 1
+
+
+def test_rerunning_the_same_day_does_not_double_count() -> None:
+    history: dict[str, Any] = {}
+    observe(history, "x", _facts(), "2026-08-01")
+    r = observe(history, "x", _facts(), "2026-08-01")
+    assert r.availability.observations == 1
+
+
+def test_observation_window_is_bounded() -> None:
+    history: dict[str, Any] = {}
+    for i in range(200):
+        observe(history, "x", _facts(), f"2026-{i // 28 + 1:02d}-{i % 28 + 1:02d}")
+    assert len(history["x"]["observations"]) <= 120
+
+
+def test_fingerprint_stores_digest_not_every_profile() -> None:
+    from fhir_scorecard.drift import fingerprint
+    fp = fingerprint(_facts())
+    assert "supported_profiles" not in fp
+    assert fp["profile_count"] == 6
+    assert isinstance(fp["profile_digest"], str) and len(fp["profile_digest"]) == 16
+
+
+def test_profile_swap_detected_even_when_count_is_equal() -> None:
+    history: dict[str, Any] = {}
+    observe(history, "x", _facts(), "2026-08-01")
+    doc = good_capability()
+    for i, r in enumerate(doc["rest"][0]["resource"]):  # type: ignore[index]
+        r["supportedProfile"] = [f"http://example.test/other-{i}"]
+    r2 = observe(history, "x", parse_capability(json.dumps(doc).encode()), "2026-08-02")
+    assert any("profiles changed" in c for c in r2.changes)
+
+
+def test_legacy_profile_list_migrates_without_false_drift() -> None:
+    history: dict[str, Any] = {"x": {
+        "first_seen": "2026-07-01", "last_seen": "2026-07-01",
+        "fingerprint": {
+            "fhir_version": "4.0.1", "software_name": "SyntheticServer",
+            "software_version": "9.9.9", "resource_count": 6,
+            "resources_with_interactions": 6, "declares_oauth_security": True,
+            "supported_profiles": [
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-{t}"
+                for t in ["patient", "coverage", "explanationofbenefit",
+                          "practitioner", "organization", "observation"]],
+        },
+        "events": [],
+    }}
+    r = observe(history, "x", _facts(), "2026-08-05")
+    assert r.changes == ()
+    assert "profile_count" in history["x"]["fingerprint"]

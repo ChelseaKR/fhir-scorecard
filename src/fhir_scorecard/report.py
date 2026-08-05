@@ -34,6 +34,8 @@ def _card(s: Scorecard) -> str:
         rows.append(
             f"<h3>{html.escape(d.title)}: {d.score}/100</h3><ul>{items}</ul>"
         )
+    availability_html = (f"<p class=\"avail\">Availability: {html.escape(s.availability)}</p>"
+                         if s.availability else "")
     drift_html = ""
     if s.observed_since is not None:
         if s.drift_events:
@@ -48,7 +50,7 @@ def _card(s: Scorecard) -> str:
         f'<section aria-labelledby="h-{html.escape(s.endpoint_id)}">'
         f'<h2 id="h-{html.escape(s.endpoint_id)}">{html.escape(s.name)} '
         f"<span class=\"grade grade-{s.grade.lower()}\">{s.grade}</span></h2>"
-        + "".join(rows) + drift_html + "</section>"
+        + availability_html + "".join(rows) + drift_html + "</section>"
     )
 
 
@@ -106,6 +108,7 @@ section {{ border-top: 1px solid #ddd; padding-top: 1rem; margin-top: 1.5rem; }}
 table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
 caption {{ text-align: left; font-weight: 600; margin-bottom: .5rem; }}
 th, td {{ text-align: left; padding: .35rem .5rem; border-bottom: 1px solid #eee; }}
+.avail {{ color: #444; font-size: .95rem; }}
 </style>
 </head>
 <body>

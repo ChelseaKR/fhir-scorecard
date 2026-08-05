@@ -49,6 +49,9 @@ class Scorecard:
     # Drift is informational, not scored (a capability change is often a legitimate upgrade).
     observed_since: str | None = None
     drift_events: tuple[str, ...] = ()
+    # Rolling reachability across recorded runs. Informational until enough observations exist;
+    # a percentage off two data points would be noise dressed as a metric.
+    availability: str = ""
 
 
 def _score(findings: list[Finding]) -> int:
@@ -201,7 +204,8 @@ def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
                     version_prefix: str = "4.",
                     vantage: str = "unspecified",
                     observed_since: str | None = None,
-                    drift_events: tuple[str, ...] = ()) -> Scorecard:
+                    drift_events: tuple[str, ...] = (),
+                    availability: str = "") -> Scorecard:
     dimensions = (
         grade_reachability(metadata, vantage=vantage),
         grade_transparency(facts, version_prefix=version_prefix),
@@ -216,4 +220,5 @@ def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
         kind=kind,
         observed_since=observed_since,
         drift_events=drift_events,
+        availability=availability,
     )

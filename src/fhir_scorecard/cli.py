@@ -38,12 +38,13 @@ def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
         smart = fetch_json(smart_url)
     facts = parse_capability(metadata.body) if metadata.ok else parse_capability(b"")
     smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
-    drift = observe(history, endpoint.endpoint_id, facts, today)
+    drift = observe(history, endpoint.endpoint_id, facts, today, reachable=metadata.ok)
     return build_scorecard(endpoint.endpoint_id, endpoint.name, metadata, facts, smart_facts,
                            kind=endpoint.kind, vantage=vantage,
                            version_prefix=version_prefix(endpoint.expects),
                            observed_since=drift.first_seen,
-                           drift_events=drift.recorded_events)
+                           drift_events=drift.recorded_events,
+                           availability=drift.availability.summary())
 
 
 def _recheck(candidates_path: Path) -> int:

@@ -1,0 +1,6 @@
+
+# CI is the authoritative writer of the drift/availability history: it runs daily from a
+# stable vantage and commits what it observed. Local grade runs overwrite it, which produced a
+# rebase conflict every time. Union-merge keeps both sides rather than failing the rebase; CI
+# rewrites the file wholesale on its next run regardless.
+data/history.json merge=union

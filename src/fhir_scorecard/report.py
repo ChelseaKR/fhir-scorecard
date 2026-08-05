@@ -1,0 +1,76 @@
+"""Render scorecards to machine-readable JSON and an accessible, no-JavaScript HTML page."""
+
+from __future__ import annotations
+
+import html
+import json
+from dataclasses import asdict
+
+from fhir_scorecard.grading import Scorecard
+
+
+def to_json(scorecards: list[Scorecard], *, generated_at: str) -> str:
+    payload = {
+        "generator": "fhir-scorecard",
+        "generated_at": generated_at,
+        "disclaimer": ("Observational snapshot of public, unauthenticated FHIR discovery "
+                       "surfaces. Not an audit, a ranking of care quality, or a statement "
+                       "about any organization's regulatory compliance."),
+        "scorecards": [asdict(s) for s in scorecards],
+    }
+    return json.dumps(payload, indent=2, sort_keys=True)
+
+
+def _card(s: Scorecard) -> str:
+    rows: list[str] = []
+    for d in s.dimensions:
+        items = "".join(
+            f"<li>{'✓' if f.ok else '✗'} {html.escape(f.message)} "
+            f'<a href="{html.escape(f.citation)}">spec</a></li>'
+            for f in d.findings
+        )
+        rows.append(
+            f"<h3>{html.escape(d.title)}: {d.score}/100</h3><ul>{items}</ul>"
+        )
+    return (
+        f'<section aria-labelledby="h-{html.escape(s.endpoint_id)}">'
+        f'<h2 id="h-{html.escape(s.endpoint_id)}">{html.escape(s.name)} '
+        f"<span class=\"grade grade-{s.grade.lower()}\">{s.grade}</span></h2>"
+        + "".join(rows) + "</section>"
+    )
+
+
+def render_html(scorecards: list[Scorecard], *, generated_at: str) -> str:
+    body = "".join(_card(s) for s in scorecards)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FHIR Scorecard</title>
+<style>
+body {{ font-family: system-ui, sans-serif; max-width: 46rem; margin: 2rem auto; padding: 0 1rem;
+       line-height: 1.5; color: #1a1a1a; background: #fff; }}
+.grade {{ display: inline-block; min-width: 1.6em; text-align: center; border-radius: 4px;
+          padding: 0 .3em; color: #fff; background: #666; }}
+.grade-a {{ background: #14691f; }} .grade-b {{ background: #3f7d20; }}
+.grade-c {{ background: #9a6700; }} .grade-d {{ background: #b4432c; }}
+.grade-f {{ background: #a01212; }}
+section {{ border-top: 1px solid #ddd; padding-top: 1rem; margin-top: 1.5rem; }}
+</style>
+</head>
+<body>
+<header>
+<h1>FHIR Scorecard</h1>
+<p>Deterministic grades for publicly observable FHIR endpoint surfaces. Generated
+{html.escape(generated_at)}. No patient data is ever accessed; only public
+<code>/metadata</code> and SMART discovery documents are graded.</p>
+</header>
+<main>
+{body}
+</main>
+<footer><p>Observational snapshot, not an audit or a compliance determination.
+<a href="https://github.com/ChelseaKR/fhir-scorecard">Source and methodology</a>.</p></footer>
+</body>
+</html>
+"""

@@ -1,0 +1,27 @@
+{
+  "policy": "Entries are added only after live verification: fetch the CapabilityStatement, confirm the publisher matches the claimed organization, record method and date. Unverified entries are refused at load time.",
+  "endpoints": [
+    {
+      "id": "hapi-fhir-r4",
+      "name": "HAPI FHIR public test server (R4)",
+      "kind": "reference",
+      "base_url": "https://hapi.fhir.org/baseR4",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed as HAPI FHIR reference server",
+        "date": "2026-08-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "smart-health-it-r4",
+      "name": "SMART Health IT open sandbox (R4)",
+      "kind": "reference",
+      "base_url": "https://r4.smarthealthit.org",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed as SMART Health IT sandbox",
+        "date": "2026-08-04"
+      },
+      "enabled": true
+    }
+  ]
+}

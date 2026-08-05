@@ -1,0 +1,114 @@
+from __future__ import annotations
+
+from hypothesis import given
+from hypothesis import strategies as st
+
+from fhir_scorecard.capability import CapabilityFacts, SmartFacts, parse_capability, parse_smart
+from fhir_scorecard.fetch import FetchResult
+from fhir_scorecard.grading import (
+    build_scorecard,
+    grade_interop,
+    grade_reachability,
+    grade_transparency,
+    letter,
+)
+
+
+def _fetch(ok: bool, *, elapsed_ms: int = 100, status: int | None = 200,
+           error: str | None = None) -> FetchResult:
+    return FetchResult(url="https://example.test/metadata", ok=ok, status=status,
+                       elapsed_ms=elapsed_ms, body=b"", error=error)
+
+
+def test_good_endpoint_grades_a(good_capability_bytes: bytes, good_smart_bytes: bytes) -> None:
+    card = build_scorecard("x", "X", _fetch(True),
+                           parse_capability(good_capability_bytes),
+                           parse_smart(good_smart_bytes))
+    assert card.grade == "A"
+    assert card.reachable
+
+
+def test_unreachable_is_f_with_reason() -> None:
+    card = build_scorecard("x", "X", _fetch(False, status=None, error="URLError"),
+                           parse_capability(b""), parse_smart(b""))
+    assert card.grade == "F"
+    assert not card.reachable
+    r1 = card.dimensions[0].findings[0]
+    assert not r1.ok and "unreachable" in r1.message
+
+
+def test_slow_endpoint_loses_latency_points() -> None:
+    fast = grade_reachability(_fetch(True, elapsed_ms=500))
+    slow = grade_reachability(_fetch(True, elapsed_ms=4000))
+    glacial = grade_reachability(_fetch(True, elapsed_ms=9000))
+    assert fast.score > slow.score > glacial.score
+
+
+def test_unparseable_capability_zeroes_transparency() -> None:
+    dim = grade_transparency(parse_capability(b"<html></html>"))
+    assert dim.score == 0
+    assert dim.findings[0].code == "T0"
+
+
+def test_boilerplate_capability_scores_low(good_capability_bytes: bytes) -> None:
+    import json
+    rich = grade_transparency(parse_capability(good_capability_bytes))
+    bare = grade_transparency(parse_capability(
+        json.dumps({"resourceType": "CapabilityStatement"}).encode()))
+    assert rich.score == 100
+    assert bare.score == 0
+
+
+def test_interop_requires_recognized_profiles(good_capability_bytes: bytes,
+                                              good_smart_bytes: bytes) -> None:
+    full = grade_interop(parse_capability(good_capability_bytes), parse_smart(good_smart_bytes))
+    none = grade_interop(parse_capability(b""), parse_smart(b""))
+    assert full.score == 100
+    assert none.score == 0
+
+
+@st.composite
+def facts_strategy(draw: st.DrawFn) -> CapabilityFacts:
+    count = draw(st.integers(min_value=0, max_value=50))
+    return CapabilityFacts(
+        parsed=draw(st.booleans()),
+        resource_type_ok=draw(st.booleans()),
+        fhir_version=draw(st.one_of(st.none(), st.text(max_size=8))),
+        software_name=draw(st.one_of(st.none(), st.just("s"))),
+        software_version=draw(st.one_of(st.none(), st.just("1"))),
+        resource_count=count,
+        resources_with_interactions=draw(st.integers(min_value=0, max_value=count)),
+        supported_profiles=tuple(draw(st.lists(st.text(max_size=40), max_size=5))),
+        declares_oauth_security=draw(st.booleans()),
+    )
+
+
+@given(facts=facts_strategy(),
+       smart_auth=st.booleans(), smart_token=st.booleans(), smart_parsed=st.booleans(),
+       ok=st.booleans(), elapsed=st.integers(min_value=0, max_value=60_000))
+def test_scores_always_bounded_and_grade_valid(facts: CapabilityFacts, smart_auth: bool,
+                                               smart_token: bool, smart_parsed: bool,
+                                               ok: bool, elapsed: int) -> None:
+    smart = SmartFacts(parsed=smart_parsed, has_authorization_endpoint=smart_auth,
+                       has_token_endpoint=smart_token)
+    card = build_scorecard("p", "P", _fetch(ok, elapsed_ms=elapsed), facts, smart)
+    for dim in card.dimensions:
+        assert 0 <= dim.score <= 100
+        for f in dim.findings:
+            assert 0 <= f.points <= f.max_points
+    assert card.grade in {"A", "B", "C", "D", "F"}
+    if not ok:
+        assert card.grade == "F"
+
+
+def test_letter_thresholds() -> None:
+    def dims(score: int) -> tuple:
+        from fhir_scorecard.grading import DimensionScore
+        return tuple(DimensionScore(key=k, title=k, score=score, findings=())
+                     for k in ("reachability", "transparency", "interop"))
+    assert letter(dims(95), reachable=True) == "A"
+    assert letter(dims(85), reachable=True) == "B"
+    assert letter(dims(75), reachable=True) == "C"
+    assert letter(dims(65), reachable=True) == "D"
+    assert letter(dims(10), reachable=True) == "F"
+    assert letter(dims(100), reachable=False) == "F"

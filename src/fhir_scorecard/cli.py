@@ -12,7 +12,7 @@ from fhir_scorecard.capability import parse_capability, parse_smart
 from fhir_scorecard.drift import load_history, observe, save_history
 from fhir_scorecard.fetch import FetchResult, fetch_json
 from fhir_scorecard.grading import Scorecard, build_scorecard
-from fhir_scorecard.registry import Endpoint, load_registry
+from fhir_scorecard.registry import Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import render_html, to_json
 
 
@@ -40,6 +40,7 @@ def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
     drift = observe(history, endpoint.endpoint_id, facts, today)
     return build_scorecard(endpoint.endpoint_id, endpoint.name, metadata, facts, smart_facts,
                            kind=endpoint.kind, vantage=vantage,
+                           version_prefix=version_prefix(endpoint.expects),
                            observed_since=drift.first_seen,
                            drift_events=drift.recorded_events)
 

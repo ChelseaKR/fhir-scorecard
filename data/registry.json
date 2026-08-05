@@ -165,6 +165,42 @@
         "date": "2026-08-04"
       },
       "enabled": true
+    },
+    {
+      "id": "hapi-fhir-r5",
+      "name": "HAPI FHIR public test server (R5)",
+      "kind": "reference",
+      "base_url": "https://hapi.fhir.org/baseR5",
+      "expects": "r5",
+      "verification": {
+        "method": "live CapabilityStatement fetch; software 'HAPI FHIR Server', implementation 'HAPI FHIR Test/Demo Server R5 Endpoint'",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    },
+    {
+      "id": "firely-r5",
+      "name": "Firely public test server (R5)",
+      "kind": "reference",
+      "base_url": "https://server.fire.ly/r5",
+      "expects": "r5",
+      "verification": {
+        "method": "live CapabilityStatement fetch; software 'Firely Server'",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    },
+    {
+      "id": "smart-health-it-stu3",
+      "name": "SMART Health IT open sandbox (STU3)",
+      "kind": "reference",
+      "base_url": "https://r3.smarthealthit.org",
+      "expects": "stu3",
+      "verification": {
+        "method": "live CapabilityStatement fetch; software 'Smile CDR'",
+        "date": "2026-08-05"
+      },
+      "enabled": true
     }
   ]
 }

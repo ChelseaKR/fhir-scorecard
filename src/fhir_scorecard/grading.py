@@ -87,7 +87,8 @@ def grade_reachability(metadata: FetchResult, *, vantage: str = "unspecified") -
                           score=_score(findings), findings=tuple(findings))
 
 
-def grade_transparency(facts: CapabilityFacts) -> DimensionScore:
+def grade_transparency(facts: CapabilityFacts, *,
+                       version_prefix: str = "4.") -> DimensionScore:
     findings: list[Finding] = []
     if not facts.parsed or not facts.resource_type_ok:
         findings.append(Finding(
@@ -98,9 +99,14 @@ def grade_transparency(facts: CapabilityFacts) -> DimensionScore:
         return DimensionScore(key="transparency", title="Capability transparency",
                               score=0, findings=tuple(findings))
 
-    r4 = (facts.fhir_version or "").startswith("4.")
-    findings.append(Finding(code="T1", ok=r4, points=30 if r4 else 0, max_points=30,
-                            message=f"fhirVersion declared: {facts.fhir_version!r}",
+    # Check the server against the release it intends to serve, not against R4 unconditionally
+    # (calibration 2026-08-05): an endpoint registered as R5 declaring 5.0.0 is correct, and
+    # marking it down for not being R4 would measure the wrong thing.
+    version_ok = (facts.fhir_version or "").startswith(version_prefix)
+    findings.append(Finding(code="T1", ok=version_ok, points=30 if version_ok else 0,
+                            max_points=30,
+                            message=(f"fhirVersion declared: {facts.fhir_version!r} "
+                                     f"(expected {version_prefix}x)"),
                             citation=_FHIR_CAPS))
     sw = facts.software_name is not None and facts.software_version is not None
     findings.append(Finding(code="T2", ok=sw, points=20 if sw else 0, max_points=20,
@@ -192,12 +198,13 @@ def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:
 def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
                     facts: CapabilityFacts, smart: SmartFacts, *,
                     kind: str = "reference",
+                    version_prefix: str = "4.",
                     vantage: str = "unspecified",
                     observed_since: str | None = None,
                     drift_events: tuple[str, ...] = ()) -> Scorecard:
     dimensions = (
         grade_reachability(metadata, vantage=vantage),
-        grade_transparency(facts),
+        grade_transparency(facts, version_prefix=version_prefix),
         grade_interop(facts, smart, kind=kind),
     )
     return Scorecard(

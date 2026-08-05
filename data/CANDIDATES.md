@@ -108,12 +108,11 @@ required to be reachable **without** authentication, plus additional reference s
 | HAPI R5, Firely R5, SMART Health IT STU3 | **Verified but deliberately not listed** (see below) |
 | CMS Blue Button sandbox | Verified but redundant with production; not listed |
 
-**Three verified servers were left out on purpose.** HAPI R5 (5.0.0), Firely R5 (5.0.0), and
-SMART Health IT STU3 (3.0.1) all answer correctly, but the transparency dimension currently
-awards points for declaring FHIR R4 because R4 is what the CMS rules require. Grading a
-deliberately-R5 server down for not being R4 would be measuring the wrong thing, and adding them
-purely to raise the endpoint count would trade an honest dataset for a bigger one. They stay out
-until grading is version-aware.
+**Three verified servers were held back, then admitted.** HAPI R5 (5.0.0), Firely R5 (5.0.0),
+and SMART Health IT STU3 (3.0.1) all answered correctly, but transparency awarded points for
+declaring R4, so grading them would have measured the wrong thing. Rather than add them for the
+count, grading was made version-aware first: each entry declares `expects` and is checked against
+that release. All three are now in the registry, graded on their own terms.
 
 **Calibration found by this wave.** Provider Directory APIs must be publicly reachable, so the
 SMART-discovery and OAuth findings would have penalized Cigna's directory for correctly having

@@ -17,6 +17,9 @@ _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,63}$")
 # and an EHR vendor's sandbox answer to different implementation guides and different
 # expectations, so the report groups by kind and never ranks across them.
 _KINDS = {"reference", "payer", "payer_provider_directory", "ehr", "provider"}
+# Declared-intent FHIR releases. Values map to the version prefix a CapabilityStatement must
+# carry: STU3 declares 3.x, R4 declares 4.x, R5 declares 5.x.
+_EXPECTS = {"stu3": "3.", "r4": "4.", "r5": "5."}
 
 
 @dataclass(frozen=True)
@@ -28,6 +31,16 @@ class Endpoint:
     verified_method: str
     verified_date: str
     enabled: bool = True
+    # Which FHIR release this endpoint intends to serve. Grading checks the server against its
+    # own declared intent, so a deliberately-R5 server is not marked down for not being R4.
+    # "r4" is the default because the CMS interoperability rules require R4 of the payer APIs
+    # that are this project's subject.
+    expects: str = "r4"
+
+
+def version_prefix(expects: str) -> str:
+    """The fhirVersion prefix an endpoint declaring ``expects`` should carry."""
+    return _EXPECTS.get(expects, "4.")
 
 
 def load_registry(path: Path) -> list[Endpoint]:
@@ -81,6 +94,10 @@ def _parse_entry(i: int, item: dict[str, object], seen: set[str]) -> Endpoint:
     if not isinstance(enabled, bool):
         raise ValueError(f"endpoints[{i}].enabled must be boolean")
 
+    expects = item.get("expects", "r4")
+    if not isinstance(expects, str) or expects not in _EXPECTS:
+        raise ValueError(f"endpoints[{i}].expects must be one of {sorted(_EXPECTS)}")
+
     return Endpoint(
         endpoint_id=endpoint_id,
         name=_require_str(i, item, "name"),
@@ -89,4 +106,5 @@ def _parse_entry(i: int, item: dict[str, object], seen: set[str]) -> Endpoint:
         verified_method=method.strip(),
         verified_date=date,
         enabled=enabled,
+        expects=expects,
     )

@@ -166,3 +166,23 @@ def test_provider_directory_not_penalized_for_being_public(good_capability_bytes
     for code in ("I2", "I3"):
         f = next(x for x in as_directory.findings if x.code == code)
         assert f.max_points == 0 and "not applicable" in f.message
+
+
+def test_version_checked_against_declared_intent() -> None:
+    """An R5 server declaring 5.0.0 is correct; marking it down for not being R4 would
+    measure the wrong thing. Calibration 2026-08-05."""
+    import json
+    doc = {
+        "resourceType": "CapabilityStatement", "fhirVersion": "5.0.0",
+        "software": {"name": "S", "version": "1"},
+        "rest": [{"mode": "server", "resource": [
+            {"type": t, "interaction": [{"code": "read"}]}
+            for t in ["Patient", "Observation", "Encounter", "Condition", "Procedure"]]}],
+    }
+    facts = parse_capability(json.dumps(doc).encode())
+    as_r4 = grade_transparency(facts, version_prefix="4.")
+    as_r5 = grade_transparency(facts, version_prefix="5.")
+    assert not next(f for f in as_r4.findings if f.code == "T1").ok
+    assert next(f for f in as_r5.findings if f.code == "T1").ok
+    assert as_r5.score > as_r4.score
+    assert "expected 5.x" in next(f for f in as_r5.findings if f.code == "T1").message

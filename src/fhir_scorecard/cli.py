@@ -6,8 +6,10 @@ import argparse
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 from fhir_scorecard.capability import parse_capability, parse_smart
+from fhir_scorecard.drift import load_history, observe, save_history
 from fhir_scorecard.fetch import FetchResult, fetch_json
 from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.registry import Endpoint, load_registry
@@ -23,7 +25,8 @@ def _offline_fetch(fixtures: Path, endpoint_id: str, filename: str, url: str) ->
                        body=path.read_bytes(), error=None)
 
 
-def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None) -> Scorecard:
+def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
+                    history: dict[str, Any], today: str) -> Scorecard:
     metadata_url = f"{endpoint.base_url}/metadata"
     smart_url = f"{endpoint.base_url}/.well-known/smart-configuration"
     if offline and fixtures is not None:
@@ -34,7 +37,10 @@ def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None)
         smart = fetch_json(smart_url)
     facts = parse_capability(metadata.body) if metadata.ok else parse_capability(b"")
     smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
-    return build_scorecard(endpoint.endpoint_id, endpoint.name, metadata, facts, smart_facts)
+    drift = observe(history, endpoint.endpoint_id, facts, today)
+    return build_scorecard(endpoint.endpoint_id, endpoint.name, metadata, facts, smart_facts,
+                           observed_since=drift.first_seen,
+                           drift_events=drift.recorded_events)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -46,6 +52,8 @@ def main(argv: list[str] | None = None) -> int:
     grade.add_argument("--offline", action="store_true",
                        help="read fixtures instead of the network")
     grade.add_argument("--fixtures", type=Path, default=None)
+    grade.add_argument("--history", type=Path, default=Path("data/history.json"),
+                       help="capability drift history file (read and updated each run)")
     args = parser.parse_args(argv)
 
     if args.offline and args.fixtures is None:
@@ -58,8 +66,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"registry error: {exc}", file=sys.stderr)
         return 2
 
-    scorecards = [_grade_endpoint(e, offline=args.offline, fixtures=args.fixtures)
+    today = time.strftime("%Y-%m-%d", time.gmtime())
+    history = load_history(args.history)
+    scorecards = [_grade_endpoint(e, offline=args.offline, fixtures=args.fixtures,
+                                  history=history, today=today)
                   for e in endpoints]
+    save_history(args.history, history)
 
     generated_at = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
     args.out.mkdir(parents=True, exist_ok=True)

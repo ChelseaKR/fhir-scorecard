@@ -32,11 +32,21 @@ def _card(s: Scorecard) -> str:
         rows.append(
             f"<h3>{html.escape(d.title)}: {d.score}/100</h3><ul>{items}</ul>"
         )
+    drift_html = ""
+    if s.observed_since is not None:
+        if s.drift_events:
+            events = "".join(f"<li>{html.escape(e)}</li>" for e in s.drift_events)
+            drift_html = (f"<h3>Capability changes (informational, not scored)</h3>"
+                          f"<p>Observed since {html.escape(s.observed_since)}.</p>"
+                          f"<ul>{events}</ul>")
+        else:
+            drift_html = (f"<p>Observed since {html.escape(s.observed_since)}; "
+                          "no capability changes recorded.</p>")
     return (
         f'<section aria-labelledby="h-{html.escape(s.endpoint_id)}">'
         f'<h2 id="h-{html.escape(s.endpoint_id)}">{html.escape(s.name)} '
         f"<span class=\"grade grade-{s.grade.lower()}\">{s.grade}</span></h2>"
-        + "".join(rows) + "</section>"
+        + "".join(rows) + drift_html + "</section>"
     )
 
 

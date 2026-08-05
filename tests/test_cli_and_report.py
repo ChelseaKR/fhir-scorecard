@@ -32,9 +32,11 @@ def test_cli_offline_end_to_end(tmp_path: Path, capsys: object) -> None:
     (fixtures / "smart.json").write_text(json.dumps(good_smart()))
     out = tmp_path / "site"
 
-    code = main(["grade", "--registry", str(_registry(tmp_path)), "--offline",
-                 "--fixtures", str(tmp_path / "fixtures"), "--out", str(out)])
-    assert code == 0
+    history = tmp_path / "history.json"
+    args = ["grade", "--registry", str(_registry(tmp_path)), "--offline",
+            "--fixtures", str(tmp_path / "fixtures"), "--out", str(out),
+            "--history", str(history)]
+    assert main(args) == 0
 
     payload = json.loads((out / "scorecards.json").read_text())
     grades = {s["endpoint_id"]: s["grade"] for s in payload["scorecards"]}
@@ -44,6 +46,17 @@ def test_cli_offline_end_to_end(tmp_path: Path, capsys: object) -> None:
 
     html_out = (out / "index.html").read_text()
     assert "Alpha Reference" in html_out and "lang=\"en\"" in html_out
+
+    # Drift history persists across runs; a capability change surfaces in the next report.
+    assert json.loads(history.read_text())["alpha"]["first_seen"]
+    changed = good_capability()
+    changed["software"] = {"name": "SyntheticServer", "version": "10.0.0"}
+    (fixtures / "metadata.json").write_text(json.dumps(changed))
+    assert main(args) == 0
+    alpha = next(s for s in json.loads((out / "scorecards.json").read_text())["scorecards"]
+                 if s["endpoint_id"] == "alpha")
+    assert any("software_version" in e for e in alpha["drift_events"])
+    assert "Capability changes" in (out / "index.html").read_text()
 
 
 def test_cli_offline_requires_fixtures(tmp_path: Path) -> None:

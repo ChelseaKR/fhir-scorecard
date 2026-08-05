@@ -44,6 +44,9 @@ class Scorecard:
     grade: str
     reachable: bool
     dimensions: tuple[DimensionScore, ...]
+    # Drift is informational, not scored (a capability change is often a legitimate upgrade).
+    observed_since: str | None = None
+    drift_events: tuple[str, ...] = ()
 
 
 def _score(findings: list[Finding]) -> int:
@@ -155,7 +158,9 @@ def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:
 
 
 def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
-                    facts: CapabilityFacts, smart: SmartFacts) -> Scorecard:
+                    facts: CapabilityFacts, smart: SmartFacts, *,
+                    observed_since: str | None = None,
+                    drift_events: tuple[str, ...] = ()) -> Scorecard:
     dimensions = (
         grade_reachability(metadata),
         grade_transparency(facts),
@@ -167,4 +172,6 @@ def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
         grade=letter(dimensions, reachable=metadata.ok),
         reachable=metadata.ok,
         dimensions=dimensions,
+        observed_since=observed_since,
+        drift_events=drift_events,
     )

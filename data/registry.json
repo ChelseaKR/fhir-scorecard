@@ -1,6 +1,72 @@
 {
-  "policy": "Entries are added only after live verification: fetch the CapabilityStatement, confirm the publisher matches the claimed organization, record method and date. Unverified entries are refused at load time.",
+  "policy": "Entries are added only after live verification: fetch the CapabilityStatement, confirm the publisher matches the claimed organization, record method and date. Unverified entries are refused at load time. Rejected candidates are recorded in CANDIDATES.md.",
   "endpoints": [
+    {
+      "id": "cms-blue-button-2",
+      "name": "CMS Blue Button 2.0 (Medicare)",
+      "kind": "payer",
+      "base_url": "https://api.bluebutton.cms.gov/v2/fhir",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed via implementation description 'gov.cms.bfd:bfd-server-war' and software 'Blue Button API'",
+        "date": "2026-08-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "humana",
+      "name": "Humana Patient Access API",
+      "kind": "payer",
+      "base_url": "https://fhir.humana.com/api",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed via software 'HumanaFHIR' on Humana-controlled domain",
+        "date": "2026-08-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "aetna-demo",
+      "name": "Aetna Patient Access (public demo instance)",
+      "kind": "payer",
+      "base_url": "https://vteapif1.aetna.com/fhirdemo/v1/patientaccess",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed via implementation description 'AETNA implementation of FHIR on top of USCORE - CARIN' on Aetna-controlled domain",
+        "date": "2026-08-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "cigna-patientaccess",
+      "name": "Cigna Patient Access API",
+      "kind": "payer",
+      "base_url": "https://fhir.cigna.com/PatientAccess/v1",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed via implementation description 'PatientAccess API' on Cigna-controlled domain",
+        "date": "2026-08-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "inferno-reference",
+      "name": "ONC Inferno reference server (US Core / SMART)",
+      "kind": "reference",
+      "base_url": "https://inferno.healthit.gov/reference-server/r4",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed via implementation description naming Inferno Reference Server on healthit.gov",
+        "date": "2026-08-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "firely-public",
+      "name": "Firely public test server",
+      "kind": "reference",
+      "base_url": "https://server.fire.ly",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed via software 'Firely Server'",
+        "date": "2026-08-04"
+      },
+      "enabled": true
+    },
     {
       "id": "hapi-fhir-r4",
       "name": "HAPI FHIR public test server (R4)",

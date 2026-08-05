@@ -65,12 +65,15 @@ def grade_reachability(metadata: FetchResult) -> DimensionScore:
         citation=_FHIR_HTTP,
     ))
     if reachable:
-        fast = metadata.elapsed_ms <= 2000
-        acceptable = metadata.elapsed_ms <= 5000
+        # Latency is measured from a single vantage point per run, so bands are deliberately
+        # coarse (2026-08-05): a ~1s network difference between vantages must not flip a grade.
+        # The raw milliseconds are always reported for readers who care about the exact number.
+        fast = metadata.elapsed_ms <= 3000
+        acceptable = metadata.elapsed_ms <= 8000
         points = 40 if fast else (20 if acceptable else 0)
         findings.append(Finding(
             code="R2", ok=fast, points=points, max_points=40,
-            message=f"/metadata responded in {metadata.elapsed_ms} ms",
+            message=f"/metadata responded in {metadata.elapsed_ms} ms (single vantage point)",
             citation=_FHIR_HTTP,
         ))
     else:
@@ -101,9 +104,16 @@ def grade_transparency(facts: CapabilityFacts) -> DimensionScore:
                             message="software name and version declared" if sw
                             else "software name/version missing",
                             citation=_FHIR_CAPS))
-    enough = facts.resource_count >= 5
+    # Calibration (2026-08-05): breadth alone under-credits deliberately narrow APIs. CMS Blue
+    # Button 2.0 declares exactly three resource types by design (Patient/Coverage/EOB) with
+    # every one fully documented; that is transparent, not deficient. Narrow-but-complete
+    # (2-4 resource types, all documenting their interactions) earns full points.
+    narrow_but_complete = (2 <= facts.resource_count < 5
+                           and facts.resources_with_interactions == facts.resource_count)
+    enough = facts.resource_count >= 5 or narrow_but_complete
     findings.append(Finding(code="T3", ok=enough, points=25 if enough else 0, max_points=25,
-                            message=f"{facts.resource_count} resource types declared",
+                            message=f"{facts.resource_count} resource types declared"
+                            + (" (narrow but fully documented)" if narrow_but_complete else ""),
                             citation=_FHIR_CAPS))
     covered = (facts.resource_count > 0
                and facts.resources_with_interactions >= 0.8 * facts.resource_count)

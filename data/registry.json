@@ -46,6 +46,28 @@
       "enabled": true
     },
     {
+      "id": "bcbs-mn",
+      "name": "Blue Cross Blue Shield of Minnesota Patient Access API (preview)",
+      "kind": "payer",
+      "base_url": "https://preview-api.bluecrossmn.com/fhir",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed via software 'BCBS MN FHIR Server' and implementation description 'CMS Patient Access API' on a BCBS MN controlled domain; sourced from the plan's public developer portal",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    },
+    {
+      "id": "healthpartners",
+      "name": "HealthPartners Patient Access API",
+      "kind": "payer",
+      "base_url": "https://api-developerportal.healthpartners.com/interop/external/fhir",
+      "verification": {
+        "method": "live CapabilityStatement fetch on a HealthPartners controlled domain (Azure Healthcare APIs backend); sourced from the plan's public developer portal",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    },
+    {
       "id": "inferno-reference",
       "name": "ONC Inferno reference server (US Core / SMART)",
       "kind": "reference",

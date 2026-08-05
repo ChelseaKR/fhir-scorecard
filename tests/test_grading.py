@@ -59,6 +59,31 @@ def test_boilerplate_capability_scores_low(good_capability_bytes: bytes) -> None
     assert bare.score == 0
 
 
+def test_narrow_but_complete_earns_full_breadth_points() -> None:
+    """A deliberately narrow API (CMS Blue Button shape: 3 resources, all documented) is
+    transparent, not deficient. Calibration 2026-08-05."""
+    import json
+    doc = {
+        "resourceType": "CapabilityStatement",
+        "fhirVersion": "4.0.1",
+        "software": {"name": "NarrowServer", "version": "1.0"},
+        "rest": [{"mode": "server", "resource": [
+            {"type": t, "interaction": [{"code": "read"}]}
+            for t in ["Patient", "Coverage", "ExplanationOfBenefit"]
+        ]}],
+    }
+    dim = grade_transparency(parse_capability(json.dumps(doc).encode()))
+    t3 = next(f for f in dim.findings if f.code == "T3")
+    assert t3.ok and "narrow but fully documented" in t3.message
+    assert dim.score == 100
+
+    # Narrow AND undocumented still loses the points.
+    for r in doc["rest"][0]["resource"]:  # type: ignore[index]
+        r.pop("interaction")
+    dim2 = grade_transparency(parse_capability(json.dumps(doc).encode()))
+    assert not next(f for f in dim2.findings if f.code == "T3").ok
+
+
 def test_interop_requires_recognized_profiles(good_capability_bytes: bytes,
                                               good_smart_bytes: bytes) -> None:
     full = grade_interop(parse_capability(good_capability_bytes), parse_smart(good_smart_bytes))

@@ -50,8 +50,21 @@ def _card(s: Scorecard) -> str:
     )
 
 
+def _summary_table(scorecards: list[Scorecard]) -> str:
+    rows = "".join(
+        f'<tr><td><a href="#h-{html.escape(s.endpoint_id)}">{html.escape(s.name)}</a></td>'
+        f'<td><span class="grade grade-{s.grade.lower()}">{s.grade}</span></td></tr>'
+        for s in sorted(scorecards, key=lambda s: (s.grade, s.name))
+    )
+    return (
+        "<table><caption>All graded endpoints</caption>"
+        '<thead><tr><th scope="col">Endpoint</th><th scope="col">Grade</th></tr></thead>'
+        f"<tbody>{rows}</tbody></table>"
+    )
+
+
 def render_html(scorecards: list[Scorecard], *, generated_at: str) -> str:
-    body = "".join(_card(s) for s in scorecards)
+    body = _summary_table(scorecards) + "".join(_card(s) for s in scorecards)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -67,6 +80,9 @@ body {{ font-family: system-ui, sans-serif; max-width: 46rem; margin: 2rem auto;
 .grade-c {{ background: #9a6700; }} .grade-d {{ background: #b4432c; }}
 .grade-f {{ background: #a01212; }}
 section {{ border-top: 1px solid #ddd; padding-top: 1rem; margin-top: 1.5rem; }}
+table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
+caption {{ text-align: left; font-weight: 600; margin-bottom: .5rem; }}
+th, td {{ text-align: left; padding: .35rem .5rem; border-bottom: 1px solid #eee; }}
 </style>
 </head>
 <body>

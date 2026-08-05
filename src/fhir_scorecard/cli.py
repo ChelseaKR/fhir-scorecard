@@ -39,6 +39,7 @@ def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
     smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
     drift = observe(history, endpoint.endpoint_id, facts, today)
     return build_scorecard(endpoint.endpoint_id, endpoint.name, metadata, facts, smart_facts,
+                           kind=endpoint.kind,
                            observed_since=drift.first_seen,
                            drift_events=drift.recorded_events)
 

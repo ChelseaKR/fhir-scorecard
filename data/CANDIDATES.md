@@ -45,5 +45,29 @@ CapabilityStatement. Many plans gate `/metadata` behind registration, which is p
 makes their conformance publicly unverifiable. That is itself a finding worth stating plainly
 rather than a gap in this dataset.
 
-Next: plans whose developer portals publish an explicitly open sandbox base URL; state Medicaid
-managed-care plans; CMS-aligned reference implementations.
+## 2026-08-05 (third wave)
+
+Widened past payers to the surfaces that anchor comparison: EHR vendor sandboxes and a federal
+provider API. These are recorded under distinct `kind` values because a payer Patient Access API
+and an EHR sandbox answer to different implementation guides; the report groups by kind and never
+ranks across them.
+
+| Candidate | Base URL | Outcome |
+|---|---|---|
+| VA Lighthouse (production) | api.va.gov/services/fhir/v0/r4 | **Verified** → registry (`provider`) |
+| VA Lighthouse (sandbox) | sandbox-api.va.gov/services/fhir/v0/r4 | Verified but redundant with production (same software); not listed |
+| Epic on FHIR sandbox | fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4 | **Verified** → registry (`ehr`) |
+| Oracle Health (Cerner) open | fhir-open.cerner.com/r4/ec2458f2-… | **Verified** → registry (`ehr`) |
+| Medplum public API | api.medplum.com/fhir/R4 | **Verified** → registry (`ehr`) |
+| Acentra Health sandbox | sandbox.mhbapp.com/fhir/r4 | Rejected: HTTP 403 |
+| Acentra alt host | api.mhbapp.com/fhir/r4 | Rejected: DNS did not resolve |
+| Elevance TotalView | totalview.healthos.elevancehealth.com/fhir | Rejected: answered HTML, not a CapabilityStatement |
+| Elevance TotalView /r4 | totalview.healthos.elevancehealth.com/fhir/r4 | Rejected: answered HTML, not a CapabilityStatement |
+| Logica Health sandbox | api.logicahealth.org/fhirserver/open | Rejected: DNS did not resolve |
+
+Running total across three waves: **11 of 32 probed endpoints** expose an unauthenticated
+CapabilityStatement. Restricted to payers it is **6 of 22**. EHR vendors publish open sandboxes
+as a matter of course; payers largely do not, which is the asymmetry this dataset documents.
+
+Next: state Medicaid managed-care plans; plans whose portals advertise an explicitly open
+sandbox; re-probe rejected payers periodically, since a 404 today may be a live endpoint later.

@@ -13,7 +13,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,63}$")
-_KINDS = {"reference", "payer"}
+# Kinds are not cosmetic: grades are only comparable within a kind. A payer Patient Access API
+# and an EHR vendor's sandbox answer to different implementation guides and different
+# expectations, so the report groups by kind and never ranks across them.
+_KINDS = {"reference", "payer", "ehr", "provider"}
 
 
 @dataclass(frozen=True)

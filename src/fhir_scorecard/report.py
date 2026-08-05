@@ -50,17 +50,36 @@ def _card(s: Scorecard) -> str:
     )
 
 
+_KIND_LABELS = {
+    "payer": "Payer Patient Access APIs",
+    "provider": "Provider / health system APIs",
+    "ehr": "EHR vendor sandboxes",
+    "reference": "Reference and test servers",
+}
+_KIND_ORDER = ("payer", "provider", "ehr", "reference")
+
+
 def _summary_table(scorecards: list[Scorecard]) -> str:
-    rows = "".join(
-        f'<tr><td><a href="#h-{html.escape(s.endpoint_id)}">{html.escape(s.name)}</a></td>'
-        f'<td><span class="grade grade-{s.grade.lower()}">{s.grade}</span></td></tr>'
-        for s in sorted(scorecards, key=lambda s: (s.grade, s.name))
-    )
-    return (
-        "<table><caption>All graded endpoints</caption>"
-        '<thead><tr><th scope="col">Endpoint</th><th scope="col">Grade</th></tr></thead>'
-        f"<tbody>{rows}</tbody></table>"
-    )
+    """One table per kind. Grades are not comparable across kinds, so they are never
+    ranked together: a payer Patient Access API and an EHR sandbox answer to different
+    implementation guides and different expectations."""
+    tables: list[str] = []
+    for kind in _KIND_ORDER:
+        group = [s for s in scorecards if s.kind == kind]
+        if not group:
+            continue
+        rows = "".join(
+            f'<tr><td><a href="#h-{html.escape(s.endpoint_id)}">{html.escape(s.name)}</a></td>'
+            f'<td><span class="grade grade-{s.grade.lower()}">{s.grade}</span></td></tr>'
+            for s in sorted(group, key=lambda s: (s.grade, s.name))
+        )
+        label = _KIND_LABELS.get(kind, kind)
+        tables.append(
+            f"<table><caption>{html.escape(label)} ({len(group)})</caption>"
+            '<thead><tr><th scope="col">Endpoint</th><th scope="col">Grade</th></tr></thead>'
+            f"<tbody>{rows}</tbody></table>"
+        )
+    return "".join(tables)
 
 
 def render_html(scorecards: list[Scorecard], *, generated_at: str) -> str:

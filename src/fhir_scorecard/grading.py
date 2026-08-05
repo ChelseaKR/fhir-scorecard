@@ -44,6 +44,8 @@ class Scorecard:
     grade: str
     reachable: bool
     dimensions: tuple[DimensionScore, ...]
+    # Grades are only comparable within a kind; the report groups by it and never ranks across.
+    kind: str = "reference"
     # Drift is informational, not scored (a capability change is often a legitimate upgrade).
     observed_since: str | None = None
     drift_events: tuple[str, ...] = ()
@@ -169,6 +171,7 @@ def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:
 
 def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
                     facts: CapabilityFacts, smart: SmartFacts, *,
+                    kind: str = "reference",
                     observed_since: str | None = None,
                     drift_events: tuple[str, ...] = ()) -> Scorecard:
     dimensions = (
@@ -182,6 +185,7 @@ def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
         grade=letter(dimensions, reachable=metadata.ok),
         reachable=metadata.ok,
         dimensions=dimensions,
+        kind=kind,
         observed_since=observed_since,
         drift_events=drift_events,
     )

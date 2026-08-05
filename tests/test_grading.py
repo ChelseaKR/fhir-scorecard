@@ -137,3 +137,13 @@ def test_letter_thresholds() -> None:
     assert letter(dims(65), reachable=True) == "D"
     assert letter(dims(10), reachable=True) == "F"
     assert letter(dims(100), reachable=False) == "F"
+
+
+def test_kind_defaults_and_propagates(good_capability_bytes: bytes,
+                                      good_smart_bytes: bytes) -> None:
+    default = build_scorecard("x", "X", _fetch(True), parse_capability(good_capability_bytes),
+                              parse_smart(good_smart_bytes))
+    assert default.kind == "reference"
+    payer = build_scorecard("y", "Y", _fetch(True), parse_capability(good_capability_bytes),
+                            parse_smart(good_smart_bytes), kind="payer")
+    assert payer.kind == "payer"

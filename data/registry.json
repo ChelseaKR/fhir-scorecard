@@ -68,6 +68,50 @@
       "enabled": true
     },
     {
+      "id": "va-lighthouse",
+      "name": "VA Lighthouse Patient Health API (production)",
+      "kind": "provider",
+      "base_url": "https://api.va.gov/services/fhir/v0/r4",
+      "verification": {
+        "method": "live CapabilityStatement fetch on the VA's api.va.gov domain; implementation description 'FHIR R4 Health APIs.'; sourced from developer.va.gov",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    },
+    {
+      "id": "epic-sandbox",
+      "name": "Epic on FHIR public sandbox",
+      "kind": "ehr",
+      "base_url": "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4",
+      "verification": {
+        "method": "live CapabilityStatement fetch on fhir.epic.com; software identifies as 'Epic May 2026'",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    },
+    {
+      "id": "oracle-health-open",
+      "name": "Oracle Health (Cerner) open sandbox",
+      "kind": "ehr",
+      "base_url": "https://fhir-open.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d",
+      "verification": {
+        "method": "live CapabilityStatement fetch; implementation description 'Oracle Health implementation of FHIR on top of Millennium'",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    },
+    {
+      "id": "medplum",
+      "name": "Medplum public API",
+      "kind": "ehr",
+      "base_url": "https://api.medplum.com/fhir/R4",
+      "verification": {
+        "method": "live CapabilityStatement fetch; software identifies as 'medplum'",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    },
+    {
       "id": "inferno-reference",
       "name": "ONC Inferno reference server (US Core / SMART)",
       "kind": "reference",

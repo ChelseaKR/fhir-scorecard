@@ -90,3 +90,23 @@ def test_json_report_round_trips() -> None:
     payload = json.loads(to_json([card], generated_at="2026-08-04"))
     assert payload["scorecards"][0]["grade"] == "F"
     assert payload["generator"] == "fhir-scorecard"
+
+
+def test_report_groups_by_kind_and_never_ranks_across() -> None:
+    """Grades are only comparable within a kind, so each kind gets its own table."""
+    from fhir_scorecard.fetch import FetchResult as FR
+
+    def card(eid: str, kind: str):
+        return build_scorecard(
+            eid, eid.title(),
+            FR(url="https://x.test/metadata", ok=True, status=200, elapsed_ms=10,
+               body=b"", error=None),
+            parse_capability(json.dumps(good_capability()).encode()),
+            parse_smart(json.dumps(good_smart()).encode()), kind=kind)
+
+    html_out = render_html([card("aetna", "payer"), card("epic", "ehr")],
+                           generated_at="2026-08-05")
+    assert "Payer Patient Access APIs (1)" in html_out
+    assert "EHR vendor sandboxes (1)" in html_out
+    # Two separate tables, not one merged ranking.
+    assert html_out.count("<table>") == 2

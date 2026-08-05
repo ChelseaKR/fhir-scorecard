@@ -104,3 +104,8 @@ or client, past or present. Built with AI assistance (Claude Code); every change
 `make verify` gate (ruff with security rules, mypy strict, pytest with a branch-coverage floor).
 
 License: Apache-2.0.
+
+## Support
+
+This is independent, unpaid work. If it has been useful to you, you can
+<a href='https://ko-fi.com/T6T6GMYTU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>

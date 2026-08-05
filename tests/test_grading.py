@@ -147,3 +147,22 @@ def test_kind_defaults_and_propagates(good_capability_bytes: bytes,
     payer = build_scorecard("y", "Y", _fetch(True), parse_capability(good_capability_bytes),
                             parse_smart(good_smart_bytes), kind="payer")
     assert payer.kind == "payer"
+
+
+def test_provider_directory_not_penalized_for_being_public(good_capability_bytes: bytes) -> None:
+    """A Provider Directory API must be reachable without auth, so grading it on a SMART/OAuth
+    surface it is required NOT to have would penalize compliant behavior. Calibration 2026-08-05."""
+    import json
+    doc = json.loads(good_capability_bytes)
+    doc["rest"][0].pop("security")  # public by design: no OAuth declared
+    facts = parse_capability(json.dumps(doc).encode())
+    no_smart = parse_smart(b"")
+
+    as_payer = grade_interop(facts, no_smart, kind="payer")
+    as_directory = grade_interop(facts, no_smart, kind="payer_provider_directory")
+
+    assert as_payer.score < as_directory.score
+    assert as_directory.score == 100  # profiles present; auth findings not applicable
+    for code in ("I2", "I3"):
+        f = next(x for x in as_directory.findings if x.code == code)
+        assert f.max_points == 0 and "not applicable" in f.message

@@ -54,11 +54,12 @@ def _card(s: Scorecard) -> str:
 
 _KIND_LABELS = {
     "payer": "Payer Patient Access APIs",
+    "payer_provider_directory": "Payer Provider Directory APIs (public by design)",
     "provider": "Provider / health system APIs",
     "ehr": "EHR vendor sandboxes",
     "reference": "Reference and test servers",
 }
-_KIND_ORDER = ("payer", "provider", "ehr", "reference")
+_KIND_ORDER = ("payer", "payer_provider_directory", "provider", "ehr", "reference")
 
 
 def _summary_table(scorecards: list[Scorecard]) -> str:

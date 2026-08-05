@@ -128,7 +128,8 @@ def grade_transparency(facts: CapabilityFacts) -> DimensionScore:
                           score=_score(findings), findings=tuple(findings))
 
 
-def grade_interop(facts: CapabilityFacts, smart: SmartFacts) -> DimensionScore:
+def grade_interop(facts: CapabilityFacts, smart: SmartFacts, *,
+                  kind: str = "reference") -> DimensionScore:
     findings: list[Finding] = []
     profiles = [p.lower() for p in facts.supported_profiles]
     named = any(marker in p for p in profiles for marker in _PROFILE_MARKERS)
@@ -136,18 +137,36 @@ def grade_interop(facts: CapabilityFacts, smart: SmartFacts) -> DimensionScore:
                             message=("US Core / CARIN / Da Vinci profiles declared" if named
                                      else "no recognized interoperability profiles declared"),
                             citation=_US_CORE))
-    smart_ok = smart.parsed and smart.has_authorization_endpoint and smart.has_token_endpoint
-    findings.append(Finding(code="I2", ok=smart_ok, points=35 if smart_ok else 0, max_points=35,
-                            message=("SMART discovery document present and complete" if smart_ok
-                                     else "SMART .well-known/smart-configuration absent or "
-                                          "incomplete"),
-                            citation=_SMART_DISCOVERY))
-    findings.append(Finding(code="I3", ok=facts.declares_oauth_security,
-                            points=25 if facts.declares_oauth_security else 0, max_points=25,
-                            message=("OAuth/SMART security service declared in "
-                                     "CapabilityStatement" if facts.declares_oauth_security
-                                     else "no OAuth security service declared"),
-                            citation=_SMART_DISCOVERY))
+
+    # Provider Directory APIs are required to be reachable without authentication, so absence of
+    # SMART/OAuth is the correct design there, not a deficiency (calibration 2026-08-05). Scoring
+    # them on an authorization surface they must not have would penalize compliant behavior, so
+    # those findings are reported as not applicable and carry no points either way.
+    public_by_design = kind == "payer_provider_directory"
+    if public_by_design:
+        findings.append(Finding(
+            code="I2", ok=True, points=0, max_points=0,
+            message="SMART discovery not applicable: a Provider Directory API is public by design",
+            citation=_SMART_DISCOVERY))
+        findings.append(Finding(
+            code="I3", ok=True, points=0, max_points=0,
+            message="OAuth security not applicable: a Provider Directory API is public by design",
+            citation=_SMART_DISCOVERY))
+    else:
+        smart_ok = smart.parsed and smart.has_authorization_endpoint and smart.has_token_endpoint
+        findings.append(Finding(code="I2", ok=smart_ok, points=35 if smart_ok else 0,
+                                max_points=35,
+                                message=("SMART discovery document present and complete"
+                                         if smart_ok
+                                         else "SMART .well-known/smart-configuration absent or "
+                                              "incomplete"),
+                                citation=_SMART_DISCOVERY))
+        findings.append(Finding(code="I3", ok=facts.declares_oauth_security,
+                                points=25 if facts.declares_oauth_security else 0, max_points=25,
+                                message=("OAuth/SMART security service declared in "
+                                         "CapabilityStatement" if facts.declares_oauth_security
+                                         else "no OAuth security service declared"),
+                                citation=_SMART_DISCOVERY))
     return DimensionScore(key="interop", title="Interop readiness",
                           score=_score(findings), findings=tuple(findings))
 
@@ -179,7 +198,7 @@ def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
     dimensions = (
         grade_reachability(metadata, vantage=vantage),
         grade_transparency(facts),
-        grade_interop(facts, smart),
+        grade_interop(facts, smart, kind=kind),
     )
     return Scorecard(
         endpoint_id=endpoint_id,

@@ -68,6 +68,17 @@
       "enabled": true
     },
     {
+      "id": "cigna-provider-directory",
+      "name": "Cigna Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://p-hi2.digitaledge.cigna.com/ProviderDirectory/v1",
+      "verification": {
+        "method": "live CapabilityStatement fetch; implementation description 'ProviderDirectory API' on a Cigna controlled domain; unauthenticated by design per the Provider Directory API requirement",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    },
+    {
       "id": "va-lighthouse",
       "name": "VA Lighthouse Patient Health API (production)",
       "kind": "provider",

@@ -158,6 +158,30 @@
     "first_seen": "2026-08-05",
     "last_seen": "2026-08-05"
   },
+  "cigna-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "resource_count": 8,
+      "resources_with_interactions": 8,
+      "software_name": null,
+      "software_version": null,
+      "supported_profiles": [
+        "http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-Endpoint",
+        "http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-HealthcareService",
+        "http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-InsurancePlan",
+        "http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-Location",
+        "http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-Network",
+        "http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-Organization",
+        "http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-OrganizationAffiliation",
+        "http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-Practitioner",
+        "http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-PractitionerRole"
+      ]
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-05"
+  },
   "cms-blue-button-2": {
     "events": [],
     "fingerprint": {

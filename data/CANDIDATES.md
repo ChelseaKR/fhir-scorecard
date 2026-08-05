@@ -95,5 +95,31 @@ guessing, not about payers. The zero is still informative in one narrow sense: p
 URLs are not predictable from company names, so any registry of them has to be curated from
 documentation rather than generated.
 
+## 2026-08-05 (fifth wave)
+
+Targeted Provider Directory APIs, which sit under the same CMS interoperability rules but are
+required to be reachable **without** authentication, plus additional reference servers.
+
+| Candidate | Outcome |
+|---|---|
+| Cigna Provider Directory | **Verified** → registry (new kind `payer_provider_directory`) |
+| Humana Provider Directory | Rejected: HTTP 400 |
+| CMS MA Provider Directory, UnitedHealthcare, Centene, BCBS FEP directories | Rejected: DNS did not resolve |
+| HAPI R5, Firely R5, SMART Health IT STU3 | **Verified but deliberately not listed** (see below) |
+| CMS Blue Button sandbox | Verified but redundant with production; not listed |
+
+**Three verified servers were left out on purpose.** HAPI R5 (5.0.0), Firely R5 (5.0.0), and
+SMART Health IT STU3 (3.0.1) all answer correctly, but the transparency dimension currently
+awards points for declaring FHIR R4 because R4 is what the CMS rules require. Grading a
+deliberately-R5 server down for not being R4 would be measuring the wrong thing, and adding them
+purely to raise the endpoint count would trade an honest dataset for a bigger one. They stay out
+until grading is version-aware.
+
+**Calibration found by this wave.** Provider Directory APIs must be publicly reachable, so the
+SMART-discovery and OAuth findings would have penalized Cigna's directory for correctly having
+no authorization surface. Those two findings are now reported as *not applicable* for that kind
+and carry no points in either direction. A regression test pins it.
+
 Next: source base URLs from CMS's own payer API listings and individual plan developer portals
-rather than patterns; re-probe rejected payers quarterly, since a 404 today may be live later.
+rather than patterns; re-probe rejected payers quarterly, since a 404 today may be live later;
+make grading FHIR-version-aware so R5 and STU3 servers can be graded on their own terms.

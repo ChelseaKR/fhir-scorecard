@@ -1,0 +1,13 @@
+# Dependency scanning and update PRs (SECURITY-AND-SUPPLY-CHAIN-STANDARD).
+# Runtime dependencies are stdlib-only; this watches the dev toolchain and the
+# SHA-pinned GitHub Actions.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

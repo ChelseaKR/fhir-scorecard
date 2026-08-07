@@ -12,10 +12,14 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -33,10 +37,14 @@
       "software_version": "0.5.0"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -54,10 +62,14 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -75,10 +87,14 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -96,16 +112,27 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
   },
   "cms-blue-button-2": {
-    "events": [],
+    "events": [
+      {
+        "changes": [
+          "software_version: '2.259.0' -> '2.260.0'"
+        ],
+        "date": "2026-08-07"
+      }
+    ],
     "fingerprint": {
       "declares_oauth_security": true,
       "fhir_version": "4.0.1",
@@ -114,13 +141,17 @@
       "resource_count": 3,
       "resources_with_interactions": 3,
       "software_name": "Blue Button API: Direct",
-      "software_version": "2.259.0"
+      "software_version": "2.260.0"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -138,10 +169,14 @@
       "software_version": "May 2026"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -159,10 +194,14 @@
       "software_version": "6.9.1+e4f2e63c5e20f326898f61339c3b3fcd48017201"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -180,10 +219,14 @@
       "software_version": "6.9.1+e4f2e63c5e20f326898f61339c3b3fcd48017201"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -201,10 +244,14 @@
       "software_version": "8.11.16-SNAPSHOT/7e7129efb5/2026-07-08"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -222,10 +269,14 @@
       "software_version": "8.11.16-SNAPSHOT/7e7129efb5/2026-07-08"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -243,10 +294,14 @@
       "software_version": "4.0.817"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -264,10 +319,14 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -285,10 +344,14 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -300,6 +363,12 @@
           "software_version: '5.1.27-042f741' -> '5.1.28-9e40e9c'"
         ],
         "date": "2026-08-05"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.28-9e40e9c' -> '5.1.28-cc10540'"
+        ],
+        "date": "2026-08-07"
       }
     ],
     "fingerprint": {
@@ -310,13 +379,17 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "medplum",
-      "software_version": "5.1.28-9e40e9c"
+      "software_version": "5.1.28-cc10540"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -334,10 +407,14 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -355,10 +432,14 @@
       "software_version": "2019.08.PRE"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -376,10 +457,14 @@
       "software_version": "2019.08.PRE"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]
@@ -397,10 +482,14 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-05",
+    "last_seen": "2026-08-07",
     "observations": [
       {
         "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
         "up": true
       }
     ]

@@ -9,6 +9,20 @@ it in language a non-engineer can act on. This project does for FHIR endpoints w
 data-quality tooling did for GTFS feeds: fetch what is public, run deterministic checks, and
 publish a letter grade with a short, prioritized list of findings and spec citations.
 
+## Quick start
+
+```bash
+uv venv .venv && uv pip install -e '.[dev]'
+make verify                       # lint, strict typecheck, tests with coverage floor
+.venv/bin/fhir-scorecard grade --registry data/registry.json --out site/
+```
+
+Offline mode (no network, fixture-driven) exists for CI and demos:
+
+```bash
+.venv/bin/fhir-scorecard grade --offline --fixtures tests/fixtures --out site/
+```
+
 ## What it observes, and what it never touches
 
 Everything graded here is **public, unauthenticated surface**:
@@ -77,20 +91,6 @@ a model deciding to fetch arbitrary URLs is a much larger security surface than 
 file this project already publishes. Its `grading_method` tool returns the documented limits, so
 an assistant can be told what the numbers do not mean.
 
-## Quick start
-
-```bash
-uv venv .venv && uv pip install -e '.[dev]'
-make verify                       # lint, strict typecheck, tests with coverage floor
-.venv/bin/fhir-scorecard grade --registry data/registry.json --out site/
-```
-
-Offline mode (no network, fixture-driven) exists for CI and demos:
-
-```bash
-.venv/bin/fhir-scorecard grade --offline --fixtures tests/fixtures --out site/
-```
-
 ## Status
 
 v0.1.0-dev. Seed registry contains reference servers only; payer registry curation is in
@@ -104,6 +104,25 @@ or client, past or present. Built with AI assistance (Claude Code); every change
 `make verify` gate (ruff with security rules, mypy strict, pytest with a branch-coverage floor).
 
 License: Apache-2.0.
+
+## Standards Conformance
+
+Per the portfolio standards set. N/A rows are backed by a committed declaration or ADR; there
+are no blank rows and no silent skips.
+
+| Standard | State |
+|---|---|
+| Code Quality | Applies: `make verify` gates every change (ruff with security rules, mypy strict, pytest with an 85% branch-coverage floor); `uv.lock`, `.python-version`, and `.pre-commit-config.yaml` pin the toolchain |
+| Security & Supply-Chain | Applies: Actions pinned to full commit SHAs, scoped workflow permissions, CodeQL + full-history gitleaks (`.github/workflows/security.yml`), Dependabot for pip and github-actions |
+| CI/CD | Applies: `verify.yml` runs the same `make verify` gate as local; branch protection on `main` is pending (a live GitHub settings action left for the repo owner) |
+| Observability | Applies (scoped): scheduled batch publisher, not a hosted runtime; run health is visible in Actions, and availability/drift history accrues in `data/history.json` |
+| Accessibility | Applies: static semantic HTML pages; formal assistive-technology review not yet performed (tracked in `docs/RESPONSIBLE-TECH-AUDITS.md` E) |
+| Internationalization | N/A: findings quote English normative spec text for a specialist audience; no civic public-service workflow. `docs/I18N.md` |
+| AI Evaluation | N/A: no LLM or model component; grading is deterministic and the MCP server only reads published files |
+| Documentation | Applies: README, ROADMAP, CONTRIBUTING, SECURITY, CHANGELOG, CITATION.cff, ADRs (`docs/adr/`) |
+| Quality & Metrics | Applies: deterministic findings tied to cited spec text; coverage floor enforced in CI; drift tracked across runs |
+| Release & Versioning | N/A: continuously published site/dataset with no downstream version consumer. `docs/adr/0001-release-versioning-na.md` |
+| Responsible-Tech Framework | Applies: `docs/RESPONSIBLE-TECH-AUDITS.md` (ethics, bias, privacy, transparency, accessibility, security declarations) |
 
 ## Support
 

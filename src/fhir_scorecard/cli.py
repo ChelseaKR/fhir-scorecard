@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from fhir_scorecard.capability import parse_capability, parse_smart
+from fhir_scorecard.cohort import Cohort, load_cohort_dir
 from fhir_scorecard.dataset import write_dataset
 from fhir_scorecard.drift import load_history, observe, save_history
 from fhir_scorecard.fetch import FetchResult, fetch_json
@@ -19,10 +20,12 @@ from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
 from fhir_scorecard.site import (
     DEFAULT_ORIGIN,
     claim_page,
+    cohort_page,
     endpoint_page,
     home_page,
     how_we_grade_page,
     kind_page,
+    org_display_name,
     org_page,
     org_slug,
     robots,
@@ -117,6 +120,10 @@ def main(argv: list[str] | None = None) -> int:
     grade.add_argument("--vantage", default="unspecified",
                        help="label for where this run measured from; latency is single-vantage "
                             "and a network path difference must not be read as a server change")
+    grade.add_argument("--cohorts", type=Path, default=Path("data/cohorts"),
+                       help="directory of curated cohort files, each published as its own page; "
+                            "an absent directory means no cohorts, a file that fails validation "
+                            "fails the build")
     mcp = sub.add_parser(
         "mcp", help="serve the published dataset over MCP (stdio, read-only)")
     mcp.add_argument("--site", type=Path, default=Path("site"),
@@ -144,6 +151,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"registry error: {exc}", file=sys.stderr)
         return 2
 
+    # Validated before any probe leaves this machine: a cohort that references an endpoint the
+    # graded registry does not carry should fail the build here, not after a network run.
+    try:
+        cohorts = load_cohort_dir(args.cohorts, frozenset(e.endpoint_id for e in endpoints))
+    except (OSError, ValueError) as exc:
+        print(f"cohort error: {exc}", file=sys.stderr)
+        return 2
+
     today = time.strftime("%Y-%m-%d", time.gmtime())
     history = load_history(args.history)
     other_probes = load_probe_files(list(args.probes_in or []))
@@ -163,7 +178,7 @@ def main(argv: list[str] | None = None) -> int:
     (args.out / "index.html").write_text(
         render_html(scorecards, generated_at=generated_at, vantage=args.vantage),
         encoding="utf-8")
-    _write_site(scorecards, endpoints, args.out, args.origin, generated_at)
+    _write_site(scorecards, endpoints, args.out, args.origin, generated_at, cohorts)
     write_dataset(args.out, scorecards, endpoints, origin=args.origin.rstrip("/"),
                   generated_at=generated_at, vantage=args.vantage)
 
@@ -173,11 +188,14 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _write_site(scorecards: list[Scorecard], endpoints: list[Endpoint], out: Path,
-                origin: str, generated_at: str) -> None:
-    """One indexable page per endpoint, organization, and category, plus sitemap and robots."""
+                origin: str, generated_at: str, cohorts: tuple[Cohort, ...] = ()) -> None:
+    """One indexable page per endpoint, organization, category, and cohort, plus sitemap."""
     origin = origin.rstrip("/")
     by_id = {e.endpoint_id: e for e in endpoints}
-    pages = [home_page(scorecards, origin), how_we_grade_page(origin), claim_page(origin)]
+    pages = [home_page(scorecards, origin, cohorts), how_we_grade_page(origin),
+             claim_page(origin)]
+    cards_by_id = {card.endpoint_id: card for card in scorecards}
+    pages.extend(cohort_page(cohort, cards_by_id, origin) for cohort in cohorts)
 
     for card in scorecards:
         entry = by_id.get(card.endpoint_id)
@@ -201,7 +219,7 @@ def _write_site(scorecards: list[Scorecard], endpoints: list[Endpoint], out: Pat
         by_org.setdefault(org_slug(card.name), []).append(card)
     for cards in by_org.values():
         if len(cards) > 1:
-            pages.append(org_page(cards[0].name.split("(")[0].strip(), cards, origin))
+            pages.append(org_page(org_display_name([c.name for c in cards]), cards, origin))
 
     for page in pages:
         write_page(out, page, origin, generated_at)

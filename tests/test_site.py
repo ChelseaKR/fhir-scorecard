@@ -30,6 +30,22 @@ def test_org_slug_strips_api_noise() -> None:
     assert org_slug("!!!") == "unknown"
 
 
+def test_org_display_name_is_the_shared_prefix_not_one_endpoints_name() -> None:
+    """Naming an org page after whichever endpoint came first titled it with one surface."""
+    from fhir_scorecard.site import org_display_name
+
+    assert org_display_name(["Cigna Patient Access API",
+                             "Cigna Provider Directory API"]) == "Cigna"
+    assert org_display_name(["Sharp Health Plan Patient Access API",
+                             "Sharp Health Plan Provider Directory API"]) == "Sharp Health Plan"
+    # Parenthetical qualifiers are dropped, so two releases of one server still share a name.
+    assert org_display_name(["HAPI FHIR public test server (R4)",
+                             "HAPI FHIR public test server (R5)"]) == "HAPI FHIR public test server"
+    # Nothing shared: fall back rather than render an empty heading.
+    assert org_display_name(["Alpha", "Beta"]) == "Alpha"
+    assert org_display_name([]) == ""
+
+
 def test_endpoint_page_escapes_and_carries_structured_data() -> None:
     page = endpoint_page(_card(name="<script>x</script>"), base_url="https://a.test/r4",
                          verified="live fetch", origin="https://example.test")

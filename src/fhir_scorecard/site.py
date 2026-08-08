@@ -10,12 +10,19 @@ from __future__ import annotations
 import html
 import json
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from fhir_scorecard.cohort import Cohort, CohortMember
 from fhir_scorecard.grading import Scorecard
 
 DEFAULT_ORIGIN = "https://chelseakr.github.io/fhir-scorecard"
+
+_PROGRAM_LABELS = {
+    "medi-cal": "Medi-Cal managed care",
+    "covered-ca": "Covered California",
+}
 
 _KIND_LABELS = {
     "payer": "Payer Patient Access APIs",
@@ -69,6 +76,31 @@ def org_slug(name: str) -> str:
     cleaned = re.sub(r"\b(api|apis|patient access|provider directory|public|sandbox|preview|"
                      r"production|open|test server|server|inc|llc)\b", " ", cleaned)
     return re.sub(r"[^a-z0-9]+", "-", cleaned).strip("-") or "unknown"
+
+
+def org_display_name(names: Sequence[str]) -> str:
+    """An organization's name, taken as the leading words all of its endpoints share.
+
+    An org page groups several endpoints, and naming it after whichever one happened to come first
+    produced "Cigna Patient Access API" as the heading of a page that also lists Cigna's provider
+    directory. The shared prefix is the part that is actually about the organization rather than
+    about one of its surfaces: Cigna, Sharp Health Plan, HAPI FHIR public test server.
+
+    Parenthetical qualifiers are dropped first, so "(R4)" and "(R5)" do not stop two releases of
+    the same server from sharing a name. Slugs and URLs are unaffected, because ``org_slug``
+    already strips the surface words this is removing.
+    """
+    stripped = [re.sub(r"\(.*?\)", " ", name).split() for name in names]
+    if not stripped:
+        return ""
+    common: list[str] = []
+    for words in zip(*stripped, strict=False):
+        if len({word.casefold() for word in words}) != 1:
+            break
+        common.append(words[0])
+    # A group shares a slug, so it almost always shares a leading word; fall back rather than
+    # render an empty heading if it somehow does not.
+    return " ".join(common) or " ".join(stripped[0])
 
 
 def _json_ld(payload: dict[str, object]) -> str:
@@ -210,6 +242,117 @@ against each other.</p>
     )
 
 
+def _programs_text(member: CohortMember) -> str:
+    return ", ".join(_PROGRAM_LABELS.get(p, p) for p in member.programs)
+
+
+def _cohort_included_rows(cohort: Cohort, cards: dict[str, Scorecard]) -> str:
+    """One row per listed endpoint, or a sentence when nothing in the cohort is listable.
+
+    An empty table body would read as "no member has an endpoint", which is a claim; the
+    sentence states the actual situation, which is that none of the reviewed members published
+    a base URL this project could verify.
+    """
+    rows = "".join(
+        f'<tr><td>{html.escape(member.name)}</td>'
+        f"<td>{html.escape(_programs_text(member))}</td>"
+        f'<td><a href="/fhir-scorecard/endpoint/{card.endpoint_id}/">'
+        f"{html.escape(card.name)}</a></td>"
+        f"<td>{html.escape(_KIND_LABELS.get(card.kind, card.kind))}</td>"
+        f"<td>{_grade_badge(card.grade)}</td></tr>"
+        for member in cohort.included
+        for card in (cards[eid] for eid in member.endpoint_ids if eid in cards)
+    )
+    if not rows:
+        return ('<tr><td colspan="5">No member of this cohort currently publishes a base URL '
+                "this project could verify. That gap is the finding.</td></tr>")
+    return rows
+
+
+def _cohort_excluded_rows(cohort: Cohort) -> str:
+    basis_words = {
+        "portal_reviewed": "the plan's own documentation was reviewed",
+        "not_located": "public search only; the plan's documentation was not located",
+    }
+    rows = ""
+    for member in cohort.excluded:
+        exclusion = member.exclusion
+        if exclusion is None:  # pragma: no cover - excluded members always carry one
+            continue
+        rows += (
+            f"<tr><td>{html.escape(member.name)}</td>"
+            f"<td>{html.escape(_programs_text(member))}</td>"
+            f"<td>{html.escape(exclusion.reason)} "
+            f"({html.escape(basis_words.get(exclusion.basis, exclusion.basis))}, "
+            f"{html.escape(exclusion.date)}; "
+            f'<a href="{html.escape(exclusion.source)}" rel="nofollow">source</a>)</td></tr>'
+        )
+    return rows
+
+
+def cohort_page(cohort: Cohort, cards: dict[str, Scorecard], origin: str) -> Page:
+    """A curated cohort: who is in it, who could be listed, and who could not, with reasons.
+
+    The exclusions table is not an appendix. For a cohort whose membership is public and finite,
+    "this plan publishes no base URL an unregistered visitor can see" is as much a result as any
+    grade, and omitting it would make the included list read as the whole cohort.
+    """
+    included_endpoints = sum(len(m.endpoint_ids) for m in cohort.included)
+    notes = "".join(f"<p>{html.escape(note)}</p>" for note in cohort.notes)
+    sources = "".join(
+        f'<li><a href="{html.escape(s.url)}" rel="nofollow">{html.escape(s.label)}</a> '
+        f"(retrieved {html.escape(s.date)})</li>"
+        for s in cohort.sources
+    )
+    sources_html = (f"<h2>Membership sources</h2><ul class=\"cards\">{sources}</ul>"
+                    if sources else "")
+    excluded_rows = _cohort_excluded_rows(cohort)
+    excluded_html = ""
+    if excluded_rows:
+        excluded_html = f"""
+<h2>Members reviewed and not listed</h2>
+<p>Each exclusion records how far the review went, on what date, and where to check it. A review
+that found nothing is not proof that nothing exists: if one of these plans publishes a base URL
+we missed, please <a href="/fhir-scorecard/claim/">tell us</a>.</p>
+<table><caption>Cohort members with no verifiable public endpoint</caption>
+<thead><tr><th scope="col">Plan</th><th scope="col">Programs</th>
+<th scope="col">Why it is not listed</th></tr></thead>
+<tbody>{excluded_rows}</tbody></table>
+"""
+    body = f"""
+<nav aria-label="Breadcrumb"><a href="/fhir-scorecard/">Home</a></nav>
+<h1>{html.escape(cohort.name)}</h1>
+<p class="lede">{html.escape(cohort.description)}</p>
+<p>{len(cohort.included)} of {len(cohort.members)} member organizations publish a FHIR base URL
+this project could verify from public documentation; {included_endpoints} verified
+{"endpoint is" if included_endpoints == 1 else "endpoints are"} listed below. The rest are
+recorded with the reason they could not be, because for a cohort whose membership is public and
+finite, the gap is itself a finding.</p>
+{notes}
+{sources_html}
+<h2>Listed endpoints</h2>
+<table><caption>Verified public FHIR endpoints of cohort members</caption>
+<thead><tr><th scope="col">Plan</th><th scope="col">Programs</th>
+<th scope="col">Endpoint</th><th scope="col">Category</th><th scope="col">Grade</th></tr></thead>
+<tbody>{_cohort_included_rows(cohort, cards)}</tbody></table>
+<p>Grades are comparable within a category only: a Patient Access API and a Provider Directory
+API answer to different expectations and are never ranked against each other.</p>
+{excluded_html}
+<p class="caveat">Observational snapshots of public discovery surfaces. Not audits, not
+compliance determinations, and not statements about care quality. Publishing a base URL to
+unregistered visitors is not required by any rule this project reads, and a plan that does not
+is not violating anything; it is only not independently checkable from outside.</p>
+"""
+    return Page(
+        path=cohort.cohort_id,
+        title=f"{cohort.name}: public FHIR endpoint grades",
+        description=(f"{cohort.description} {len(cohort.included)} of {len(cohort.members)} "
+                     "member organizations publish a verifiable public FHIR endpoint."),
+        body=body,
+        priority="0.9",
+    )
+
+
 def sitemap(pages: list[Page], origin: str) -> str:
     entries = "".join(
         f"<url><loc>{origin}/{p.path + '/' if p.path else ''}</loc>"
@@ -303,8 +446,13 @@ documents are read; no patient data is ever accessed.
 """
 
 
-def home_page(cards: list[Scorecard], origin: str) -> Page:
-    """Landing page: what this is, what it found, where to go next."""
+def home_page(cards: list[Scorecard], origin: str,
+              cohorts: tuple[Cohort, ...] = ()) -> Page:
+    """Landing page: what this is, what it found, where to go next.
+
+    ``cohorts`` is empty when no cohort curation was loaded, and the section is then omitted
+    entirely rather than rendered as an empty list or a dead link.
+    """
     by_kind: dict[str, list[Scorecard]] = {}
     for c in cards:
         by_kind.setdefault(c.kind, []).append(c)
@@ -330,6 +478,18 @@ def home_page(cards: list[Scorecard], origin: str) -> Page:
         }],
         "isAccessibleForFree": True,
     }
+    cohort_section = ""
+    if cohorts:
+        items = "".join(
+            f'<li><a href="/fhir-scorecard/{c.cohort_id}/">{html.escape(c.name)}</a>: '
+            f"{len(c.included)} of {len(c.members)} member organizations listed, the rest "
+            "recorded with the reason they could not be</li>"
+            for c in cohorts
+        )
+        cohort_section = f"""
+<h2>Curated cohorts</h2>
+<ul class="cards">{items}</ul>
+"""
     body = f"""
 <h1>FHIR Scorecard</h1>
 <p class="lede">Can you check a health payer's FHIR API without asking permission first? For most
@@ -341,6 +501,7 @@ day. Findings cite the spec clause they rest on, and an endpoint that cannot be 
 with a stated reason rather than disappearing from the data.</p>
 <h2>Browse by category</h2>
 <ul class="cards">{sections}</ul>
+{cohort_section}
 <p>Grades are comparable within a category only. A payer Patient Access API and an EHR vendor
 sandbox answer to different implementation guides, so they are never ranked against each other.</p>
 <h2>What the curation found</h2>

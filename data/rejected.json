@@ -56,6 +56,55 @@
       "base_url": "https://public.fhir.flex.optum.com/R4",
       "last_outcome": "DNS did not resolve (2026-08-04)",
       "source": "guessed pattern"
+    },
+    {
+      "id": "centene-patient-access",
+      "name": "Centene Patient Access (Health Net, CalViva, CHPIV)",
+      "base_url": "https://production.api.centene.com/fhir/patientaccess",
+      "last_outcome": "DNS did not resolve (2026-08-07)",
+      "source": "developer portal documentation published by Community Health Plan of Imperial Valley at https://chpiv.org/interoperability/; the same corporate portal is where Health Net and CalViva route developers"
+    },
+    {
+      "id": "centene-provider-directory",
+      "name": "Centene Provider Directory (Health Net, CalViva, CHPIV)",
+      "base_url": "https://production.api.centene.com/fhir/providerdirectory",
+      "last_outcome": "DNS did not resolve (2026-08-07); documented as 'Authentication Type: None', so it is meant to be publicly reachable",
+      "source": "developer portal documentation published by Community Health Plan of Imperial Valley at https://chpiv.org/interoperability/"
+    },
+    {
+      "id": "partnership-hp-provider-directory",
+      "name": "Partnership HealthPlan of California Provider Directory",
+      "base_url": "https://us120.fhir.edifecsfedcloud.com/php_pdfhir",
+      "last_outcome": "HTTP 404 (2026-08-07); the plan's own page describes it as 'a publicly accessible API'",
+      "source": "developer portal documentation at https://www.partnershiphp.org/About/Pages/Developer-Resources.aspx"
+    },
+    {
+      "id": "partnership-hp-patient-access",
+      "name": "Partnership HealthPlan of California Patient Access",
+      "base_url": "https://us120.fhir.edifecsfedcloud.com/php_fhir",
+      "last_outcome": "HTTP 401 (2026-08-07)",
+      "source": "developer portal documentation at https://www.partnershiphp.org/About/Pages/Developer-Resources.aspx"
+    },
+    {
+      "id": "kern-patient-access",
+      "name": "Kern Family Health Care Patient Access",
+      "base_url": "https://fastplusapi.khs-net.com:8080/patient/paa/r4",
+      "last_outcome": "HTTP 404 (2026-08-07). A first probe failed at TLS because the server sends a Sectigo root this vantage does not trust; the 404 was established with a client whose trust store carries it, so the TLS failure was ours and the 404 is the endpoint's",
+      "source": "developer portal documentation at https://www.kernfamilyhealthcare.com/about-us/khs-interoperability/"
+    },
+    {
+      "id": "kern-provider-directory",
+      "name": "Kern Family Health Care Provider Directory",
+      "base_url": "https://fastplusapi.khs-net.com:8080/provider/pda/r4",
+      "last_outcome": "HTTP 404 (2026-08-07)",
+      "source": "developer portal documentation at https://www.kernfamilyhealthcare.com/about-us/khs-interoperability/"
+    },
+    {
+      "id": "hpsj-patient-access",
+      "name": "Health Plan of San Joaquin Patient Access",
+      "base_url": "https://us120.fhir.edifecsfedcloud.com/hpsj_fhir",
+      "last_outcome": "HTTP 401 (2026-08-07). The plan's own documentation leaves the production endpoint as an unfilled placeholder; this URL comes from the CARIN Alliance directory entry the plan filed",
+      "source": "CARIN Alliance FHIR directory registry entry for Health Plan of San Joaquin"
     }
   ]
 }

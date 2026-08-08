@@ -3,8 +3,31 @@
 from __future__ import annotations
 
 import json
+import os
+from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _isolated_cwd(tmp_path: Path) -> Iterator[None]:
+    """Run every test from a throwaway directory.
+
+    Several CLI options default to relative paths under ``data/``, and the suite runs from the
+    repository root, so a test that forgets to override one of them silently reads or writes the
+    real curation files instead of failing: an offline run against a fixture registry would load
+    the shipped cohort, and a run without ``--history`` would append fixture observations to the
+    live availability record. Cutting the repository out of the default entirely makes that
+    impossible rather than remembered. No test addresses a repository file by relative path, and
+    one that wants to should use an absolute one.
+    """
+    previous = Path.cwd()
+    os.chdir(tmp_path)
+    try:
+        yield
+    finally:
+        os.chdir(previous)
 
 
 def good_capability() -> dict[str, object]:

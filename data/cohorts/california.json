@@ -1,0 +1,349 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the plan's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the plan publishes a base URL that returns 404' and 'the plan publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "california",
+    "name": "California payer cohort",
+    "description": "The Patient Access and Provider Directory APIs of California's Medi-Cal managed care plans and Covered California qualified health plan issuers, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Every endpoint in this cohort is required to exist by the federal CMS Interoperability and Patient Access rule (CMS-9115-F), which obliges Medicaid managed care plans and qualified health plan issuers on the federal exchanges to expose a Patient Access API and a Provider Directory API over FHIR R4. That is the whole reason a cohort like this can be assembled at all: the membership list is public, the obligation is federal, and the surfaces are meant to be discoverable.",
+    "The rule requires the API. It does not require a plan to print its base URL where an unregistered visitor can read it, and nothing on this page treats a plan that does not as being out of compliance with anything. What a missing base URL costs is narrower and worth naming exactly: conformance stops being checkable by anyone who has not already entered a business relationship with the plan.",
+    "This cohort is not about California's Data Exchange Framework. The DxF runs through the Data Sharing Agreement and qualified health information organizations, and it does not require any of the surfaces graded here. Reading a grade on this page as a DxF result would be wrong in both directions.",
+    "CMS-0057-F adds Provider Access, Payer-to-Payer, and Prior Authorization APIs with compliance dates in January 2027. None of that is required yet and none of it is graded here. It is noted because these same endpoints are where it will land, which makes today's grades a baseline worth having before the deadline rather than after it.",
+    "Membership is the DHCS Medi-Cal managed care plan roster plus the Covered California issuer list, deduplicated: seven organizations run in both programs and appear once, tagged with both. SCAN Connections appears in the DHCS table but is scoped out here, because DHCS's own footnote describes it as a Medicare Advantage Special Needs Plan rather than an MCP contract.",
+    "Vendor-hosted platforms are the hard case and are handled explicitly. Several of these endpoints answer with a CapabilityStatement that names a vendor, or names nobody at all, so the document cannot say which plan it serves. Where the plan itself published the base URL on its own site, that is the plan putting its name behind the address and the entry is attributed to the plan, with the verification record saying plainly that the conformance document does not. Where only a vendor or a URL path segment connects the two, the endpoint is excluded instead."
+  ],
+  "sources": [
+    {
+      "label": "DHCS: Medi-Cal Plan with Medi-Medi Plans in 2026 (statewide plan-by-county table)",
+      "url": "https://www.dhcs.ca.gov/provgovpart/Documents/Medi-Medi-Plan-County-Table-2026.pdf",
+      "date": "2026-08-07"
+    },
+    {
+      "label": "DHCS: Medi-Cal Managed Care Health Plan Directory",
+      "url": "https://www.dhcs.ca.gov/individuals/medi-cal-managed-care-health-plan-directory/",
+      "date": "2026-08-07"
+    },
+    {
+      "label": "Covered California: rates and plans for 2026 (eleven issuers)",
+      "url": "https://www.coveredca.com/newsroom/news-releases/2025/08/14/covered-california-rates-and-plans-for-2026-consumer-affordability-on-the-line-with-uncertainty-surrounding-federal-premium-tax-credit-extension/",
+      "date": "2026-08-07"
+    }
+  ],
+  "members": [
+    {
+      "id": "inland-empire-health-plan",
+      "name": "Inland Empire Health Plan",
+      "programs": ["medi-cal", "covered-ca"],
+      "endpoints": ["iehp-patient-access", "iehp-provider-directory"]
+    },
+    {
+      "id": "kaiser-permanente",
+      "name": "Kaiser Permanente",
+      "programs": ["medi-cal", "covered-ca"],
+      "endpoints": ["kaiser-permanente-health-plan"]
+    },
+    {
+      "id": "la-care-health-plan",
+      "name": "L.A. Care Health Plan",
+      "programs": ["medi-cal", "covered-ca"],
+      "endpoints": ["la-care-provider-directory"]
+    },
+    {
+      "id": "sharp-health-plan",
+      "name": "Sharp Health Plan",
+      "programs": ["covered-ca"],
+      "endpoints": ["sharp-health-plan-patient-access", "sharp-health-plan-provider-directory"]
+    },
+    {
+      "id": "santa-clara-family-health-plan",
+      "name": "Santa Clara Family Health Plan",
+      "programs": ["medi-cal"],
+      "endpoints": ["scfhp-patient-access", "scfhp-provider-directory"]
+    },
+    {
+      "id": "health-plan-of-san-mateo",
+      "name": "Health Plan of San Mateo",
+      "programs": ["medi-cal"],
+      "endpoints": ["hpsm-patient-access"]
+    },
+    {
+      "id": "central-california-alliance",
+      "name": "Central California Alliance for Health",
+      "programs": ["medi-cal"],
+      "endpoints": ["ccah-provider-directory"]
+    },
+    {
+      "id": "community-health-group",
+      "name": "Community Health Group Partnership Plan",
+      "programs": ["medi-cal"],
+      "endpoints": ["chg-provider-directory"]
+    },
+    {
+      "id": "anthem-blue-cross",
+      "name": "Anthem Blue Cross (Elevance Health)",
+      "programs": ["medi-cal", "covered-ca"],
+      "excluded": {
+        "reason": "the documented brand endpoint answers, but its CapabilityStatement cannot be attributed to the California brand: three consecutive requests to the same Anthem Blue Cross URL returned documents identical except for id and date, whose implementation.url named AnthemBlueCrossBlueShield, then AnthemBlueCross, then Wellpoint",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved Elevance's own Interoperability API Endpoint Support Document, which lists one production base URL per brand and gives an 'Anthem Blue Cross' row; fetched that base URL three times and compared the responses. The publisher field reads 'Elevance Health, Inc' throughout, so the server identifies its operator but not which of thirteen brands a given response describes",
+          "date": "2026-08-07",
+          "source": "https://www.wellpoint.com/content/dam/digital/developers-portal/Anthem-IOProviderDirectoryAndFormulary-API-Documentation.pdf"
+        }
+      }
+    },
+    {
+      "id": "blue-shield-of-california",
+      "name": "Blue Shield of California (including Promise Health Plan)",
+      "programs": ["medi-cal", "covered-ca"],
+      "excluded": {
+        "reason": "developer portal requires an account; the Patient Access product page lists resource paths but no base URL, and production access needs an attestation form",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's interoperability page and its Patient Access product page; the product is documented at FHIR 4.0.1 with 23 APIs as relative paths only, and no page reachable without an account carries a root URL. Nothing retrieved distinguishes the commercial line from Promise Health Plan's Medi-Cal line",
+          "date": "2026-08-07",
+          "source": "https://devportal-dev.blueshieldca.com/bsc/fhir-sandbox/interoperability"
+        }
+      }
+    },
+    {
+      "id": "health-net",
+      "name": "Health Net Community Solutions",
+      "programs": ["medi-cal", "covered-ca"],
+      "excluded": {
+        "reason": "the plan routes developers to the Centene partner portal, which publishes no base URL to an unregistered visitor; the Centene production host documented by an affiliated Centene plan does not resolve in public DNS",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's own member and developer guidance, which directs developers to partners.centene.com/apis and the 'FHIR - Patient Access' listing there; that portal renders no endpoint content without JavaScript and no base URL was retrievable. See the Community Health Plan of Imperial Valley entry for the Centene host that is documented and does not resolve",
+          "date": "2026-08-07",
+          "source": "https://www.healthnet.com/en_us/members/managing-your-digital-medical-records.html"
+        }
+      }
+    },
+    {
+      "id": "calviva-health",
+      "name": "CalViva Health",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "the plan routes developers to the Centene partner portal, which publishes no base URL to an unregistered visitor",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's interoperability page, which uses the same language as Health Net's and points at the same Centene partner portal without naming an endpoint",
+          "date": "2026-08-07",
+          "source": "https://www.calvivahealth.org/interoperability/"
+        }
+      }
+    },
+    {
+      "id": "molina-healthcare-of-california",
+      "name": "Molina Healthcare of California",
+      "programs": ["medi-cal", "covered-ca"],
+      "excluded": {
+        "reason": "developer portal published; Provider Directory calls can be tried against mock data without an account, but Patient Access endpoints require sign-in and no production base URL is printed",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the interoperability developer portal and its product documentation PDF, which states that a visitor with no account can explore APIs and try Provider Directory calls against mock data but must be signed in to try Patient Access endpoints, and that the portal URL is specific to each health plan. California is not listed as a separate tenant",
+          "date": "2026-08-07",
+          "source": "https://developer.interop.molinahealthcare.com/"
+        }
+      }
+    },
+    {
+      "id": "community-health-plan-of-imperial-valley",
+      "name": "Community Health Plan of Imperial Valley",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "the plan publishes production base URLs in its own hosted API documentation and the host does not resolve in public DNS",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's interoperability page and both of the API documentation files it links, which print production https://production.api.centene.com with paths /fhir/patientaccess and /fhir/providerdirectory, the latter marked 'Authentication Type: None'. Both hostnames failed to resolve on probe. This is the clearest finding in the cohort: an address published for a public API, by the plan, that does not exist",
+          "date": "2026-08-07",
+          "source": "https://chpiv.org/interoperability/"
+        }
+      }
+    },
+    {
+      "id": "partnership-healthplan",
+      "name": "Partnership HealthPlan of California",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "the plan publishes production base URLs for both APIs on its own developer page and neither answers: the Provider Directory returns 404 and the Patient Access endpoint returns 401",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's developer resources page, which prints testing and production base URLs for both APIs in a table and describes the Provider Directory API as 'a publicly accessible API'; probed both production URLs",
+          "date": "2026-08-07",
+          "source": "https://www.partnershiphp.org/About/Pages/Developer-Resources.aspx"
+        }
+      }
+    },
+    {
+      "id": "kern-family-health-care",
+      "name": "Kern Family Health Care",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "the plan publishes base URLs for both APIs in its own hosted documentation and both return HTTP 404",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's interoperability page and the three API documentation PDFs it links, which print production base URLs on fastplusapi.khs-net.com for Patient Access and Provider Directory; both returned 404 at /metadata. Worth recording separately: the first probe failed at TLS because the server sends a Sectigo root this vantage does not trust, which looked like an endpoint fault and was not. The 404 was established with a client whose trust store does carry that root",
+          "date": "2026-08-07",
+          "source": "https://www.kernfamilyhealthcare.com/about-us/khs-interoperability/"
+        }
+      }
+    },
+    {
+      "id": "health-plan-of-san-joaquin",
+      "name": "Health Plan of San Joaquin",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "only a sandbox base URL is published and it returns 401; in the plan's own documentation the production endpoint is an unfilled placeholder",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's third-party applications page and its Patient Access API documentation PDF, which prints a sandbox base URL under the heading 'Base URL:' and leaves the production slot reading '<To be entered by customer: Enter the link to the endpoint URL>'. A production Patient Access URL for this plan also appears in the CARIN Alliance directory; it returns 401",
+          "date": "2026-08-07",
+          "source": "https://www.hpsj.com/third-party-health-applications/"
+        }
+      }
+    },
+    {
+      "id": "mountain-valley-health-plan",
+      "name": "Mountain Valley Health Plan",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "covered by the same documentation as Health Plan of San Joaquin, with the same outcome: sandbox only, and it returns 401",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "the Patient Access API documentation retrieved for Health Plan of San Joaquin is published as joint HPSJ/MVHP documentation and names no separate Mountain Valley endpoint",
+          "date": "2026-08-07",
+          "source": "https://www.hpsj.com/third-party-health-applications/"
+        }
+      }
+    },
+    {
+      "id": "contra-costa-health-plan",
+      "name": "Contra Costa Health Plan",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "the live developer page could not be retrieved; an archived copy documents a Patient Access host that does not resolve and a Provider Directory that answers but is attributable only to its vendor",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "the plan's APIs-for-developers page returns 403 to every non-browser client tried, so the review used a April 2026 capture of that page and says so. The Patient Access URL it documents did not resolve. The Provider Directory URL it links answers with a CapabilityStatement whose publisher is 'mPulse' and whose implementation description is 'mPulse FHIR Provider Directory', naming no plan; the only link to Contra Costa is an archived page's link target, which is weaker than this project lists on",
+          "date": "2026-08-07",
+          "source": "https://www.cchealth.org/health-insurance/about-cchp-managed-care/apis-for-developers"
+        }
+      }
+    },
+    {
+      "id": "alameda-alliance-for-health",
+      "name": "Alameda Alliance for Health",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "developer portal published on a shared vendor platform; no base URL is rendered to an unregistered visitor",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's interoperability page, which describes the APIs and links an Edifecs developer portal; that portal is a client-side application that renders no endpoint content without an account",
+          "date": "2026-08-07",
+          "source": "https://alamedaalliance.org/about/interoperability/"
+        }
+      }
+    },
+    {
+      "id": "caloptima-health",
+      "name": "CalOptima Health",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "developer portal published on a shared vendor platform; no base URL is rendered to an unregistered visitor",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's interoperability and EDI page, which links an Edifecs developer portal and getting-started page, and its member-facing interoperability FAQ, which carries consumer guidance and no endpoints",
+          "date": "2026-08-07",
+          "source": "https://www.caloptima.org/en/for-providers/interoperability-and-electronic-data-interchange"
+        }
+      }
+    },
+    {
+      "id": "san-francisco-health-plan",
+      "name": "San Francisco Health Plan",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "developer portal published on a shared vendor platform; no base URL is rendered to an unregistered visitor",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's provider tools page, which links an Edifecs developer portal under the heading 'Interoperability APIs'; the portal renders no endpoint content without an account, and no other SFHP page reviewed publishes a base URL",
+          "date": "2026-08-07",
+          "source": "https://www.sfhp.org/providers/provider-tools/"
+        }
+      }
+    },
+    {
+      "id": "cencal-health",
+      "name": "CenCal Health",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "developer portal published on a shared vendor platform; no base URL is rendered to an unregistered visitor",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's third-party health applications page, which explains member access through an app and links an Edifecs developer portal; the portal renders no endpoint content without an account",
+          "date": "2026-08-07",
+          "source": "https://www.cencalhealth.org/third-party-health-applications/"
+        }
+      }
+    },
+    {
+      "id": "gold-coast-health-plan",
+      "name": "Gold Coast Health Plan",
+      "programs": ["medi-cal"],
+      "excluded": {
+        "reason": "developer portal published on a shared vendor platform; no base URL is rendered to an unregistered visitor",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's third-party health applications page, which states that the plan is working with Edifecs to carry out the APIs required by the rule and links the developer portal by URL; the portal renders no endpoint content without an account",
+          "date": "2026-08-07",
+          "source": "https://www.goldcoasthealthplan.org/health-resources/third-party-health-applications/"
+        }
+      }
+    },
+    {
+      "id": "chinese-community-health-plan",
+      "name": "Chinese Community Health Plan (Balance by CCHP)",
+      "programs": ["covered-ca"],
+      "excluded": {
+        "reason": "the interoperability page carries a heading for the endpoint list and the list itself is missing from the page",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the plan's interoperability page, which names 1upHealth as its interoperability partner and ends the developer section with the sentence 'The following data is available through the CCHP/1upHealth FHIR API: Patient Access and Provider Directory API Endpoints' followed by no URLs at all before the footer. Developer access is offered through a 1upHealth account",
+          "date": "2026-08-07",
+          "source": "https://cchphealthplan.com/interoperability/"
+        }
+      }
+    },
+    {
+      "id": "valley-health-plan",
+      "name": "Valley Health Plan",
+      "programs": ["covered-ca"],
+      "excluded": {
+        "reason": "no interoperability or developer documentation could be located",
+        "basis": "not_located",
+        "reviewed": {
+          "method": "the plan's site returns a bot challenge to every non-browser client tried, so the review was indirect: four searches for interoperability, Patient Access and developer pages returned nothing, and a scan of the web archive's index for the whole domain found no capture of any such page. This is the weaker basis and is reported as such; a page behind that challenge could exist",
+          "date": "2026-08-07",
+          "source": "https://www.valleyhealthplan.org/"
+        }
+      }
+    },
+    {
+      "id": "western-health-advantage",
+      "name": "Western Health Advantage",
+      "programs": ["covered-ca"],
+      "excluded": {
+        "reason": "no interoperability or developer documentation could be located",
+        "basis": "not_located",
+        "reviewed": {
+          "method": "the plan's site answers every client tried with a security checkpoint challenge, and searches for an interoperability or developer page returned nothing on the plan's own domain. A vendor press release names the plan as working with 1upHealth, which is not the plan's own word and is not treated as one",
+          "date": "2026-08-07",
+          "source": "https://www.westernhealth.com/"
+        }
+      }
+    }
+  ]
+}

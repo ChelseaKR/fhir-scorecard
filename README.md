@@ -62,9 +62,32 @@ tool is runnable out of the box. Payer endpoints are added only after live verif
 CapabilityStatement, confirm the publisher matches the claimed organization, record the method and
 date in the entry). Unverified entries are never shipped. See `CONTRIBUTING.md`.
 
+Attribution follows the publisher's own words and never a URL path segment. Where a vendor runs a
+multi-tenant payer platform the conformance document often names the vendor, or nobody at all, and
+attribution then rests on the **plan** publishing the base URL on its own site, which the entry's
+verification record says outright. Where only a vendor or a path segment connects a server to a
+plan, the endpoint is excluded instead.
+
+## Cohorts
+
+A cohort is a named view over the registry whose membership comes from a **public roster** rather
+than from whatever was easy to find, which is what lets a hit rate mean anything: the denominator is
+fixed before any probing starts. Every member either points at registry endpoints or carries an
+exclusion with a reason, a review record, a date, and a source, so the plans that publish nothing
+discoverable are part of the published result rather than an absence in it.
+
+The first is the **California payer cohort** at `/california/`: the Medi-Cal managed care plans DHCS
+lists plus the Covered California qualified health plan issuers, deduplicated to 27 organizations.
+Eight publish a base URL that answers. Those endpoints are required to exist by the federal CMS
+Interoperability and Patient Access rule (CMS-9115-F), which is the only obligation this project
+claims about them. The rule does not require a plan to print its base URL where an unregistered
+visitor can read it; California's Data Exchange Framework runs through the DSA and QHIOs and
+requires none of these surfaces; and CMS-0057-F's additional APIs are not in force until 2027 and
+are not graded.
+
 ## The site
 
-Every endpoint, organization, and category gets its own indexable page with a canonical URL,
+Every endpoint, organization, category, and cohort gets its own indexable page with a canonical URL,
 description, and structured data, plus a sitemap and a methodology page that every finding links
 into. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and, more
 importantly, for the constraint that governs it: search traffic scales with registry size, and
@@ -93,9 +116,11 @@ an assistant can be told what the numbers do not mean.
 
 ## Status
 
-v0.1.0-dev. Seed registry contains reference servers only; payer registry curation is in
-progress. Grades are observational snapshots of public surfaces, not audits, rankings of care
-quality, or statements about any organization's compliance.
+v0.1.0-dev. Thirty verified endpoints across payers, payer provider directories, a federal provider
+API, EHR vendor sandboxes, and reference servers, including a curated California payer cohort. Payer
+registry curation continues one developer portal at a time, because payer base URLs are not
+predictable from company names. Grades are observational snapshots of public surfaces, not audits,
+rankings of care quality, or statements about any organization's compliance.
 
 ## Provenance
 

@@ -578,6 +578,12 @@
           "software_version: '5.1.28-cc10540' -> '5.1.28-3ac46ff'"
         ],
         "date": "2026-08-08"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.28-3ac46ff' -> '5.1.28-6ad2fe2'"
+        ],
+        "date": "2026-08-08"
       }
     ],
     "fingerprint": {
@@ -588,7 +594,7 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "medplum",
-      "software_version": "5.1.28-3ac46ff"
+      "software_version": "5.1.28-6ad2fe2"
     },
     "first_seen": "2026-08-05",
     "last_seen": "2026-08-08",

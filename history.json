@@ -1,0 +1,810 @@
+{
+  "aetna-demo": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 25,
+      "resources_with_interactions": 25,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "bcbs-mn": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 59,
+      "profile_digest": "3dcfbd6e7b3126f1",
+      "resource_count": 26,
+      "resources_with_interactions": 26,
+      "software_name": "BCBS MN FHIR Server",
+      "software_version": "0.5.0"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "capital-bluecross": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 37,
+      "profile_digest": "9a3aa791570fe3cd",
+      "resource_count": 28,
+      "resources_with_interactions": 27,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "ccah-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 25,
+      "profile_digest": "f223b1bff0c2f87a",
+      "resource_count": 24,
+      "resources_with_interactions": 24,
+      "software_name": "HAPI FHIR Server",
+      "software_version": "5.4.1.13_edfx"
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "chg-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 9,
+      "profile_digest": "6091e98daefd2a6a",
+      "resource_count": 8,
+      "resources_with_interactions": 8,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "cigna-patientaccess": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 56,
+      "profile_digest": "3728f126c9706346",
+      "resource_count": 28,
+      "resources_with_interactions": 28,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "cigna-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 9,
+      "profile_digest": "6091e98daefd2a6a",
+      "resource_count": 8,
+      "resources_with_interactions": 8,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "cms-blue-button-2": {
+    "events": [
+      {
+        "changes": [
+          "software_version: '2.259.0' -> '2.260.0'"
+        ],
+        "date": "2026-08-07"
+      }
+    ],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 3,
+      "resources_with_interactions": 3,
+      "software_name": "Blue Button API: Direct",
+      "software_version": "2.260.0"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "epic-sandbox": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 47,
+      "profile_digest": "e55449568eb40a17",
+      "resource_count": 59,
+      "resources_with_interactions": 59,
+      "software_name": "Epic",
+      "software_version": "May 2026"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "firely-public": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 215,
+      "profile_digest": "5924b3e0f80531fd",
+      "resource_count": 146,
+      "resources_with_interactions": 146,
+      "software_name": "Firely Server",
+      "software_version": "6.9.1+e4f2e63c5e20f326898f61339c3b3fcd48017201"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "firely-r5": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "5.0.0",
+      "profile_count": 219,
+      "profile_digest": "1bed993e52ea4908",
+      "resource_count": 158,
+      "resources_with_interactions": 158,
+      "software_name": "Firely Server",
+      "software_version": "6.9.1+e4f2e63c5e20f326898f61339c3b3fcd48017201"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "hapi-fhir-r4": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 146,
+      "resources_with_interactions": 146,
+      "software_name": "HAPI FHIR Server",
+      "software_version": "8.11.16-SNAPSHOT/7e7129efb5/2026-07-08"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "hapi-fhir-r5": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "5.0.0",
+      "profile_count": 132,
+      "profile_digest": "8139e6ef9c1af03d",
+      "resource_count": 158,
+      "resources_with_interactions": 158,
+      "software_name": "HAPI FHIR Server",
+      "software_version": "8.11.16-SNAPSHOT/7e7129efb5/2026-07-08"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "healthpartners": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 113,
+      "profile_digest": "62d346a0981ed87d",
+      "resource_count": 146,
+      "resources_with_interactions": 145,
+      "software_name": "Azure Healthcare APIs",
+      "software_version": "4.0.817"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "hpsm-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 37,
+      "profile_digest": "ddeec79541ef2a78",
+      "resource_count": 144,
+      "resources_with_interactions": 144,
+      "software_name": "1up FHIR Server",
+      "software_version": "4.0.1 3.9.0 v1.0.0-rc+202607151200 bc93922"
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "humana": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 61,
+      "profile_digest": "22d8baf1d3c2ecc5",
+      "resource_count": 22,
+      "resources_with_interactions": 22,
+      "software_name": "HumanaFHIR",
+      "software_version": null
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "iehp-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 17,
+      "resources_with_interactions": 17,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "iehp-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 7,
+      "resources_with_interactions": 7,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "inferno-reference": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 63,
+      "profile_digest": "487a0ae081df74c2",
+      "resource_count": 26,
+      "resources_with_interactions": 25,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "kaiser-permanente-health-plan": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 15,
+      "profile_digest": "e5d0824671d4e12e",
+      "resource_count": 10,
+      "resources_with_interactions": 10,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "la-care-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 25,
+      "profile_digest": "f223b1bff0c2f87a",
+      "resource_count": 24,
+      "resources_with_interactions": 24,
+      "software_name": "HAPI FHIR Server",
+      "software_version": "5.4.1.13_edfx"
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "medplum": {
+    "events": [
+      {
+        "changes": [
+          "software_version: '5.1.27-042f741' -> '5.1.28-9e40e9c'"
+        ],
+        "date": "2026-08-05"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.28-9e40e9c' -> '5.1.28-cc10540'"
+        ],
+        "date": "2026-08-07"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.28-cc10540' -> '5.1.28-3ac46ff'"
+        ],
+        "date": "2026-08-08"
+      }
+    ],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 55,
+      "profile_digest": "a9ba17edb58e3191",
+      "resource_count": 146,
+      "resources_with_interactions": 146,
+      "software_name": "medplum",
+      "software_version": "5.1.28-3ac46ff"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "oracle-health-open": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 48,
+      "profile_digest": "64076dcfa96aaef7",
+      "resource_count": 42,
+      "resources_with_interactions": 42,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "scfhp-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 146,
+      "resources_with_interactions": 146,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "scfhp-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 4,
+      "resources_with_interactions": 4,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "sharp-health-plan-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 24,
+      "resources_with_interactions": 24,
+      "software_name": "SHP Patient APIs",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "sharp-health-plan-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 7,
+      "profile_digest": "2f750f6836969c15",
+      "resource_count": 7,
+      "resources_with_interactions": 7,
+      "software_name": "https://www.mulesoft.com/exchange/org.mule.examples/hc-accelerator-plannet-providerdirectory-exp-api/",
+      "software_version": null
+    },
+    "first_seen": "2026-08-08",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "smart-health-it-r4": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.0",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 146,
+      "resources_with_interactions": 146,
+      "software_name": "Smile CDR",
+      "software_version": "2019.08.PRE"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "smart-health-it-stu3": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "3.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 117,
+      "resources_with_interactions": 117,
+      "software_name": "Smile CDR",
+      "software_version": "2019.08.PRE"
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  },
+  "va-lighthouse": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 23,
+      "profile_digest": "17ad2ebae463c621",
+      "resource_count": 19,
+      "resources_with_interactions": 19,
+      "software_name": "health-api-fhir-r4",
+      "software_version": null
+    },
+    "first_seen": "2026-08-05",
+    "last_seen": "2026-08-08",
+    "observations": [
+      {
+        "date": "2026-08-05",
+        "up": true
+      },
+      {
+        "date": "2026-08-07",
+        "up": true
+      },
+      {
+        "date": "2026-08-08",
+        "up": true
+      }
+    ]
+  }
+}

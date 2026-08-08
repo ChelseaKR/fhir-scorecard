@@ -140,7 +140,7 @@ are no blank rows and no silent skips.
 | Code Quality | Applies: `make verify` gates every change (ruff with security rules, mypy strict, pytest with an 85% branch-coverage floor); `uv.lock`, `.python-version`, and `.pre-commit-config.yaml` pin the toolchain |
 | Security & Supply-Chain | Applies: Actions pinned to full commit SHAs, scoped workflow permissions, CodeQL + full-history gitleaks (`.github/workflows/security.yml`), Dependabot for pip and github-actions |
 | CI/CD | Applies: `verify.yml` runs the same `make verify` gate as local; branch protection on `main` is pending (a live GitHub settings action left for the repo owner) |
-| Observability | Applies (scoped): scheduled batch publisher, not a hosted runtime; run health is visible in Actions, and availability/drift history accrues in `data/history.json` |
+| Observability | Applies (scoped): scheduled batch publisher, not a hosted runtime; run health is visible in Actions, and availability/drift history accrues on the `capability-history` branch, one commit per day on which something changed (the copy on `main` is the seed the first run started from, and is no longer updated) |
 | Accessibility | Applies: static semantic HTML pages; formal assistive-technology review not yet performed (tracked in `docs/RESPONSIBLE-TECH-AUDITS.md` E) |
 | Internationalization | N/A: findings quote English normative spec text for a specialist audience; no civic public-service workflow. `docs/I18N.md` |
 | AI Evaluation | N/A: no LLM or model component; grading is deterministic and the MCP server only reads published files |

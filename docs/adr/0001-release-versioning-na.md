@@ -28,7 +28,7 @@ downstream). Daily publication from `main` is the delivery model, not a gap in a
 otherwise-release-based one. No tag-triggered release workflow is added.
 
 The data itself is still versioned in the ways that matter to its consumers: every published
-run is dated, capability drift is tracked against prior observations, and `data/history.json`
+run is dated, capability drift is tracked against prior observations, and the `capability-history` branch
 accrues availability history across runs.
 
 ## Consequences

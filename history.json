@@ -539,7 +539,14 @@
     ]
   },
   "la-care-provider-directory": {
-    "events": [],
+    "events": [
+      {
+        "changes": [
+          "software_version: '5.4.1.13_edfx' -> '5.4.1.11_edfx'"
+        ],
+        "date": "2026-08-08"
+      }
+    ],
     "fingerprint": {
       "declares_oauth_security": true,
       "fhir_version": "4.0.1",
@@ -548,7 +555,7 @@
       "resource_count": 24,
       "resources_with_interactions": 24,
       "software_name": "HAPI FHIR Server",
-      "software_version": "5.4.1.13_edfx"
+      "software_version": "5.4.1.11_edfx"
     },
     "first_seen": "2026-08-08",
     "last_seen": "2026-08-08",

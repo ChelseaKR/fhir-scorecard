@@ -76,7 +76,8 @@ is the bias surface. Mitigations in place:
 - Registry entries ship only after live verification, with the method and date recorded in the
   entry; the loader refuses entries without a verification record
   (`src/fhir_scorecard/registry.py`).
-- Capability drift and availability history are published (`data/history.json`), so a grade
+- Capability drift and availability history are published (the `capability-history`
+  branch, seeded from `data/history.json`), so a grade
   can be traced across time.
 - The MCP server's `grading_method` tool returns the documented limits, so an assistant can be
   told what the numbers do not mean.

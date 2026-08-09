@@ -30,6 +30,7 @@ from fhir_scorecard.site import (
     org_slug,
     robots,
     sitemap,
+    status_badge,
     write_page,
 )
 from fhir_scorecard.vantage import VantageProbe, load_probe_files, reconcile, write_probes
@@ -223,6 +224,11 @@ def _write_site(scorecards: list[Scorecard], endpoints: list[Endpoint], out: Pat
 
     for page in pages:
         write_page(out, page, origin, generated_at)
+    badge_dir = out / "badge"
+    badge_dir.mkdir(parents=True, exist_ok=True)
+    for card in scorecards:
+        (badge_dir / f"{card.endpoint_id}.svg").write_text(
+            status_badge(card), encoding="utf-8")
     (out / "sitemap.xml").write_text(sitemap(pages, origin), encoding="utf-8")
     (out / "robots.txt").write_text(robots(origin), encoding="utf-8")
 

@@ -1,5 +1,7 @@
 # Contributing
 
+Participation in this project is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
 ## Adding an endpoint to the registry
 
 Endpoints ship only after live verification. The loader refuses entries without a verification

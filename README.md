@@ -102,6 +102,7 @@ registry size is gated on payers publishing base URLs.
 | `api/index.json` | Every endpoint with links to its detail and its page |
 | `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift |
 | `scorecards.json` | The complete graded payload in one file |
+| `badge/<id>.svg` | Embeddable current-grade badge linking back to the endpoint evidence |
 
 A read-only MCP server exposes the same data to an assistant:
 

@@ -66,12 +66,13 @@ read.*
 
 *Goal: the people who own these endpoints can correct and extend the record.*
 
-- [ ] **Claim / correction flow**: a structured issue template that captures a base URL plus
+- [x] **Claim / correction flow**: a structured issue template that captures a base URL plus
       evidence, feeding the same verification the registry already enforces in code
-- [ ] **"Add your endpoint"** page written for payer developer-relations staff, not for engineers
-- [ ] **Per-endpoint status badge** an owner can embed, which is how this spreads
-- [ ] Published **SECURITY.md**, **CODE_OF_CONDUCT.md**, and a stated non-adversarial posture:
+- [x] **"Add your endpoint"** page written for payer developer-relations staff, not for engineers
+- [x] **Per-endpoint status badge** an owner can embed, linking back to current findings
+- [x] Published **SECURITY.md** and a stated non-adversarial posture:
       this measures public surfaces and will remove or correct anything on request with evidence
+- [x] Published **CODE_OF_CONDUCT.md** for project participation
 
 ## Phase 4: production hardening
 

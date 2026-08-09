@@ -10,7 +10,7 @@ from fhir_scorecard.capability import parse_capability, parse_smart
 from fhir_scorecard.cli import main
 from fhir_scorecard.fetch import FetchResult
 from fhir_scorecard.grading import build_scorecard
-from fhir_scorecard.site import endpoint_page, org_slug, robots, sitemap
+from fhir_scorecard.site import endpoint_page, org_slug, robots, sitemap, status_badge
 
 
 def _card(eid: str = "acme", kind: str = "payer", name: str = "Acme Health"):
@@ -71,6 +71,15 @@ def test_sitemap_and_robots_are_wellformed() -> None:
     assert "Sitemap: https://example.test/sitemap.xml" in robots("https://example.test")
 
 
+def test_status_badge_is_accessible_and_escapes_registry_data() -> None:
+    badge = status_badge(_card(name="A & B <Health>"))
+    assert badge.startswith("<svg")
+    assert 'role="img"' in badge
+    assert "A &amp; B &lt;Health&gt;: FHIR grade A" in badge
+    assert "#19734b" in badge
+    assert "<Health>" not in badge
+
+
 def _registry(tmp_path: Path) -> Path:
     path = tmp_path / "registry.json"
     path.write_text(json.dumps({"endpoints": [
@@ -98,18 +107,23 @@ def test_site_build_produces_indexable_pages(tmp_path: Path) -> None:
 
     for rel in ("index.html", "how-we-grade/index.html", "payers/index.html",
                 "provider-directories/index.html", "endpoint/alpha/index.html",
-                "org/alpha-health/index.html", "sitemap.xml", "robots.txt"):
+                "org/alpha-health/index.html", "badge/alpha.svg", "sitemap.xml", "robots.txt"):
         assert (out / rel).is_file(), f"missing {rel}"
 
     home = (out / "index.html").read_text()
     assert '<link rel="canonical" href="https://example.test/"' in home
     assert '"@type": "Dataset"' in home
     assert '<html lang="en">' in home
+    assert 'class="signal-panel"' in home
+    assert 'href="#content">Skip to content</a>' in home
+    assert "prefers-reduced-motion" in home
 
     ep = (out / "endpoint" / "alpha" / "index.html").read_text()
     assert '<meta name="description"' in ep
     assert "https://alpha.test/r4" in ep
     assert "answered" in ep  # availability surfaced
+    assert "/fhir-scorecard/badge/alpha.svg" in ep
+    assert "Share this endpoint's grade" in ep
 
     # Every generated page must appear in the sitemap: an orphan page is not indexable.
     xml = (out / "sitemap.xml").read_text()

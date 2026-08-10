@@ -12,7 +12,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -28,6 +28,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -45,7 +49,7 @@
       "software_version": "0.5.0"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -61,6 +65,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -78,7 +86,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -94,6 +102,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -111,7 +123,7 @@
       "software_version": "5.4.1.13_edfx"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -119,6 +131,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -136,7 +152,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -144,6 +160,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -161,7 +181,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -177,6 +197,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -194,7 +218,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -210,6 +234,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -234,7 +262,7 @@
       "software_version": "2.260.0"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -250,6 +278,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -267,7 +299,7 @@
       "software_version": "May 2026"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -283,6 +315,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -300,7 +336,7 @@
       "software_version": "6.9.1+e4f2e63c5e20f326898f61339c3b3fcd48017201"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -316,6 +352,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -333,7 +373,7 @@
       "software_version": "6.9.1+e4f2e63c5e20f326898f61339c3b3fcd48017201"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -349,6 +389,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -366,7 +410,7 @@
       "software_version": "8.11.16-SNAPSHOT/7e7129efb5/2026-07-08"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -382,6 +426,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -399,7 +447,7 @@
       "software_version": "8.11.16-SNAPSHOT/7e7129efb5/2026-07-08"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -415,6 +463,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -432,7 +484,7 @@
       "software_version": "4.0.817"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -448,6 +500,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -465,7 +521,7 @@
       "software_version": "4.0.1 3.9.0 v1.0.0-rc+202607151200 bc93922"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -473,6 +529,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -490,7 +550,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -506,6 +566,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -523,7 +587,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -531,6 +595,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -548,7 +616,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -556,6 +624,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -573,7 +645,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -589,6 +661,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -606,7 +682,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -614,6 +690,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -644,7 +724,7 @@
       "software_version": "5.4.1.13_edfx"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -652,6 +732,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -687,6 +771,12 @@
           "software_version: '5.1.28-6ad2fe2' -> '5.1.29-f5d2946'"
         ],
         "date": "2026-08-09"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.29-f5d2946' -> '5.1.29-c6ef164'"
+        ],
+        "date": "2026-08-10"
       }
     ],
     "fingerprint": {
@@ -697,10 +787,10 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "medplum",
-      "software_version": "5.1.29-f5d2946"
+      "software_version": "5.1.29-c6ef164"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -716,6 +806,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -733,7 +827,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -749,6 +843,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -766,7 +864,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -774,6 +872,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -791,7 +893,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -799,6 +901,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -816,7 +922,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -824,6 +930,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -841,7 +951,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-08",
@@ -849,6 +959,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -866,7 +980,7 @@
       "software_version": "2019.08.PRE"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -882,6 +996,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -899,7 +1017,7 @@
       "software_version": "2019.08.PRE"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -915,6 +1033,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]
@@ -932,7 +1054,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-09",
+    "last_seen": "2026-08-10",
     "observations": [
       {
         "date": "2026-08-05",
@@ -948,6 +1070,10 @@
       },
       {
         "date": "2026-08-09",
+        "up": true
+      },
+      {
+        "date": "2026-08-10",
         "up": true
       }
     ]

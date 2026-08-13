@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Question, or "is this a bug or did I misread the spec?"
-    url: https://github.com/ChelseaKR/fhir-scorecard/discussions
-    about: Ask here first if you are not sure it is a bug. No wrong questions.
-  - name: Report a security vulnerability
-    url: https://github.com/ChelseaKR/fhir-scorecard/blob/main/SECURITY.md
-    about: Please report privately, not in a public issue.
+  - name: How grades are calculated
+    url: https://chelseakr.github.io/fhir-scorecard/how-we-grade/
+    about: Every finding code, what it checks, and the spec clause it cites
+  - name: Why some payers cannot be checked publicly
+    url: https://github.com/ChelseaKR/fhir-scorecard/blob/main/docs/payer-verifiability.md
+    about: The write-up, including the measurement errors this project made and corrected

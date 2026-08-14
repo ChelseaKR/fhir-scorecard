@@ -59,6 +59,26 @@ here are dated records of change, not version-tagged release notes.
 
 ### Fixed
 
+- **The README's offline command named a directory that did not exist** (#6). `tests/fixtures`
+  was in the Quick start and in no commit, so `--offline --fixtures tests/fixtures` failed to load
+  a fixture for every endpoint, exited 0, wrote a complete site in which every named organization
+  was ungraded, and appended a `{"up": false}` observation for all thirty of them to the real
+  `data/history.json`, on a date that had none.
+  - **The fixtures exist now**: real `/metadata` and SMART documents captured 2026-08-14 from CMS
+    Blue Button 2.0, the ONC Inferno reference server, and the Oracle Health open sandbox, with a
+    `tests/fixtures/README.md` recording where each came from, when, what it exercises, and how to
+    refresh it. They are the parser's first test against documents real servers publish rather
+    than against hand-written ones, and Oracle's missing SMART document is part of the capture:
+    the live server answers 404 there, so I2 fails offline exactly as it does in production.
+    `tests/fixtures/registry.json` lists those three, so the documented command grades a complete
+    registry rather than a registry of missing files.
+  - **`--offline` chooses scratch paths.** Without an explicit `--history` it writes to
+    `.cache/offline-history.json`, and without an explicit `--cohorts` it loads none, because the
+    shipped cohorts reference registry ids a fixture registry does not carry.
+  - **The mode guard can fire on the committed file.** `ensure_mode()` refuses to mix fixture and
+    live observations in one history file, and `data/history.json` now carries the `_meta` stamp it
+    compares against, which a file predating the guard could not. There is deliberately no
+    override: the fix is a scratch path, which is now the default.
 - **I1 said "no recognized interoperability profiles declared" after reading one element** (#5).
   `capability.py` collected profile strings from `rest[].resource[].supportedProfile` and nothing
   else, and the failure message was an absolute claim worth 40 of 100 interop points. It now reads

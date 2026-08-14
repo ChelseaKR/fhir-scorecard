@@ -66,8 +66,15 @@ genuinely independent vantage — a residential or other-provider runner posting
 | **Capability transparency** | Does the CapabilityStatement say what the server runs (FHIR version, software, resources, interactions), or is it boilerplate? |
 | **Interop readiness** | Are US Core / CARIN profiles declared? Is SMART discovery present? Is OAuth security declared? |
 
-Grades are deterministic and fail closed: an unreachable endpoint is an F with a reason, not a
-gap in the data. Every finding carries a citation to the FHIR R4 or SMART App Launch spec.
+Grades are deterministic. Every finding carries a citation to the FHIR R4 or SMART App Launch
+spec, and every finding describes a document this project actually retrieved.
+
+An endpoint no vantage could reach is published as **not observed**, with the reason and the
+vantages that tried, and is not graded: its content dimensions carry no score, and the checks
+that read a CapabilityStatement do not run. It never drops out of the dataset, and it never
+acquires findings about what its publisher did not publish. `F` means the opposite and only the
+opposite: the endpoint answered, and what it declares falls short across the checks. The two used
+to share a letter, and the site rendered both with one sentence about a network.
 
 ## How this relates to Inferno and Lantern
 

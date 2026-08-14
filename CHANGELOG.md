@@ -57,6 +57,30 @@ here are dated records of change, not version-tagged release notes.
 
 ### Fixed
 
+- **An unreachable endpoint published four findings about what the payer had not published**
+  (#2). `capital-bluecross` on 2026-08-05 is the measured case: R1 named the cause as ours
+  ("likely a vantage-local interception, not an endpoint fault") and the four findings beneath it
+  said the CapabilityStatement was unparseable, that no interoperability profiles were declared,
+  that SMART discovery was absent, and that no OAuth security service was declared, each with a
+  spec citation. `data/history.json` in this repository recorded 37 declared profiles, 28 resource
+  types and OAuth declared for that endpoint on that date. All four were false, produced by
+  `parse_capability(b"")` being read downstream as a fact about the server rather than as no data.
+  - `CapabilityFacts` and `SmartFacts` now carry `observed`, which separates a document that
+    arrived and could not be parsed (an observation of the endpoint) from a document that was
+    never retrieved (an observation of nothing). Only the first is graded.
+  - A dimension nobody could observe carries `score=None`, not 0, and exactly one neutral finding
+    (`NR`) that says nothing was retrieved. The site draws no bar, the CSV leaves the cell empty,
+    and `/how-we-grade/` documents `NR`.
+- **`F` meant two opposite things, and the site rendered both with one sentence about a network**
+  (#2). `letter()` returned `F` for an endpoint nobody could reach and for a reachable endpoint
+  scoring below 60, and every `F` on the site read "could not be reached from this vantage point"
+  — which was a sentence about this project's network printed under a card whose own reachability
+  score was 100. Now: an unreachable or undocumented run publishes the status **`not observed`**,
+  with a sentence keyed on what actually happened, and `F` publishes "answers publicly, and what
+  it declares falls short across the graded checks". The badge for a not-observed endpoint says
+  so instead of stamping an F on it, `dataset.schema.json` documents the new value and says which
+  of the two is a statement about the endpoint, and the MCP `grading_method` tool tells an
+  assistant not to characterize a not-observed record as a low grade.
 - **One vantage was counted twice, and three runner images were described as several networks**
   (#3). The publishing job made its own live probe under `github-actions/ubuntu-latest` and then
   merged the artifact written under the same label, and `reconcile()` did not dedupe: every card

@@ -67,7 +67,11 @@ _METHOD_NOTE = {
     "limits": [
         "Observational snapshot of public surfaces; not an audit, not a compliance "
         "determination, not a statement about care quality.",
-        "Latency is measured from a single vantage point per run; bands are deliberately coarse.",
+        "Latency is a median across the vantages that answered, and those vantages are three "
+        "GitHub-hosted runner images on one provider's network rather than three independent "
+        "networks; bands are deliberately coarse for that reason.",
+        "A run in which no vantage reached an endpoint says the endpoint was not reached from "
+        "that network on that day. It does not establish that the endpoint is down.",
         "Small sample. Do not generalize a handful of endpoints to an industry.",
         "Absence from this dataset means no public base URL was found, not that no API exists.",
     ],

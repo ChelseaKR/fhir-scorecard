@@ -24,6 +24,17 @@ _US_CORE = "https://hl7.org/fhir/us/core/"
 
 _PROFILE_MARKERS = ("us/core", "us-core", "carin", "davinci", "da-vinci")
 
+# The same names in prose rather than in a canonical URL. A document that says "CARIN" in its
+# title is not declaring conformance, and this is never scored; it is the difference between a
+# flat denial and a finding a payer can act on.
+_PROSE_MARKERS = ("us core", "uscore", "us-core", "carin", "da vinci", "davinci", "da-vinci")
+
+# Every element R4 gives a server to declare conformance in. I1 reads all of them before
+# concluding anything, and its message names them, because "no recognized interoperability
+# profiles declared" was a conclusion drawn from exactly one of them.
+_PROFILE_ELEMENTS = ("rest.resource.supportedProfile", "rest.resource.profile",
+                     "instantiates", "imports", "meta.profile")
+
 #: Published in place of a letter when a run observed nothing to grade. It is deliberately not a
 #: letter: a reader compares an F against a C, and "F" was carrying two opposite meanings, one of
 #: them a claim about a named payer that no measurement supported.
@@ -196,6 +207,57 @@ def grade_transparency(facts: CapabilityFacts, *,
                           score=_score(findings), findings=tuple(findings))
 
 
+def _profiles_finding(facts: CapabilityFacts) -> Finding:
+    """I1, saying what was checked and what was found there.
+
+    The old failure message was "no recognized interoperability profiles declared", asserted
+    after reading ``rest.resource.supportedProfile`` and nothing else. Two things were wrong with
+    it: it claimed more than it had checked, and it told a payer nothing about which element to
+    populate.
+    """
+    matched = sorted({element for element, url in facts.conformance_profiles
+                      if any(marker in url.lower() for marker in _PROFILE_MARKERS)})
+    if matched:
+        message = "US Core / CARIN / Da Vinci profiles declared in " + ", ".join(matched)
+    elif facts.conformance_profiles:
+        where = sorted({element for element, _ in facts.conformance_profiles})
+        message = (f"{len(facts.conformance_profiles)} profile canonical(s) declared in "
+                   f"{', '.join(where)}, none of them US Core, CARIN, or Da Vinci; also checked "
+                   + ", ".join(e for e in _PROFILE_ELEMENTS if e not in where))
+    else:
+        message = ("no profile canonical declared in " + ", ".join(_PROFILE_ELEMENTS[:-1])
+                   + f", or {_PROFILE_ELEMENTS[-1]}")
+    return Finding(code="I1", ok=bool(matched), points=40 if matched else 0, max_points=40,
+                   message=message, citation=_US_CORE)
+
+
+def _prose_only_note(facts: CapabilityFacts, *, declared: bool) -> Finding | None:
+    """I4: the document names an implementation guide in prose but declares no profile.
+
+    Worth zero points, deliberately. ``implementation.description`` is prose and
+    ``supportedProfile`` is a machine-readable conformance claim, and the difference is the whole
+    point of the element. But Aetna's document says CARIN three times and US Core once, and
+    publishing a flat "no recognized interoperability profiles declared" about it invites a reader
+    to conclude something the document contradicts. This says what is actually the case, and what
+    would fix it.
+    """
+    if declared:
+        return None
+    prose = {"implementation.description": facts.implementation_description,
+             "title": facts.title, "name": facts.name}
+    named_in = sorted(element for element, text in prose.items()
+                      if text and any(marker in text.lower() for marker in _PROSE_MARKERS))
+    if not named_in:
+        return None
+    return Finding(
+        code="I4", ok=False, points=0, max_points=0,
+        message=(f"informational: {', '.join(named_in)} names US Core, CARIN, or Da Vinci in "
+                 "prose, but no profile canonical is declared in any conformance element. Prose "
+                 "is not a conformance claim and scores nothing either way; adding "
+                 "rest.resource.supportedProfile entries would make the claim machine-readable"),
+        citation=_US_CORE)
+
+
 def grade_interop(facts: CapabilityFacts, smart: SmartFacts, *,
                   kind: str = "reference") -> DimensionScore:
     findings: list[Finding] = []
@@ -203,12 +265,11 @@ def grade_interop(facts: CapabilityFacts, smart: SmartFacts, *,
         return _not_retrieved(
             "interop", "Interop readiness",
             facts.parse_error or "no CapabilityStatement was retrieved on this run", _US_CORE)
-    profiles = [p.lower() for p in facts.supported_profiles]
-    named = any(marker in p for p in profiles for marker in _PROFILE_MARKERS)
-    findings.append(Finding(code="I1", ok=named, points=40 if named else 0, max_points=40,
-                            message=("US Core / CARIN / Da Vinci profiles declared" if named
-                                     else "no recognized interoperability profiles declared"),
-                            citation=_US_CORE))
+    profiles = _profiles_finding(facts)
+    findings.append(profiles)
+    prose_note = _prose_only_note(facts, declared=profiles.ok)
+    if prose_note is not None:
+        findings.append(prose_note)
 
     # Provider Directory APIs are required to be reachable without authentication, so absence of
     # SMART/OAuth is the correct design there, not a deficiency (calibration 2026-08-05). Scoring

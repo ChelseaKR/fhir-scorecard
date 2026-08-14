@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from fhir_scorecard.cohort import Cohort, CohortMember
-from fhir_scorecard.grading import NOT_OBSERVED, Scorecard
+from fhir_scorecard.grading import NOT_OBSERVED, Finding, Scorecard
 
 DEFAULT_ORIGIN = "https://chelseakr.github.io/fhir-scorecard"
 
@@ -223,15 +223,19 @@ def _dimension_meter(title: str, score: int | None) -> str:
     )
 
 
-def _finding_mark(ok: bool, observed: bool) -> tuple[str, str, str]:
+def _finding_mark(finding: Finding) -> tuple[str, str, str]:
     """Class, glyph, and screen-reader prefix for one finding.
 
-    A check that never ran is neither a pass nor a failure, and a ✗ beside it would publish the
-    thing this project exists not to publish.
+    Three states, not two. A check that never ran is neither a pass nor a failure, and a ✗ beside
+    it would publish the thing this project exists not to publish. A finding worth no points is
+    not a verdict either: "not applicable to a Provider Directory API" and "this document names
+    CARIN in prose" are notes, and a ✓ or a ✗ would both misread them.
     """
-    if not observed:
+    if not finding.observed:
         return "unobserved", "○", "Not observed"
-    return ("ok", "✓", "Pass") if ok else ("no", "✗", "Needs attention")
+    if finding.max_points == 0:
+        return "note", "○", "Note"
+    return ("ok", "✓", "Pass") if finding.ok else ("no", "✗", "Needs attention")
 
 
 def _findings_html(card: Scorecard) -> str:
@@ -239,7 +243,7 @@ def _findings_html(card: Scorecard) -> str:
     for dim in card.dimensions:
         items = ""
         for f in dim.findings:
-            state, glyph, prefix = _finding_mark(f.ok, f.observed)
+            state, glyph, prefix = _finding_mark(f)
             items += (
                 f'<li class="finding {state}">'
                 f'<span class="mark" aria-hidden="true">{glyph}</span>'
@@ -1035,8 +1039,8 @@ ul.findings { margin: 0; padding: 0; list-style: none; }
 }
 li.no .mark { color: var(--fail); background: #f7e6e8; }
 li.ok .mark { color: var(--pass); background: #e4f1e9; }
-li.unobserved .mark { color: var(--ink-soft); background: var(--paper-deep); }
-li.unobserved .finding-copy { color: var(--ink-soft); font-style: italic; }
+li.unobserved .mark, li.note .mark { color: var(--ink-soft); background: var(--paper-deep); }
+li.unobserved .finding-copy, li.note .finding-copy { color: var(--ink-soft); font-style: italic; }
 .finding-copy { font-size: .92rem; }
 .finding-links {
   display: flex;
@@ -1434,8 +1438,21 @@ _FINDING_DOCS = [
      "scoped to three, which is a design decision, not a deficiency."),
     ("T4", "Interaction coverage", "Do declared resources document their interactions?",
      "A resource listed with no interactions tells a client nothing it can act on."),
-    ("I1", "Interoperability profiles", "Are US Core, CARIN, or Da Vinci profiles declared?",
-     "Declared profiles are how a client knows which implementation guide the server follows."),
+    ("I1", "Interoperability profiles",
+     "Are US Core, CARIN, or Da Vinci canonical URLs declared in any conformance element?",
+     "Declared profiles are how a client knows which implementation guide the server follows. "
+     "Five elements are read before anything is concluded: rest.resource.supportedProfile, "
+     "rest.resource.profile, instantiates, imports, and meta.profile. The finding names the "
+     "element the declaration was found in, or names all five when none carries one, because "
+     "\"no recognized interoperability profiles declared\" used to be asserted after reading "
+     "exactly one of them."),
+    ("I4", "Named in prose only", "Does the document name a guide it does not declare?",
+     "Worth zero points in either direction, and shown only when I1 found no declaration. Prose "
+     "is not a conformance claim: a title reading \"CARIN PatientAccess Implementation\" tells a "
+     "client nothing it can act on, which is exactly what supportedProfile is for. But a flat "
+     "denial next to a document that says CARIN three times invites a reader to conclude "
+     "something the document contradicts, so the note says what is actually the case and which "
+     "element would fix it."),
     ("I2", "SMART discovery", "Is .well-known/smart-configuration present and complete?",
      "Not applicable to Provider Directory APIs, which are required to be reachable without "
      "authentication and are not scored on an authorization surface they must not have."),

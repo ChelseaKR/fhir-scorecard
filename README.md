@@ -64,7 +64,7 @@ genuinely independent vantage — a residential or other-provider runner posting
 |---|---|
 | **Reachability** | Does `/metadata` answer, over HTTPS, with FHIR JSON, in reasonable time? |
 | **Capability transparency** | Does the CapabilityStatement say what the server runs (FHIR version, software, resources, interactions), or is it boilerplate? |
-| **Interop readiness** | Are US Core / CARIN profiles declared? Is SMART discovery present? Is OAuth security declared? |
+| **Interop readiness** | Are US Core / CARIN / Da Vinci canonicals declared in any of the five conformance elements R4 defines (`rest.resource.supportedProfile`, `rest.resource.profile`, `instantiates`, `imports`, `meta.profile`)? Is SMART discovery present? Is OAuth security declared? |
 
 Grades are deterministic. Every finding carries a citation to the FHIR R4 or SMART App Launch
 spec, and every finding describes a document this project actually retrieved.

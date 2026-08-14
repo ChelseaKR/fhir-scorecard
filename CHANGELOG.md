@@ -17,8 +17,10 @@ here are dated records of change, not version-tagged release notes.
   the build rather than publishing a membership list with members quietly missing.
 - **The California payer cohort** at `/california/`, the first one. Membership is the DHCS Medi-Cal
   managed care plan roster plus the Covered California qualified health plan issuer list,
-  deduplicated to **27 organizations**, seven of which run in both programs. **Eight publish a base
-  URL that answers; 11 endpoints entered the registry.** The other nineteen are listed with the
+  deduplicated to **27 organizations**, seven of which run in both programs. **Eight published a
+  base URL this project verified from their own documentation, on the dates recorded in the
+  registry; 11 endpoints entered it.** How many of those answer on a given day is a separate,
+  measured number, published beside the curated one. The other nineteen are listed with the
   reason they could not be, because for a cohort whose membership is public and finite, the gap is
   the finding. Every endpoint here is required by the federal CMS Interoperability and Patient
   Access rule (CMS-9115-F); the page says so, and says equally plainly that publishing a base URL
@@ -57,6 +59,20 @@ here are dated records of change, not version-tagged release notes.
 
 ### Fixed
 
+- **Headline numbers now count what their words say they count** (#4). "Answering" was doing two
+  jobs: on the cohort page it came from the curation files (a count of rows somebody wrote down,
+  in the present tense, on a page regenerated daily), and the endpoint count it sat beside came
+  from the registry. Every published headline now says which kind of number it is:
+  - The landing page reads **"N endpoints listed"** and **"N answered on this run"**, with a
+    sentence underneath saying exactly that one is a registry count and the other is a probe
+    result, plus how many endpoints were not observed and therefore not counted as answering.
+  - The cohort page publishes four figures rather than three: organizations reviewed, those that
+    published a base URL this project could verify (a dated curation record, said in those words),
+    endpoints listed, and **how many of those answered on the run that generated the page**. The
+    listed count is now derived from the graded cards rather than from ids in the curation file,
+    so it can never exceed the rows in the table beneath it.
+  - `api/index.json` carries `endpoints_listed` and `answered_on_this_run` beside the existing
+    `count`, so the distinction survives into the dataset a citation would use.
 - **An unreachable endpoint published four findings about what the payer had not published**
   (#2). `capital-bluecross` on 2026-08-05 is the measured case: R1 named the cause as ours
   ("likely a vantage-local interception, not an endpoint fault") and the four findings beneath it

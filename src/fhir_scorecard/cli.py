@@ -45,6 +45,42 @@ def _offline_fetch(fixtures: Path, endpoint_id: str, filename: str, url: str) ->
                        body=path.read_bytes(), error=None)
 
 
+def _grade_from_probes(endpoint: Endpoint, *, history: dict[str, Any], today: str,
+                       other_probes: dict[str, list[VantageProbe]]) -> Scorecard:
+    """Grade from probe files alone, making no request of this run's own.
+
+    The publishing run used to re-probe every endpoint that the probing runs had just probed.
+    That added a fourth request to each endpoint's day for nothing new, and it merged the
+    publishing run's probe under a label one of the artifacts already carried, so every card
+    reported one more vantage than had actually reported. A run that has three vantages'
+    documents in hand has nothing left to observe.
+    """
+    probes = other_probes.get(endpoint.endpoint_id, [])
+    consensus = reconcile(probes) if probes else None
+    reachable = consensus is not None and consensus.reachable
+    capability_body = (consensus.capability or "").encode("utf-8") if consensus else b""
+    smart_body = (consensus.smart or "").encode("utf-8") if consensus else b""
+    metadata = FetchResult(
+        url=f"{endpoint.base_url}/metadata", ok=reachable,
+        status=200 if reachable else None,
+        elapsed_ms=consensus.elapsed_ms if consensus is not None else 0,
+        body=capability_body,
+        error=None if reachable else (consensus.detail if consensus is not None
+                                      else "no vantage reported"))
+    facts = parse_capability(capability_body)
+    smart_facts = parse_smart(smart_body)
+    drift = observe(history, endpoint.endpoint_id, facts, today, reachable=reachable)
+    # Name the vantages that did report, so a single-vantage merge does not attribute the
+    # measurement to a run that never made one.
+    reported = ", ".join(sorted({p.vantage for p in probes})) or "no vantage reported"
+    return build_scorecard(endpoint.endpoint_id, endpoint.name, metadata, facts, smart_facts,
+                           kind=endpoint.kind, vantage=reported, consensus=consensus,
+                           version_prefix=version_prefix(endpoint.expects),
+                           observed_since=drift.first_seen,
+                           drift_events=drift.recorded_events,
+                           availability=drift.availability.summary())
+
+
 def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
                     history: dict[str, Any], today: str, vantage: str,
                     other_probes: dict[str, list[VantageProbe]],
@@ -101,7 +137,7 @@ def _recheck(candidates_path: Path) -> int:
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fhir-scorecard")
     sub = parser.add_subparsers(dest="command", required=True)
     grade = sub.add_parser("grade", help="grade every enabled endpoint in the registry")
@@ -118,6 +154,9 @@ def main(argv: list[str] | None = None) -> int:
                        help="write this run's per-endpoint probe results for later merging")
     grade.add_argument("--probes-in", type=Path, nargs="*", default=None,
                        help="probe files from other vantages to reconcile with this run")
+    grade.add_argument("--from-probes", action="store_true",
+                       help="grade from --probes-in alone and make no requests of this run's "
+                            "own; for a publishing run whose vantages have already probed")
     grade.add_argument("--vantage", default="unspecified",
                        help="label for where this run measured from; latency is single-vantage "
                             "and a network path difference must not be read as a server change")
@@ -133,7 +172,24 @@ def main(argv: list[str] | None = None) -> int:
         "recheck",
         help="re-probe previously rejected candidates; reports only, never edits the registry")
     recheck.add_argument("--candidates", type=Path, default=Path("data/rejected.json"))
-    args = parser.parse_args(argv)
+    return parser
+
+
+def _flag_conflict(args: argparse.Namespace) -> str | None:
+    """Reject flag combinations that could only produce a claim the run cannot support."""
+    if args.offline and args.fixtures is None:
+        return "--offline requires --fixtures"
+    if args.from_probes and not args.probes_in:
+        return "--from-probes requires --probes-in"
+    if args.from_probes and args.probes_out is not None:
+        # A run that makes no observation has none to publish, and writing an empty or borrowed
+        # probe file under this run's label is how a vantage gets counted that never reported.
+        return "--from-probes makes no observation of its own; --probes-out has nothing to write"
+    return None
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _build_parser().parse_args(argv)
 
     if args.command == "recheck":
         return _recheck(args.candidates)
@@ -142,8 +198,9 @@ def main(argv: list[str] | None = None) -> int:
         from fhir_scorecard.mcp import serve
         return serve(args.site)
 
-    if args.offline and args.fixtures is None:
-        print("--offline requires --fixtures", file=sys.stderr)
+    conflict = _flag_conflict(args)
+    if conflict is not None:
+        print(conflict, file=sys.stderr)
         return 2
 
     try:
@@ -164,10 +221,21 @@ def main(argv: list[str] | None = None) -> int:
     history = load_history(args.history)
     other_probes = load_probe_files(list(args.probes_in or []))
     probes_seen: dict[str, VantageProbe] = {}
-    scorecards = [_grade_endpoint(e, offline=args.offline, fixtures=args.fixtures,
-                                  history=history, today=today, vantage=args.vantage,
-                                  other_probes=other_probes, probes_seen=probes_seen)
-                  for e in endpoints]
+    run_vantage = args.vantage
+    if args.from_probes:
+        # The published "vantage" must name where the measurement came from. A run that only
+        # reconciles has no vantage of its own, so it reports the ones that reported to it.
+        labels = sorted({p.vantage for probes in other_probes.values() for p in probes})
+        run_vantage = ("reconciled from " + ", ".join(labels) if labels
+                       else "no vantage reported")
+        scorecards = [_grade_from_probes(e, history=history, today=today,
+                                         other_probes=other_probes)
+                      for e in endpoints]
+    else:
+        scorecards = [_grade_endpoint(e, offline=args.offline, fixtures=args.fixtures,
+                                      history=history, today=today, vantage=args.vantage,
+                                      other_probes=other_probes, probes_seen=probes_seen)
+                      for e in endpoints]
     save_history(args.history, history)
     if args.probes_out is not None:
         write_probes(args.probes_out, args.vantage, probes_seen)
@@ -175,13 +243,13 @@ def main(argv: list[str] | None = None) -> int:
     generated_at = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "scorecards.json").write_text(
-        to_json(scorecards, generated_at=generated_at, vantage=args.vantage), encoding="utf-8")
+        to_json(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8")
     (args.out / "index.html").write_text(
-        render_html(scorecards, generated_at=generated_at, vantage=args.vantage),
+        render_html(scorecards, generated_at=generated_at, vantage=run_vantage),
         encoding="utf-8")
     _write_site(scorecards, endpoints, args.out, args.origin, generated_at, cohorts)
     write_dataset(args.out, scorecards, endpoints, origin=args.origin.rstrip("/"),
-                  generated_at=generated_at, vantage=args.vantage)
+                  generated_at=generated_at, vantage=run_vantage)
 
     for s in scorecards:
         print(f"{s.grade}  {s.endpoint_id}")

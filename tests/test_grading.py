@@ -225,4 +225,7 @@ def test_unanimous_failure_still_grades_f(good_capability_bytes: bytes) -> None:
     card = build_scorecard("gone", "Gone", down, parse_capability(b""), parse_smart(b""),
                            consensus=consensus)
     assert not card.reachable and card.grade == "F"
-    assert "unreachable from all 2" in card.vantage_note
+    # Every vantage failing is reported as what it is, a failure to reach from the vantages
+    # tried, rather than as a settled fact about the endpoint.
+    assert "not reached from any of the 2 vantages tried" in card.vantage_note
+    assert "HTTP 404" in card.vantage_note

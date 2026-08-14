@@ -57,6 +57,31 @@ here are dated records of change, not version-tagged release notes.
 
 ### Fixed
 
+- **One vantage was counted twice, and three runner images were described as several networks**
+  (#3). The publishing job made its own live probe under `github-actions/ubuntu-latest` and then
+  merged the artifact written under the same label, and `reconcile()` did not dedupe: every card
+  published "reachable from all 4 vantage(s)" on days when three vantages reported, R2 called it a
+  median across four, and ubuntu's latency carried double weight in a median whose bands are 3s
+  and 8s. Three fixes, none of which is a deletion of the claim:
+  - `collapse_by_vantage()` reduces duplicate labels to one observation before anything is counted
+    or averaged, so a vantage counts once whatever the merge contains.
+  - `Consensus` now carries `networks` alongside `vantages`, derived from the `<network>/<host>`
+    label convention, and every published sentence uses it. What CI has is three GitHub-hosted
+    runner images on one provider's network: three hosts, one network. The site, README, SECURITY
+    and the responsible-tech record now say that in those words, and a run where every vantage
+    failed publishes "not reached from that network on that day, and this run cannot separate that
+    from an endpoint being down" instead of "unreachable from all 3 vantage(s)". A genuinely
+    independent vantage is named in ROADMAP as what would let the wording change.
+  - `grade --from-probes` grades the documents the probing runs retrieved and makes no request of
+    its own, which removes the duplicate at its source and takes a quarter off every endpoint's
+    daily request count.
+- **The published request budget understated a working day by more than an order of magnitude**
+  (#3). "At most two unauthenticated GET requests per run" was true per run and read as a daily
+  promise to payer operations staff; the publish workflow also triggered on every push to `main`,
+  and on 2026-08-05 it ran fifteen times, so each registry endpoint took roughly 48 requests that
+  day. Publishing is now scheduled and manual only, the publishing run probes nothing, and
+  `/claim/`, the README and SECURITY.md state the per-day figure a payer's ops team would actually
+  measure: at most six requests per endpoint on a scheduled day.
 - **Organization pages were named after whichever endpoint came first**, so "Cigna Patient Access
   API" headed a page that also lists Cigna's provider directory. The heading is now the leading
   words all of the group's endpoints share. Latent until now; the California cohort tripled the

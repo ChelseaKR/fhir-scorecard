@@ -59,6 +59,28 @@ here are dated records of change, not version-tagged release notes.
 
 ### Fixed
 
+- **I1 said "no recognized interoperability profiles declared" after reading one element** (#5).
+  `capability.py` collected profile strings from `rest[].resource[].supportedProfile` and nothing
+  else, and the failure message was an absolute claim worth 40 of 100 interop points. It now reads
+  every element R4 gives a server to declare conformance in — `rest.resource.supportedProfile`,
+  `rest.resource.profile` (including an STU3-shaped `{"reference": ...}`), `instantiates`,
+  `imports`, and `meta.profile` — and the message names the element a declaration was found in, or
+  names all five when none carries one. Where declarations exist but none is US Core, CARIN or Da
+  Vinci, it says how many were found and where, rather than that none exist.
+  - Measured while writing this (one `/metadata` request each, 2026-08-14): **CMS Blue Button 2.0
+    declares `rest.resource.profile` on all three of its resources**, an element the parser had
+    never read. The values are base FHIR StructureDefinitions, so its I1 stays negative — but it
+    is now a negative that was earned by looking. **Aetna** declares no profile canonical anywhere,
+    which the old message was right about and overstated.
+  - New **I4**, worth zero points in either direction and shown only when I1 finds no declaration:
+    when `implementation.description`, `title` or `name` names US Core, CARIN or Da Vinci in prose,
+    the card says so and says that adding `rest.resource.supportedProfile` entries would make the
+    claim machine-readable. `implementation_description` was parsed on every run and read by
+    nothing; it is the field Aetna's own registry entry was verified from.
+  - Findings worth no points now render as neutral notes rather than as a ✓ or a ✗, which also
+    fixes the Provider Directory "not applicable" findings reading as passes.
+  - The drift fingerprint still counts `supportedProfile` alone, so widening what I1 reads does not
+    report a capability change no server made.
 - **Headline numbers now count what their words say they count** (#4). "Answering" was doing two
   jobs: on the cohort page it came from the curation files (a count of rows somebody wrote down,
   in the present tense, on a page regenerated daily), and the endpoint count it sat beside came

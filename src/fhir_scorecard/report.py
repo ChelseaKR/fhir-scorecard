@@ -31,7 +31,7 @@ def _card(s: Scorecard) -> str:
     rows: list[str] = []
     for d in s.dimensions:
         items = "".join(
-            f"<li>{'○' if not f.observed else ('✓' if f.ok else '✗')} "
+            f"<li>{'○' if not f.observed or f.max_points == 0 else ('✓' if f.ok else '✗')} "
             f"{html.escape(f.message)} "
             f'<a href="{html.escape(f.citation)}">spec</a></li>'
             for f in d.findings

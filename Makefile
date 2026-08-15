@@ -3,19 +3,29 @@
 # before opening a PR.
 PYTHON ?= .venv/bin/python
 
-.PHONY: sync verify lint format typecheck test audit site
+.PHONY: lock-check sync verify lint format typecheck test audit site
 
-# Install exactly what uv.lock pins, and fail if the lock has drifted from pyproject.toml.
+# Does uv.lock still describe what pyproject.toml asks for? Nothing is installed, nothing is
+# written, and no network is reached, so this is safe to make the first gate.
 #
-# --locked, not --frozen, and the difference is the whole control. `uv sync --frozen` installs
-# the lockfile as it stands without comparing it to pyproject.toml: measured on uv 0.12.1,
-# adding a dependency to pyproject.toml and re-running it exits 0 and installs the stale set.
-# `uv sync --locked` exits 1 with "the lockfile needs to be updated". A drift check that
-# passes on a drifted lock is not a check.
+# It is the first gate on purpose: a later target that resolved dependencies would repair the
+# lockfile it was meant to be checked against, and then pass. Nothing here invokes a bare
+# `uv run`, which performs exactly that implicit repair.
+#
+# `--check`, not `--frozen`, and the difference is the whole control. `uv sync --frozen`
+# installs the lockfile as it stands without ever comparing it to pyproject.toml. Measured on
+# uv 0.12.1 against a deliberately drifted manifest: `uv lock --check --offline` exits 1,
+# `uv sync --locked` exits 1, and `uv sync --frozen` exits 0 having installed the stale set.
+# The portfolio control text (CQ-09) names `--frozen` and calls it a lockfile-drift check; by
+# construction it cannot be one, so this repository uses the flags that fail.
+lock-check:
+	uv lock --check --offline
+
+# Install exactly what uv.lock pins, refusing if the lock is stale.
 sync:
 	uv sync --locked
 
-verify: lint format typecheck test audit
+verify: lock-check lint format typecheck test audit
 	@echo "make verify: all gates passed."
 
 lint:
@@ -37,6 +47,9 @@ test:
 # --no-emit-project drops the local package, which is not on PyPI and cannot be looked up.
 # --strict then means what it should: an advisory fails the gate, and so does a dependency
 # that could not be audited at all. No `|| true`, and nothing muted.
+#
+# `--frozen` is correct on the export: it reads the lock without re-resolving, and `lock-check`
+# has already established that the lock is current.
 audit:
 	@mkdir -p .cache
 	uv export --frozen --no-emit-project --no-hashes --output-file .cache/locked-requirements.txt

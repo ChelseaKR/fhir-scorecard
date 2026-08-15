@@ -13,7 +13,7 @@ publish a letter grade with a short, prioritized list of findings and spec citat
 
 ```bash
 make sync                         # uv sync --locked: exactly the toolchain uv.lock pins
-make verify                       # lint, format, strict typecheck, tests + coverage floor, dependency audit
+make verify                       # lock check, lint, format, strict typecheck, tests + coverage floor, audit
 .venv/bin/fhir-scorecard grade --registry data/registry.json --out site/
 ```
 
@@ -181,7 +181,7 @@ are no blank rows and no silent skips.
 
 | Standard | State |
 |---|---|
-| Code Quality | Applies: `make verify` gates every change and CI runs that exact target (`ruff check` + `ruff format --check` on the standard's pinned select set, mypy strict, pytest with an 85% branch-coverage floor, `pip-audit --strict` over the locked set). `make sync` installs with `uv sync --locked`, so a lockfile drifted from `pyproject.toml` fails the build rather than being installed around; `.python-version` and `.pre-commit-config.yaml` pin the rest of the toolchain. Dev dependencies are a PEP 735 `[dependency-groups]` group, never an installable extra |
+| Code Quality | Applies: `make verify` gates every change and CI runs that exact target (`ruff check` + `ruff format --check` on the standard's pinned select set, mypy strict, pytest with an 85% branch-coverage floor, `pip-audit --strict` over the locked set). `make verify` opens with `uv lock --check --offline` and `make sync` installs with `uv sync --locked`, so a lockfile drifted from `pyproject.toml` fails the build rather than being installed around (`--frozen`, which the control text names, does not compare the two at all); `.python-version` and `.pre-commit-config.yaml` pin the rest of the toolchain. Dev dependencies are a PEP 735 `[dependency-groups]` group, never an installable extra |
 | Security & Supply-Chain | Applies: Actions pinned to full commit SHAs, scoped workflow permissions, CodeQL + full-history gitleaks + a pip-audit of the locked dependency set, all three on push, PR and a weekly schedule (`.github/workflows/security.yml`), Dependabot for pip and github-actions. No `\|\| true` and nothing muted: the audit blocks |
 | CI/CD | Applies: `verify.yml` runs the same `make verify` gate as local; branch protection on `main` is pending (a live GitHub settings action left for the repo owner) |
 | Observability | Applies (scoped): scheduled batch publisher, not a hosted runtime; run health is visible in Actions, and availability/drift history accrues on the `capability-history` branch, one commit per day on which something changed (the copy on `main` is the seed the first run started from, and is no longer updated) |

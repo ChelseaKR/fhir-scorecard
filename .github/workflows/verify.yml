@@ -23,11 +23,12 @@ jobs:
           version: "0.12.1"
           enable-cache: true
       - name: Install the locked toolchain
-        # `make sync` runs `uv sync --locked`: install exactly what uv.lock pins, and fail if
-        # the lock has drifted from pyproject.toml. The previous `pip install -e '.[dev]'`
+        # `make sync` runs `uv sync --locked`: install exactly what uv.lock pins, and refuse
+        # if the lock has drifted from pyproject.toml. The previous `pip install -e '.[dev]'`
         # re-resolved from PyPI on every run, so the committed lockfile described a toolchain
         # nothing used and could go stale indefinitely without anything noticing.
-        # `--frozen` would not fix that: it installs a drifted lock and exits 0.
+        # `--frozen` would not have fixed that: it installs a drifted lock and exits 0.
+        # `make verify` re-checks the lock as its first gate, before anything can repair it.
         run: make sync
-      - name: Verify (lint, format, strict typecheck, tests with coverage floor, dependency audit)
+      - name: Verify (lock, lint, format, strict typecheck, tests + coverage floor, audit)
         run: make verify

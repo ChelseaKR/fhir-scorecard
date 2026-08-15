@@ -78,12 +78,17 @@ here are dated records of change, not version-tagged release notes.
   from PyPI and ignores `uv.lock` entirely, so the lockfile could drift indefinitely and the
   toolchain gating a merge was never the one the lockfile described. CI now installs with
   `make sync`.
-  - That target runs **`uv sync --locked`, not `uv sync --frozen`**. The control text says
+  - That target runs **`uv sync --locked`, not `uv sync --frozen`**, and `make verify` now
+    opens with a `lock-check` target running `uv lock --check --offline`. The control text says
     `--frozen` and calls it a lockfile-drift check; measured here on uv 0.12.1, it is not one.
-    Adding a dependency to `pyproject.toml` and running `uv sync --frozen` exits 0 and installs
-    the stale lock. `uv sync --locked` exits 1 with "the lockfile needs to be updated". A drift
-    check that passes on a drifted lock is not a check, so this repository uses the flag that
-    fails.
+    Against a deliberately drifted `pyproject.toml`: `uv lock --check --offline` exits 1,
+    `uv sync --locked` exits 1, and `uv sync --frozen` exits **0** having installed the stale
+    set, because `--frozen` means install from the lock without consulting the manifest. A
+    drift check that passes on a drifted lock is not a check.
+  - `lock-check` is deliberately the **first** prerequisite of `verify`: a later target that
+    resolved dependencies would repair the lockfile it was meant to be checked against and
+    then pass. It writes nothing and reaches no network. Nothing in this repository invokes a
+    bare `uv run`, which performs exactly that implicit repair.
 - **The README's offline command named a directory that did not exist** (#6). `tests/fixtures`
   was in the Quick start and in no commit, so `--offline --fixtures tests/fixtures` failed to load
   a fixture for every endpoint, exited 0, wrote a complete site in which every named organization

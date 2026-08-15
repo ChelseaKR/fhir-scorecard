@@ -53,10 +53,16 @@ _TOOLS = [
 
 _METHOD_NOTE = {
     "dimensions": {
-        "reachability": "35% weight. Unreachable is an F regardless of anything else.",
+        "reachability": "35% weight. Does /metadata answer, over HTTPS, in reasonable time.",
         "transparency": "35% weight. What the CapabilityStatement declares about itself.",
         "interop": "30% weight. Declared profiles and authorization surface.",
     },
+    "not_observed": (
+        "An endpoint whose documents no vantage retrieved on a run is published with grade "
+        "'not observed' and empty dimension scores, not F. Nothing on such a record describes "
+        "what the endpoint publishes, and it must not be characterized as a low grade, a "
+        "failure, or an absence of declared capability. F means the endpoint answered and its "
+        "documents scored below the D threshold."),
     "comparability": ("Grades are comparable within a kind only. A payer Patient Access API and "
                       "an EHR vendor sandbox answer to different implementation guides and are "
                       "never ranked against each other."),

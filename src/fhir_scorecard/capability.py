@@ -2,6 +2,11 @@
 
 Parsing is defensive throughout: malformed input produces facts with ``parsed=False`` and a
 reason, never an exception. Grading decides what missing facts cost; parsing only observes.
+
+``observed`` separates the two ways there can be no facts, which the grader must not confuse.
+A document that was retrieved and could not be parsed is an observation of the endpoint. A
+document that was never retrieved is an observation of nothing, and every check downstream of it
+has to say so rather than report absence as a property of the server.
 """
 
 from __future__ import annotations
@@ -13,6 +18,9 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class CapabilityFacts:
     parsed: bool
+    # False only when no vantage retrieved the document at all. Never False for a document that
+    # arrived and turned out to be unparseable, empty, or the wrong resource type.
+    observed: bool = True
     resource_type_ok: bool = False
     fhir_version: str | None = None
     software_name: str | None = None
@@ -28,9 +36,20 @@ class CapabilityFacts:
 @dataclass(frozen=True)
 class SmartFacts:
     parsed: bool
+    observed: bool = True
     has_authorization_endpoint: bool = False
     has_token_endpoint: bool = False
     parse_error: str | None = None
+
+
+#: Facts for a document no vantage retrieved. Distinct from ``parse_capability(b"")``, which
+#: describes a server that answered with nothing; these describe a run that heard nothing.
+NO_CAPABILITY_RETRIEVED = CapabilityFacts(
+    parsed=False, observed=False,
+    parse_error="no CapabilityStatement was retrieved from any vantage on this run")
+NO_SMART_RETRIEVED = SmartFacts(
+    parsed=False, observed=False,
+    parse_error="no SMART discovery document was retrieved from any vantage on this run")
 
 
 def _as_dict(value: object) -> dict[str, object]:

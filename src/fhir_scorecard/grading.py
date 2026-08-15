@@ -1,6 +1,11 @@
 """Deterministic grading: dimensions, findings with spec citations, and a letter grade.
 
-Fail closed: an unreachable endpoint is an F with a reason, never a hole in the dataset.
+Fail closed, and fail honestly. An endpoint no vantage could reach is published with the reason
+and never disappears from the dataset, but it is also not graded: a run that retrieved no
+document has nothing to say about what the document declares, and saying it anyway turns absence
+of evidence into a finding against a named organization. Dimensions that were never observed
+carry no score, no points, and no findings that read as absence.
+
 No model, no heuristics that cannot be explained in one sentence next to a citation.
 """
 
@@ -19,6 +24,13 @@ _US_CORE = "https://hl7.org/fhir/us/core/"
 
 _PROFILE_MARKERS = ("us/core", "us-core", "carin", "davinci", "da-vinci")
 
+#: Published in place of a letter when a run observed nothing to grade. It is deliberately not a
+#: letter: a reader compares an F against a C, and "F" was carrying two opposite meanings, one of
+#: them a claim about a named payer that no measurement supported.
+NOT_OBSERVED = "not observed"
+
+_NOT_RETRIEVED_CODE = "NR"
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -28,13 +40,19 @@ class Finding:
     max_points: int
     message: str
     citation: str
+    # False when the check was not run because nothing was retrieved. Such a finding is neither
+    # a pass nor a failure and must never be rendered as one.
+    observed: bool = True
 
 
 @dataclass(frozen=True)
 class DimensionScore:
     key: str
     title: str
-    score: int
+    # None when nothing in this dimension was observed. Zero is a measurement; this is not one,
+    # and coverage.py's rule applies here too: a measurement we were never entitled to make must
+    # not be counted as a measurement that failed.
+    score: int | None
     findings: tuple[Finding, ...]
 
 
@@ -57,10 +75,23 @@ class Scorecard:
     availability: str = ""
 
 
-def _score(findings: list[Finding]) -> int:
+def _score(findings: list[Finding]) -> int | None:
+    """Percentage of the points that were actually on the table, or None if none were.
+
+    A dimension whose checks never ran has no denominator. Rounding that to zero is what made an
+    unreachable endpoint look like an endpoint that published nothing.
+    """
     total = sum(f.max_points for f in findings)
     earned = sum(f.points for f in findings)
-    return round(100 * earned / total) if total else 0
+    return round(100 * earned / total) if total else None
+
+
+def _not_retrieved(key: str, title: str, what: str, citation: str) -> DimensionScore:
+    """A whole dimension that was not observed: one neutral finding, no score, no points."""
+    return DimensionScore(
+        key=key, title=title, score=None,
+        findings=(Finding(code=_NOT_RETRIEVED_CODE, ok=False, points=0, max_points=0,
+                          message=what, citation=citation, observed=False),))
 
 
 def grade_reachability(metadata: FetchResult, *, vantage: str = "unspecified",
@@ -114,6 +145,13 @@ def grade_reachability(metadata: FetchResult, *, vantage: str = "unspecified",
 def grade_transparency(facts: CapabilityFacts, *,
                        version_prefix: str = "4.") -> DimensionScore:
     findings: list[Finding] = []
+    if not facts.observed:
+        # Nothing arrived. Every check below this line is a statement about a document, and we
+        # do not have one; the four findings this used to publish read as "the payer declares
+        # none of this" and were disproved by the project's own history file.
+        return _not_retrieved(
+            "transparency", "Capability transparency",
+            facts.parse_error or "no CapabilityStatement was retrieved on this run", _FHIR_CAPS)
     if not facts.parsed or not facts.resource_type_ok:
         findings.append(Finding(
             code="T0", ok=False, points=0, max_points=100,
@@ -161,6 +199,10 @@ def grade_transparency(facts: CapabilityFacts, *,
 def grade_interop(facts: CapabilityFacts, smart: SmartFacts, *,
                   kind: str = "reference") -> DimensionScore:
     findings: list[Finding] = []
+    if not facts.observed:
+        return _not_retrieved(
+            "interop", "Interop readiness",
+            facts.parse_error or "no CapabilityStatement was retrieved on this run", _US_CORE)
     profiles = [p.lower() for p in facts.supported_profiles]
     named = any(marker in p for p in profiles for marker in _PROFILE_MARKERS)
     findings.append(Finding(code="I1", ok=named, points=40 if named else 0, max_points=40,
@@ -182,6 +224,20 @@ def grade_interop(facts: CapabilityFacts, smart: SmartFacts, *,
             code="I3", ok=True, points=0, max_points=0,
             message="OAuth security not applicable: a Provider Directory API is public by design",
             citation=_SMART_DISCOVERY))
+    elif not smart.observed:
+        # The CapabilityStatement came from a vantage that did not carry the SMART document, so
+        # this run never asked for it. "Absent" would be a claim about the endpoint.
+        findings.append(Finding(
+            code="I2", ok=False, points=0, max_points=0, observed=False,
+            message=("no vantage retrieved .well-known/smart-configuration on this run, so "
+                     "whether it is published is unknown"),
+            citation=_SMART_DISCOVERY))
+        findings.append(Finding(code="I3", ok=facts.declares_oauth_security,
+                                points=25 if facts.declares_oauth_security else 0, max_points=25,
+                                message=("OAuth/SMART security service declared in "
+                                         "CapabilityStatement" if facts.declares_oauth_security
+                                         else "no OAuth security service declared"),
+                                citation=_SMART_DISCOVERY))
     else:
         smart_ok = smart.parsed and smart.has_authorization_endpoint and smart.has_token_endpoint
         findings.append(Finding(code="I2", ok=smart_ok, points=35 if smart_ok else 0,
@@ -205,9 +261,15 @@ _WEIGHTS = {"reachability": 0.35, "transparency": 0.35, "interop": 0.30}
 
 
 def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:
-    if not reachable:
-        return "F"
-    weighted = sum(d.score * _WEIGHTS.get(d.key, 0.0) for d in dimensions)
+    """A letter, or NOT_OBSERVED when this run had nothing to grade.
+
+    ``F`` used to mean two opposite things: an endpoint that answered and scored badly, and an
+    endpoint nobody could reach. Only the first is a statement about the endpoint, and the site
+    rendered both with one sentence about a network. They are now different values.
+    """
+    if not reachable or any(d.score is None for d in dimensions):
+        return NOT_OBSERVED
+    weighted = sum((d.score or 0) * _WEIGHTS.get(d.key, 0.0) for d in dimensions)
     if weighted >= 90:
         return "A"
     if weighted >= 80:

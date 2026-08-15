@@ -8,7 +8,12 @@ import time
 from pathlib import Path
 from typing import Any
 
-from fhir_scorecard.capability import parse_capability, parse_smart
+from fhir_scorecard.capability import (
+    NO_CAPABILITY_RETRIEVED,
+    NO_SMART_RETRIEVED,
+    parse_capability,
+    parse_smart,
+)
 from fhir_scorecard.cohort import Cohort, load_cohort_dir
 from fhir_scorecard.dataset import write_dataset
 from fhir_scorecard.drift import load_history, observe, save_history
@@ -67,8 +72,8 @@ def _grade_from_probes(endpoint: Endpoint, *, history: dict[str, Any], today: st
         body=capability_body,
         error=None if reachable else (consensus.detail if consensus is not None
                                       else "no vantage reported"))
-    facts = parse_capability(capability_body)
-    smart_facts = parse_smart(smart_body)
+    facts = (parse_capability(capability_body) if capability_body else NO_CAPABILITY_RETRIEVED)
+    smart_facts = parse_smart(smart_body) if smart_body else NO_SMART_RETRIEVED
     drift = observe(history, endpoint.endpoint_id, facts, today, reachable=reachable)
     # Name the vantages that did report, so a single-vantage merge does not attribute the
     # measurement to a run that never made one.
@@ -93,9 +98,6 @@ def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
     else:
         metadata = fetch_json(metadata_url)
         smart = fetch_json(smart_url)
-    facts = parse_capability(metadata.body) if metadata.ok else parse_capability(b"")
-    smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
-
     mine = VantageProbe(
         vantage=vantage, reachable=metadata.ok, elapsed_ms=metadata.elapsed_ms,
         error=metadata.error,
@@ -109,12 +111,22 @@ def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
     # whatever this network saw.
     was_up = consensus.reachable if consensus is not None else metadata.ok
 
-    # If this vantage was blocked but another retrieved the documents, grade their content
-    # rather than scoring zero for material we simply never received.
-    if not metadata.ok and consensus is not None and consensus.capability:
+    if metadata.ok:
+        facts = parse_capability(metadata.body)
+        # This run reached the host, so it did ask for the SMART document: a failed SMART fetch
+        # is an observation that it is absent or unusable, and grades as one.
+        smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
+    elif consensus is not None and consensus.capability:
+        # This vantage was blocked but another retrieved the documents: grade their content
+        # rather than scoring zero for material we simply never received.
         facts = parse_capability(consensus.capability.encode("utf-8"))
-        if consensus.smart:
-            smart_facts = parse_smart(consensus.smart.encode("utf-8"))
+        smart_facts = (parse_smart(consensus.smart.encode("utf-8")) if consensus.smart
+                       else NO_SMART_RETRIEVED)
+    else:
+        # Nothing was retrieved by anyone. The content dimensions are not scored, because every
+        # finding in them would be a claim about a document this run never saw.
+        facts = NO_CAPABILITY_RETRIEVED
+        smart_facts = NO_SMART_RETRIEVED
 
     drift = observe(history, endpoint.endpoint_id, facts, today, reachable=was_up)
     return build_scorecard(endpoint.endpoint_id, endpoint.name, metadata, facts, smart_facts,

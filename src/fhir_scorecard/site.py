@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from fhir_scorecard.cohort import Cohort, CohortMember
-from fhir_scorecard.grading import Scorecard
+from fhir_scorecard.grading import NOT_OBSERVED, Scorecard
 
 DEFAULT_ORIGIN = "https://chelseakr.github.io/fhir-scorecard"
 
@@ -56,7 +56,11 @@ _GRADE_WORDS = {
     "B": "declares a solid public surface with minor gaps",
     "C": "answers publicly but declares little about itself",
     "D": "answers publicly with substantial gaps",
-    "F": "could not be reached from this vantage point",
+    # F used to be rendered "could not be reached from this vantage point", which was the wrong
+    # sentence in both directions: it described a network when the endpoint had answered, and it
+    # sat above four findings about documents nobody had retrieved.
+    "F": "answers publicly, and what it declares falls short across the graded checks",
+    NOT_OBSERVED: "was not observed on this run",
 }
 
 _GRADE_COLORS = {
@@ -65,7 +69,28 @@ _GRADE_COLORS = {
     "C": "#a35d00",
     "D": "#a43b2a",
     "F": "#8f2430",
+    NOT_OBSERVED: "#435c68",
 }
+
+
+def _grade_slug(grade: str) -> str:
+    """CSS- and URL-safe form of a grade or status: "A" -> "a", "not observed" -> "not-observed"."""
+    return re.sub(r"[^a-z0-9]+", "-", grade.lower()).strip("-") or "unknown"
+
+
+def _status_words(card: Scorecard) -> str:
+    """The sentence under an endpoint's heading, keyed on what actually happened.
+
+    The two failure modes are different facts and get different sentences: one is about this
+    project's reach, the other is about the endpoint's documents.
+    """
+    if card.grade != NOT_OBSERVED:
+        return _GRADE_WORDS.get(card.grade, "")
+    if card.reachable:
+        return ("answered on this run, but no vantage retrieved its public documents, so nothing "
+                "here describes what it declares")
+    return ("could not be reached from any vantage on this run, so nothing about what it "
+            "publishes was observed")
 
 
 @dataclass(frozen=True)
@@ -126,18 +151,30 @@ def _json_ld(payload: dict[str, object]) -> str:
 
 def _grade_badge(grade: str) -> str:
     word = _GRADE_WORDS.get(grade, "grade unavailable")
-    return (f'<span class="grade grade-{grade.lower()}" '
-            f'aria-label="Grade {html.escape(grade)}: {html.escape(word)}">{grade}</span>')
+    noun = "Status" if grade == NOT_OBSERVED else "Grade"
+    return (f'<span class="grade grade-{_grade_slug(grade)}" '
+            f'aria-label="{noun} {html.escape(grade)}: {html.escape(word)}">'
+            f"{html.escape(grade)}</span>")
 
 
 def _grade_counts(cards: Sequence[Scorecard]) -> str:
-    """Compact, accessible distribution used beside category links."""
-    counts = {grade: sum(card.grade == grade for card in cards) for grade in "ABCDF"}
+    """Compact, accessible distribution used beside category links.
+
+    Endpoints that were not observed are counted separately and never folded into F: a reader
+    comparing distributions must not read "nothing was retrieved" as "graded and failed".
+    """
+    grades = ["A", "B", "C", "D", "F", NOT_OBSERVED]
+    counts = {grade: sum(card.grade == grade for card in cards) for grade in grades}
     return "".join(
-        f'<span class="grade-count grade-count-{grade.lower()}">'
-        f'<strong>{count}</strong><span>{grade}</span></span>'
+        f'<span class="grade-count grade-count-{_grade_slug(grade)}">'
+        f"<strong>{count}</strong><span>{html.escape(grade)}</span></span>"
         for grade, count in counts.items() if count
     )
+
+
+def _signal_status(card: Scorecard) -> str:
+    return ("not observed on this run" if card.grade == NOT_OBSERVED
+            else f"grade {card.grade}")
 
 
 def _signal_map(cards: Sequence[Scorecard]) -> str:
@@ -148,11 +185,11 @@ def _signal_map(cards: Sequence[Scorecard]) -> str:
         if not group:
             continue
         signals = "".join(
-            f'<a class="signal signal-{card.grade.lower()}" '
+            f'<a class="signal signal-{_grade_slug(card.grade)}" '
             f'href="/fhir-scorecard/endpoint/{html.escape(card.endpoint_id)}/" '
-            f'title="{html.escape(card.name)}: grade {html.escape(card.grade)}">'
-            f'<span class="sr-only">{html.escape(card.name)}: grade '
-            f'{html.escape(card.grade)}</span></a>'
+            f'title="{html.escape(card.name)}: {html.escape(_signal_status(card))}">'
+            f'<span class="sr-only">{html.escape(card.name)}: '
+            f"{html.escape(_signal_status(card))}</span></a>"
             for card in sorted(group, key=lambda card: card.name)
         )
         rows.append(
@@ -165,7 +202,19 @@ def _signal_map(cards: Sequence[Scorecard]) -> str:
     return "".join(rows)
 
 
-def _dimension_meter(title: str, score: int) -> str:
+def _dimension_meter(title: str, score: int | None) -> str:
+    """A dimension's score, or the absence of one.
+
+    An unobserved dimension gets no bar and no number. Rendering it as 0 was the visual half of
+    the same error: a bar at zero next to a named organization reads as a measurement.
+    """
+    if score is None:
+        return (
+            '<div class="dimension-meter dimension-meter-unscored">'
+            f'<div><span>{html.escape(title)}</span><strong>not observed</strong></div>'
+            f'<span class="meter meter-unscored" '
+            f'aria-label="{html.escape(title)}: not observed on this run"></span></div>'
+        )
     return (
         '<div class="dimension-meter">'
         f'<div><span>{html.escape(title)}</span><strong>{score}</strong></div>'
@@ -174,20 +223,33 @@ def _dimension_meter(title: str, score: int) -> str:
     )
 
 
+def _finding_mark(ok: bool, observed: bool) -> tuple[str, str, str]:
+    """Class, glyph, and screen-reader prefix for one finding.
+
+    A check that never ran is neither a pass nor a failure, and a ✗ beside it would publish the
+    thing this project exists not to publish.
+    """
+    if not observed:
+        return "unobserved", "○", "Not observed"
+    return ("ok", "✓", "Pass") if ok else ("no", "✗", "Needs attention")
+
+
 def _findings_html(card: Scorecard) -> str:
     out: list[str] = []
     for dim in card.dimensions:
-        items = "".join(
-            f'<li class="finding {"ok" if f.ok else "no"}">'
-            f'<span class="mark" aria-hidden="true">{"✓" if f.ok else "✗"}</span>'
-            '<span class="finding-copy">'
-            f'<span class="sr-only">{"Pass" if f.ok else "Needs attention"}: </span>'
-            f'{html.escape(f.message)}</span>'
-            '<span class="finding-links">'
-            f'<a href="/fhir-scorecard/how-we-grade/#{html.escape(f.code)}">{f.code}</a>'
-            f'<a href="{html.escape(f.citation)}" rel="nofollow">Spec ↗</a></span></li>'
-            for f in dim.findings
-        )
+        items = ""
+        for f in dim.findings:
+            state, glyph, prefix = _finding_mark(f.ok, f.observed)
+            items += (
+                f'<li class="finding {state}">'
+                f'<span class="mark" aria-hidden="true">{glyph}</span>'
+                '<span class="finding-copy">'
+                f'<span class="sr-only">{prefix}: </span>'
+                f'{html.escape(f.message)}</span>'
+                '<span class="finding-links">'
+                f'<a href="/fhir-scorecard/how-we-grade/#{html.escape(f.code)}">{f.code}</a>'
+                f'<a href="{html.escape(f.citation)}" rel="nofollow">Spec ↗</a></span></li>'
+            )
         out.append(
             '<section class="finding-group">'
             f'{_dimension_meter(dim.title, dim.score)}'
@@ -198,7 +260,8 @@ def _findings_html(card: Scorecard) -> str:
 
 def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) -> Page:
     kind_label = _KIND_LABELS.get(card.kind, card.kind)
-    summary = _GRADE_WORDS.get(card.grade, "")
+    summary = _status_words(card)
+    unobserved = card.grade == NOT_OBSERVED
     dimensions = "".join(_dimension_meter(dim.title, dim.score) for dim in card.dimensions)
     drift = ""
     if card.drift_events:
@@ -227,7 +290,8 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
 <h1>{html.escape(card.name)}</h1>
 <p class="lede">This endpoint {html.escape(summary)}.</p>
 </div>
-<div class="hero-grade"><span>Current grade</span>{_grade_badge(card.grade)}</div>
+<div class="hero-grade"><span>{"Current status" if unobserved else "Current grade"}</span>
+{_grade_badge(card.grade)}</div>
 </header>
 <section class="score-overview" aria-label="Dimension scores">{dimensions}</section>
 <div class="evidence-grid">
@@ -257,14 +321,14 @@ patient data, authenticated behavior, or clinical quality.</p>
 <p>{html.escape(verified)}</p>
 </section>
 <details class="badge-embed">
-<summary>Share this endpoint's grade</summary>
+<summary>Share this endpoint's {"status" if unobserved else "grade"}</summary>
 <div><img src="/fhir-scorecard/badge/{html.escape(card.endpoint_id)}.svg"
-alt="FHIR Scorecard grade {html.escape(card.grade)} for {html.escape(card.name)}" width="126"
-height="28">
+alt="FHIR Scorecard: {html.escape(card.name)} {html.escape(_badge_alt(card))}" width="{
+    _badge_width(card.grade)}" height="28">
 <p>Link the badge back to this evidence page so readers can inspect the current findings.</p>
 <code>&lt;a href="{html.escape(origin)}/endpoint/{html.escape(card.endpoint_id)}/"&gt;
 &lt;img src="{html.escape(origin)}/badge/{html.escape(card.endpoint_id)}.svg"
-alt="FHIR Scorecard grade {html.escape(card.grade)}"&gt;&lt;/a&gt;</code></div>
+alt="FHIR Scorecard: {html.escape(_badge_alt(card))}"&gt;&lt;/a&gt;</code></div>
 </details>
 <p class="caveat">This is an observational snapshot of a public, unauthenticated surface. It is
 not an audit, a ranking of care quality, or a statement about anyone's regulatory compliance.
@@ -273,9 +337,11 @@ See <a href="/fhir-scorecard/how-we-grade/">how we grade</a>.</p>
 """
     return Page(
         path=f"endpoint/{card.endpoint_id}",
-        title=f"{card.name}: FHIR API grade {card.grade}",
-        description=(f"{card.name} {summary}. Public FHIR CapabilityStatement graded on "
-                     f"reachability, transparency, and interoperability readiness."),
+        title=(f"{card.name}: FHIR endpoint not observed" if unobserved
+               else f"{card.name}: FHIR API grade {card.grade}"),
+        description=(f"{card.name} {summary}."
+                     + ("" if unobserved else " Public FHIR CapabilityStatement graded on "
+                        "reachability, transparency, and interoperability readiness.")),
         body=body,
         priority="0.8",
     )
@@ -287,7 +353,7 @@ def org_page(name: str, cards: list[Scorecard], origin: str) -> Page:
         f'<div>{_grade_badge(c.grade)}<span class="eyebrow">'
         f'{html.escape(_KIND_LABELS.get(c.kind, c.kind))}</span></div>'
         f'<a href="/fhir-scorecard/endpoint/{c.endpoint_id}/">{html.escape(c.name)}</a>'
-        f'<p>{html.escape(_GRADE_WORDS.get(c.grade, ""))}.</p></li>'
+        f'<p>{html.escape(_status_words(c))}.</p></li>'
         for c in sorted(cards, key=lambda c: c.name)
     )
     body = f"""
@@ -479,21 +545,46 @@ def robots(origin: str) -> str:
     return f"User-agent: *\nAllow: /\nSitemap: {origin}/sitemap.xml\n"
 
 
+def _badge_alt(card: Scorecard) -> str:
+    return ("not observed on the latest run" if card.grade == NOT_OBSERVED
+            else f"grade {card.grade}")
+
+
+_BADGE_LEFT = 98
+
+
+def _badge_width(grade: str) -> int:
+    """Badge width, widened for a status that is words rather than one letter."""
+    return _BADGE_LEFT + (28 if grade != NOT_OBSERVED else 88)
+
+
 def status_badge(card: Scorecard) -> str:
-    """A small, dependency-free SVG owners can embed while linking to the evidence page."""
-    label = f"FHIR grade {card.grade}"
-    title = f"{card.name}: {label}"
+    """A small, dependency-free SVG owners can embed while linking to the evidence page.
+
+    A not-observed endpoint gets a wider, neutral badge that says so. Stamping it with an F
+    would put a failing letter on an organization whose documents this run never retrieved.
+    """
+    unobserved = card.grade == NOT_OBSERVED
+    value = "not observed" if unobserved else card.grade
+    width = _badge_width(card.grade)
+    right = width - _BADGE_LEFT
     color = _GRADE_COLORS.get(card.grade, "#435c68")
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="126" height="28"
+    left_label = "FHIR endpoint" if unobserved else "FHIR grade"
+    title = f"{card.name}: {left_label} {value}"
+    desc = ("This endpoint was not observed on the latest run" if unobserved
+            else "Current observational grade for this endpoint")
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="28"
 role="img" aria-labelledby="title desc">
 <title id="title">{html.escape(title)}</title>
-<desc id="desc">Current observational grade for this endpoint</desc>
-<rect width="126" height="28" rx="3" fill="#102b3f"/>
-<rect x="98" width="28" height="28" rx="3" fill="{color}"/>
-<path fill="{color}" d="M98 0h3v28h-3z"/>
-<text x="10" y="18" fill="#fff" font-family="Arial,sans-serif" font-size="11">FHIR grade</text>
-<text x="112" y="19" fill="#fff" text-anchor="middle" font-family="Arial,sans-serif"
-font-size="14" font-weight="700">{html.escape(card.grade)}</text>
+<desc id="desc">{html.escape(desc)}</desc>
+<rect width="{width}" height="28" rx="3" fill="#102b3f"/>
+<rect x="{_BADGE_LEFT}" width="{right}" height="28" rx="3" fill="{color}"/>
+<path fill="{color}" d="M{_BADGE_LEFT} 0h3v28h-3z"/>
+<text x="10" y="18" fill="#fff" font-family="Arial,sans-serif" font-size="11">{
+    html.escape(left_label)}</text>
+<text x="{_BADGE_LEFT + right // 2}" y="19" fill="#fff" text-anchor="middle"
+font-family="Arial,sans-serif" font-size="{11 if unobserved else 14}"
+font-weight="700">{html.escape(value)}</text>
 </svg>
 """
 
@@ -691,6 +782,18 @@ nav[aria-label="Breadcrumb"] {
 .grade-c { background: var(--warn); }
 .grade-d { background: var(--alert); }
 .grade-f { background: var(--fail); }
+.grade-not-observed {
+  min-width: 0;
+  min-height: 0;
+  padding: .3rem .7rem;
+  border-radius: 999px;
+  background: var(--ink-soft);
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
 .home-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(17rem, .7fr);
@@ -763,6 +866,8 @@ nav[aria-label="Breadcrumb"] {
 .signal-c, .grade-count-c, .signal.signal-c { color: #efb04b; background: #efb04b; }
 .signal-d, .grade-count-d, .signal.signal-d { color: #e27c58; background: #e27c58; }
 .signal-f, .grade-count-f, .signal.signal-f { color: #d85b6b; background: #d85b6b; }
+.signal-not-observed, .grade-count-not-observed,
+.signal.signal-not-observed { color: #8fa3ac; background: #8fa3ac; }
 .signal-legend { display: flex; gap: 1rem; margin-top: 1.5rem; color: #a9bec3; font-size: .72rem; }
 .signal-legend span { display: flex; align-items: center; gap: .35rem; }
 .signal-legend i { width: .5rem; height: .5rem; border-radius: 50%; }
@@ -852,6 +957,7 @@ ul.cards li { padding: 1rem 0; border-bottom: 1px solid var(--line); }
   font-size: .72rem;
 }
 .hero-grade .grade { min-width: 4.3rem; min-height: 4.3rem; font-size: 2rem; }
+.hero-grade .grade-not-observed { min-width: 0; min-height: 0; font-size: .8rem; }
 .score-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
 .dimension-meter { padding: 1rem; background: var(--white); }
 .dimension-meter > div {
@@ -863,6 +969,12 @@ ul.cards li { padding: 1rem 0; border-bottom: 1px solid var(--line); }
 .dimension-meter strong { font-family: ui-monospace, monospace; }
 .meter { display: block; height: 3px; margin-top: .85rem; background: var(--paper-deep); }
 .meter > span { display: block; width: var(--score); height: 100%; background: var(--teal); }
+.meter-unscored {
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg, var(--paper-deep) 0 6px, transparent 6px 12px);
+}
+.dimension-meter-unscored strong { color: var(--ink-soft); font-family: inherit; font-size: .8rem; }
 .evidence-grid {
   display: grid;
   grid-template-columns: 1.35fr .65fr;
@@ -905,6 +1017,8 @@ ul.findings { margin: 0; padding: 0; list-style: none; }
 }
 li.no .mark { color: var(--fail); background: #f7e6e8; }
 li.ok .mark { color: var(--pass); background: #e4f1e9; }
+li.unobserved .mark { color: var(--ink-soft); background: var(--paper-deep); }
+li.unobserved .finding-copy { color: var(--ink-soft); font-style: italic; }
 .finding-copy { font-size: .92rem; }
 .finding-links {
   display: flex;
@@ -1150,6 +1264,9 @@ def home_page(cards: list[Scorecard], origin: str,
     )
     reachable = sum(card.reachable for card in cards)
     orgs = len({org_slug(card.name) for card in cards})
+    # The legend only claims a state the snapshot actually contains.
+    unobserved_legend = ('<span><i class="signal-not-observed"></i>not observed</span>'
+                         if any(card.grade == NOT_OBSERVED for card in cards) else "")
     jsonld = {
         "@context": "https://schema.org",
         "@type": "Dataset",
@@ -1212,7 +1329,7 @@ person can check: reachable or not, clearly documented or not, ready to interope
 <div class="signal-legend"><span>Grade</span>
 <span><i class="signal-a"></i>A</span><span><i class="signal-b"></i>B</span>
 <span><i class="signal-c"></i>C</span><span><i class="signal-d"></i>D</span>
-<span><i class="signal-f"></i>F</span></div>
+<span><i class="signal-f"></i>F</span>{unobserved_legend}</div>
 </section>
 <section class="home-section" id="registry">
 <div class="section-heading"><div><p class="eyebrow">Browse the evidence</p>
@@ -1257,11 +1374,19 @@ quality, not statements about anyone's regulatory compliance.</p>
 
 _FINDING_DOCS = [
     ("R1", "Reachability", "Does /metadata answer with HTTP 2xx over HTTPS?",
-     "An endpoint that cannot be reached scores F with the reason stated, rather than dropping "
-     "out of the dataset. Causes are distinguished: DNS non-resolution, TLS failure, timeout, "
-     "and refusal are different facts, and only some of them are about the endpoint. Reaching "
-     "an endpoint from any vantage settles that it is up; failing from every vantage we have is "
-     "reported as not reached from those vantages, which is a weaker statement than down."),
+     "An endpoint that cannot be reached is published with the reason stated, rather than "
+     "dropping out of the dataset, and it is not graded. Causes are distinguished: DNS "
+     "non-resolution, TLS failure, timeout, and refusal are different facts, and only some of "
+     "them are about the endpoint. Reaching an endpoint from any vantage settles that it is up; "
+     "failing from every vantage we have is reported as not reached from those vantages, which "
+     "is a weaker statement than down."),
+    ("NR", "Not observed", "What happens to the checks that could not run?",
+     "When no vantage retrieved a document, the checks that read it do not run, score nothing, "
+     "and publish nothing about the endpoint. The dimension shows no number, because zero is a "
+     "measurement and this is the absence of one. An unreachable endpoint used to publish four "
+     "findings describing what the payer had not declared, each with a spec citation, from a "
+     "run that had received no document at all; the project's own history file disproved every "
+     "one of them for the endpoint it happened to."),
     ("R2", "Response time", "How long did /metadata take?",
      "The median across the vantages that answered, which today share one network, so bands are "
      "deliberately coarse: full credit under 3s, partial under 8s. The raw milliseconds and the "
@@ -1355,8 +1480,11 @@ def how_we_grade_page(origin: str) -> Page:
 <p class="lede">Every finding is deterministic, cites a spec clause, and can be explained in one
 sentence. There is no model anywhere in the grading path.</p>
 <section class="weight-panel"><div><p class="eyebrow">Weighted score</p><h2>Dimensions</h2>
-<p>An unreachable endpoint is an F regardless of anything else, because nothing else could be
-observed.</p></div><div class="weight-bars">
+<p>An endpoint no vantage could reach is not graded at all. It is published as <strong>not
+observed</strong>, with the reason and the vantages that tried, because nothing else could be
+observed and grading a document nobody retrieved would be an accusation this project cannot
+support. <strong>F</strong> means the opposite: the endpoint answered, and what it declares falls
+short across the checks below.</p></div><div class="weight-bars">
 <p><span>Reachability</span><strong>35%</strong><i style="--weight:35%"></i></p>
 <p><span>Capability transparency</span><strong>35%</strong><i style="--weight:35%"></i></p>
 <p><span>Interop readiness</span><strong>30%</strong><i style="--weight:30%"></i></p>

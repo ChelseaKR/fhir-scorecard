@@ -41,7 +41,9 @@ def test_cli_offline_end_to_end(tmp_path: Path, capsys: object) -> None:
     payload = json.loads((out / "scorecards.json").read_text())
     grades = {s["endpoint_id"]: s["grade"] for s in payload["scorecards"]}
     assert grades["alpha"] == "A"
-    assert grades["beta-dark"] == "F"  # missing fixture = unreachable = fail closed
+    # Missing fixture = nothing retrieved. Published, with the reason, and not graded: an F
+    # here would be a claim about a payer's documents that this run never saw.
+    assert grades["beta-dark"] == "not observed"
     assert "disclaimer" in payload
 
     home = (out / "index.html").read_text()
@@ -91,7 +93,7 @@ def test_json_report_round_trips() -> None:
                     body=b"", error="URLError"),
         parse_capability(b""), parse_smart(b""))
     payload = json.loads(to_json([card], generated_at="2026-08-04"))
-    assert payload["scorecards"][0]["grade"] == "F"
+    assert payload["scorecards"][0]["grade"] == "not observed"
     assert payload["generator"] == "fhir-scorecard"
 
 

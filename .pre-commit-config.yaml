@@ -25,6 +25,11 @@ repos:
         # Scoped to src/tests, mirroring `make lint` (ruff check src tests). No
         # --fix: a local pass must mean the same thing as a CI pass.
         files: ^(src|tests)/
+      - id: ruff-format
+        # Mirrors `make format` (ruff format --check src tests). The CI gate is the
+        # --check form; this hook writes the formatting so the commit that reaches
+        # CI is already the formatted one.
+        files: ^(src|tests)/
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e # v8.30.1 -- same version the security workflow pins

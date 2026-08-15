@@ -45,8 +45,8 @@ class VantageProbe:
     reachable: bool
     elapsed_ms: int
     error: str | None = None
-    capability: str | None = None   # raw /metadata body, when this vantage retrieved it
-    smart: str | None = None        # raw SMART discovery body, when retrieved
+    capability: str | None = None  # raw /metadata body, when this vantage retrieved it
+    smart: str | None = None  # raw SMART discovery body, when retrieved
 
     @property
     def network(self) -> str:
@@ -63,7 +63,7 @@ class VantageProbe:
 class Consensus:
     reachable: bool
     elapsed_ms: int
-    vantages: int          # distinct vantages, after duplicate labels are collapsed
+    vantages: int  # distinct vantages, after duplicate labels are collapsed
     agreeing: int
     detail: str
     # Distinct networks behind those vantages. Several hosts on one provider's network share its
@@ -111,23 +111,37 @@ def collapse_by_vantage(probes: list[VantageProbe]) -> list[VantageProbe]:
             continue
         reached = [p for p in group if p.reachable]
         if reached:
-            collapsed.append(VantageProbe(
-                vantage=vantage, reachable=True,
-                elapsed_ms=_median([p.elapsed_ms for p in reached]), error=None,
-                capability=next((p.capability for p in reached if p.capability), None),
-                smart=next((p.smart for p in reached if p.smart), None)))
+            collapsed.append(
+                VantageProbe(
+                    vantage=vantage,
+                    reachable=True,
+                    elapsed_ms=_median([p.elapsed_ms for p in reached]),
+                    error=None,
+                    capability=next((p.capability for p in reached if p.capability), None),
+                    smart=next((p.smart for p in reached if p.smart), None),
+                )
+            )
         else:
             errors = sorted({p.error for p in group if p.error})
-            collapsed.append(VantageProbe(vantage=vantage, reachable=False, elapsed_ms=0,
-                                          error="; ".join(errors) or None))
+            collapsed.append(
+                VantageProbe(
+                    vantage=vantage, reachable=False, elapsed_ms=0, error="; ".join(errors) or None
+                )
+            )
     return collapsed
 
 
 def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
     """Combine per-vantage probes. Reaching an endpoint from anywhere settles that it is up."""
     if not raw_probes:
-        return Consensus(reachable=False, elapsed_ms=0, vantages=0, agreeing=0,
-                         networks=0, detail="no vantage reported")
+        return Consensus(
+            reachable=False,
+            elapsed_ms=0,
+            vantages=0,
+            agreeing=0,
+            networks=0,
+            detail="no vantage reported",
+        )
 
     probes = collapse_by_vantage(raw_probes)
     networks = sorted({p.network for p in probes})
@@ -141,14 +155,24 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
         # everywhere read very differently from a scattered mix.
         joined = "; ".join(sorted({p.error or "unknown" for p in failed}))
         if len(networks) == 1:
-            detail = (f"not reached from any of the {len(probes)} vantages tried, all on one "
-                      f"network ({networks[0]}), so this run cannot separate an endpoint that is "
-                      f"down from one that does not answer this network: {joined}")
+            detail = (
+                f"not reached from any of the {len(probes)} vantages tried, all on one "
+                f"network ({networks[0]}), so this run cannot separate an endpoint that is "
+                f"down from one that does not answer this network: {joined}"
+            )
         else:
-            detail = (f"not reached from any of the {len(probes)} vantages tried, across "
-                      f"{len(networks)} networks: {joined}")
-        return Consensus(reachable=False, elapsed_ms=0, vantages=len(probes), agreeing=0,
-                         networks=len(networks), detail=detail)
+            detail = (
+                f"not reached from any of the {len(probes)} vantages tried, across "
+                f"{len(networks)} networks: {joined}"
+            )
+        return Consensus(
+            reachable=False,
+            elapsed_ms=0,
+            vantages=len(probes),
+            agreeing=0,
+            networks=len(networks),
+            detail=detail,
+        )
 
     # Median latency across the vantages that succeeded: one slow network path should not
     # define the number, and neither should one unusually fast one.
@@ -157,32 +181,47 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
     if failed:
         names = ", ".join(sorted(p.vantage for p in failed))
         why = "; ".join(sorted({p.error or "unknown" for p in failed}))
-        detail = (f"reachable from {len(reached)} of {len(probes)} vantages; "
-                  f"failed from {names} ({why}), which is a property of that network "
-                  "rather than of the endpoint")
+        detail = (
+            f"reachable from {len(reached)} of {len(probes)} vantages; "
+            f"failed from {names} ({why}), which is a property of that network "
+            "rather than of the endpoint"
+        )
     elif len(probes) > 1 and len(networks) == 1:
-        detail = (f"reachable from all {len(probes)} vantages, which are {len(probes)} hosts on "
-                  f"one network ({networks[0]}): one network's view sampled {len(probes)} times, "
-                  f"not {len(probes)} independent networks")
+        detail = (
+            f"reachable from all {len(probes)} vantages, which are {len(probes)} hosts on "
+            f"one network ({networks[0]}): one network's view sampled {len(probes)} times, "
+            f"not {len(probes)} independent networks"
+        )
     elif len(probes) > 1:
-        detail = (f"reachable from all {len(probes)} vantages across "
-                  f"{len(networks)} networks")
+        detail = f"reachable from all {len(probes)} vantages across {len(networks)} networks"
     else:
         detail = f"reachable from {probes[0].vantage}"
 
     borrowed = next((p for p in reached if p.capability), None)
-    return Consensus(reachable=True, elapsed_ms=median, vantages=len(probes),
-                     agreeing=len(reached), networks=len(networks), detail=detail,
-                     capability=borrowed.capability if borrowed else None,
-                     smart=borrowed.smart if borrowed else None)
+    return Consensus(
+        reachable=True,
+        elapsed_ms=median,
+        vantages=len(probes),
+        agreeing=len(reached),
+        networks=len(networks),
+        detail=detail,
+        capability=borrowed.capability if borrowed else None,
+        smart=borrowed.smart if borrowed else None,
+    )
 
 
 def write_probes(path: Path, vantage: str, probes: dict[str, VantageProbe]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({
-        "vantage": vantage,
-        "probes": {eid: asdict(p) for eid, p in sorted(probes.items())},
-    }, indent=2), encoding="utf-8")
+    path.write_text(
+        json.dumps(
+            {
+                "vantage": vantage,
+                "probes": {eid: asdict(p) for eid, p in sorted(probes.items())},
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
 
 def load_probe_files(paths: list[Path]) -> dict[str, list[VantageProbe]]:
@@ -206,13 +245,18 @@ def load_probe_files(paths: list[Path]) -> dict[str, list[VantageProbe]]:
         for endpoint_id, entry in probes.items():
             if not isinstance(entry, dict):
                 continue
-            by_endpoint.setdefault(str(endpoint_id), []).append(VantageProbe(
-                vantage=str(entry.get("vantage") or vantage),
-                reachable=bool(entry.get("reachable")),
-                elapsed_ms=int(entry.get("elapsed_ms") or 0),
-                error=entry.get("error") if isinstance(entry.get("error"), str) else None,
-                capability=(entry.get("capability")
-                            if isinstance(entry.get("capability"), str) else None),
-                smart=entry.get("smart") if isinstance(entry.get("smart"), str) else None,
-            ))
+            by_endpoint.setdefault(str(endpoint_id), []).append(
+                VantageProbe(
+                    vantage=str(entry.get("vantage") or vantage),
+                    reachable=bool(entry.get("reachable")),
+                    elapsed_ms=int(entry.get("elapsed_ms") or 0),
+                    error=entry.get("error") if isinstance(entry.get("error"), str) else None,
+                    capability=(
+                        entry.get("capability")
+                        if isinstance(entry.get("capability"), str)
+                        else None
+                    ),
+                    smart=entry.get("smart") if isinstance(entry.get("smart"), str) else None,
+                )
+            )
     return by_endpoint

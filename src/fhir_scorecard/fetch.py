@@ -39,8 +39,9 @@ def fetch_json(
 ) -> FetchResult:
     """Fetch one URL. HTTPS is enforced before any connection is attempted (fail closed)."""
     if not url.startswith("https://"):
-        return FetchResult(url=url, ok=False, status=None, elapsed_ms=0, body=b"",
-                           error="non-https URL refused")
+        return FetchResult(
+            url=url, ok=False, status=None, elapsed_ms=0, body=b"", error="non-https URL refused"
+        )
     request = urllib.request.Request(  # noqa: S310 - scheme enforced to https above
         url,
         headers={
@@ -55,16 +56,29 @@ def fetch_json(
             body = response.read(MAX_BODY_BYTES)
             elapsed = int((time.monotonic() - started) * 1000)
             status = int(response.status)
-            return FetchResult(url=url, ok=200 <= status < 300, status=status,
-                               elapsed_ms=elapsed, body=bytes(body), error=None)
+            return FetchResult(
+                url=url,
+                ok=200 <= status < 300,
+                status=status,
+                elapsed_ms=elapsed,
+                body=bytes(body),
+                error=None,
+            )
     except urllib.error.HTTPError as exc:
         elapsed = int((time.monotonic() - started) * 1000)
-        return FetchResult(url=url, ok=False, status=int(exc.code), elapsed_ms=elapsed,
-                           body=b"", error=f"HTTP {exc.code}")
+        return FetchResult(
+            url=url,
+            ok=False,
+            status=int(exc.code),
+            elapsed_ms=elapsed,
+            body=b"",
+            error=f"HTTP {exc.code}",
+        )
     except (urllib.error.URLError, TimeoutError, ssl.SSLError, OSError) as exc:
         elapsed = int((time.monotonic() - started) * 1000)
-        return FetchResult(url=url, ok=False, status=None, elapsed_ms=elapsed,
-                           body=b"", error=describe_error(exc))
+        return FetchResult(
+            url=url, ok=False, status=None, elapsed_ms=elapsed, body=b"", error=describe_error(exc)
+        )
 
 
 def describe_error(exc: BaseException) -> str:
@@ -79,8 +93,10 @@ def describe_error(exc: BaseException) -> str:
     """
     reason = getattr(exc, "reason", None)
     if isinstance(reason, ssl.SSLCertVerificationError):
-        return (f"TLS certificate verification failed ({reason.verify_message or reason.reason}); "
-                "likely a vantage-local interception, not an endpoint fault")
+        return (
+            f"TLS certificate verification failed ({reason.verify_message or reason.reason}); "
+            "likely a vantage-local interception, not an endpoint fault"
+        )
     if isinstance(reason, ssl.SSLError):
         return f"TLS error: {type(reason).__name__}"
     if isinstance(reason, socket.gaierror):
@@ -90,8 +106,10 @@ def describe_error(exc: BaseException) -> str:
     if isinstance(reason, ConnectionRefusedError):
         return "connection refused"
     if isinstance(exc, ssl.SSLCertVerificationError):
-        return (f"TLS certificate verification failed ({exc.verify_message or exc.reason}); "
-                "likely a vantage-local interception, not an endpoint fault")
+        return (
+            f"TLS certificate verification failed ({exc.verify_message or exc.reason}); "
+            "likely a vantage-local interception, not an endpoint fault"
+        )
     if isinstance(exc, socket.gaierror):
         return f"DNS did not resolve ({exc.strerror or 'gaierror'})"
     if isinstance(exc, TimeoutError):

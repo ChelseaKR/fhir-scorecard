@@ -13,10 +13,12 @@ def _p(vantage: str, reachable: bool, ms: int = 100, error: str | None = None) -
 def test_one_reaching_vantage_settles_reachability() -> None:
     """The rule that matters: reaching an endpoint anywhere proves it is up; failing to reach
     it from one network proves only that the network could not get there."""
-    c = reconcile([
-        _p("home", False, error="TLS certificate verification failed"),
-        _p("ci", True, 200),
-    ])
+    c = reconcile(
+        [
+            _p("home", False, error="TLS certificate verification failed"),
+            _p("ci", True, 200),
+        ]
+    )
     assert c.reachable
     assert not c.unanimous
     assert "failed from home" in c.detail
@@ -25,8 +27,12 @@ def test_one_reaching_vantage_settles_reachability() -> None:
 
 
 def test_unanimous_failure_is_stated_as_such_with_causes() -> None:
-    c = reconcile([_p("home", False, error="DNS did not resolve"),
-                   _p("ci", False, error="DNS did not resolve")])
+    c = reconcile(
+        [
+            _p("home", False, error="DNS did not resolve"),
+            _p("ci", False, error="DNS did not resolve"),
+        ]
+    )
     assert not c.reachable
     assert c.agreeing == 0
     assert "not reached from any of the 2 vantages tried" in c.detail
@@ -39,8 +45,8 @@ def test_no_vantage_is_counted_twice() -> None:
     """CI merged the publishing run's own probe with the artifact written under the same label,
     and every card then said "reachable from all 4 vantage(s)" when three vantages reported."""
     ci_shaped = [
-        _p("github-actions/ubuntu-latest", True, 300),   # the publishing run's own probe
-        _p("github-actions/ubuntu-latest", True, 300),   # the ubuntu artifact, same vantage
+        _p("github-actions/ubuntu-latest", True, 300),  # the publishing run's own probe
+        _p("github-actions/ubuntu-latest", True, 300),  # the ubuntu artifact, same vantage
         _p("github-actions/macos-latest", True, 700),
         _p("github-actions/windows-latest", True, 900),
     ]
@@ -55,18 +61,21 @@ def test_no_vantage_is_counted_twice() -> None:
 def test_a_duplicated_vantage_failing_is_one_failure_not_two() -> None:
     """The asymmetry cuts the other way too: if the doubled vantage is the blocked one, it must
     not read as two independent networks failing."""
-    c = reconcile([
-        _p("github-actions/ubuntu-latest", False, error="TLS certificate verification failed"),
-        _p("github-actions/ubuntu-latest", False, error="TLS certificate verification failed"),
-        _p("github-actions/macos-latest", True, 500),
-    ])
+    c = reconcile(
+        [
+            _p("github-actions/ubuntu-latest", False, error="TLS certificate verification failed"),
+            _p("github-actions/ubuntu-latest", False, error="TLS certificate verification failed"),
+            _p("github-actions/macos-latest", True, 500),
+        ]
+    )
     assert c.vantages == 2 and c.agreeing == 1
     assert "reachable from 1 of 2 vantages" in c.detail
 
 
 def test_a_duplicated_vantage_that_reached_once_reached() -> None:
-    c = reconcile([_p("ci", False, error="connection timed out"), _p("ci", True, 100),
-                   _p("ci", True, 300)])
+    c = reconcile(
+        [_p("ci", False, error="connection timed out"), _p("ci", True, 100), _p("ci", True, 300)]
+    )
     assert c.vantages == 1 and c.reachable
     assert c.elapsed_ms == 200  # median of the samples that answered, not of the failure
 
@@ -74,9 +83,13 @@ def test_a_duplicated_vantage_that_reached_once_reached() -> None:
 def test_three_runner_images_are_one_network_and_say_so() -> None:
     """Three OS images on one provider share an address space, a reputation, and every rule a
     payer edge applies to it. Calling that three networks is the claim this project cannot make."""
-    c = reconcile([_p("github-actions/ubuntu-latest", True, 300),
-                   _p("github-actions/macos-latest", True, 700),
-                   _p("github-actions/windows-latest", True, 900)])
+    c = reconcile(
+        [
+            _p("github-actions/ubuntu-latest", True, 300),
+            _p("github-actions/macos-latest", True, 700),
+            _p("github-actions/windows-latest", True, 900),
+        ]
+    )
     assert c.vantages == 3
     assert c.networks == 1
     assert "one network (github-actions)" in c.detail
@@ -84,17 +97,22 @@ def test_three_runner_images_are_one_network_and_say_so() -> None:
 
 
 def test_total_failure_on_one_network_states_the_limit_rather_than_the_verdict() -> None:
-    c = reconcile([_p("github-actions/ubuntu-latest", False, error="connection timed out"),
-                   _p("github-actions/macos-latest", False, error="connection timed out"),
-                   _p("github-actions/windows-latest", False, error="connection timed out")])
+    c = reconcile(
+        [
+            _p("github-actions/ubuntu-latest", False, error="connection timed out"),
+            _p("github-actions/macos-latest", False, error="connection timed out"),
+            _p("github-actions/windows-latest", False, error="connection timed out"),
+        ]
+    )
     assert not c.reachable and c.networks == 1
     assert "all on one network (github-actions)" in c.detail
     assert "cannot separate an endpoint that is down" in c.detail
 
 
 def test_distinct_networks_are_reported_as_distinct() -> None:
-    c = reconcile([_p("github-actions/ubuntu-latest", True, 300),
-                   _p("davis-ca/residential", True, 500)])
+    c = reconcile(
+        [_p("github-actions/ubuntu-latest", True, 300), _p("davis-ca/residential", True, 500)]
+    )
     assert c.networks == 2
     assert "across 2 networks" in c.detail
 
@@ -140,8 +158,14 @@ def test_broken_vantage_file_degrades_consensus_not_the_run(tmp_path: Path) -> N
     (tmp_path / "bad.json").write_text("{not json")
     (tmp_path / "empty.json").write_text(json.dumps({"vantage": "x"}))
     write_probes(tmp_path / "good.json", "ci", {"alpha": _p("ci", True, 90)})
-    merged = load_probe_files([tmp_path / "bad.json", tmp_path / "empty.json",
-                               tmp_path / "good.json", tmp_path / "missing.json"])
+    merged = load_probe_files(
+        [
+            tmp_path / "bad.json",
+            tmp_path / "empty.json",
+            tmp_path / "good.json",
+            tmp_path / "missing.json",
+        ]
+    )
     assert list(merged) == ["alpha"]
     assert reconcile(merged["alpha"]).reachable
 
@@ -150,8 +174,13 @@ def test_consensus_borrows_documents_from_a_reaching_vantage() -> None:
     """Establishing an endpoint is up while scoring its content zero would report an F for
     material the probing vantage never received: the original mistake in a new costume."""
     blocked = VantageProbe("home", False, 0, "TLS certificate verification failed")
-    reached = VantageProbe("ci", True, 640, capability='{"resourceType":"CapabilityStatement"}',
-                           smart='{"token_endpoint":"https://x.test/t"}')
+    reached = VantageProbe(
+        "ci",
+        True,
+        640,
+        capability='{"resourceType":"CapabilityStatement"}',
+        smart='{"token_endpoint":"https://x.test/t"}',
+    )
     c = reconcile([blocked, reached])
     assert c.reachable
     assert c.capability == '{"resourceType":"CapabilityStatement"}'

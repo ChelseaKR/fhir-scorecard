@@ -26,19 +26,33 @@ def _cohort_payload() -> dict[str, Any]:
         },
         "notes": ["These endpoints are required by the CMS Patient Access rule (CMS-9115-F)."],
         "sources": [
-            {"label": "DHCS plan directory", "url": "https://example.test/dhcs",
-             "date": "2026-08-07"},
+            {
+                "label": "DHCS plan directory",
+                "url": "https://example.test/dhcs",
+                "date": "2026-08-07",
+            },
         ],
         "members": [
-            {"id": "alpha-health", "name": "Alpha Health",
-             "programs": ["medi-cal", "covered-ca"], "endpoints": ["alpha", "alpha-dir"]},
-            {"id": "gated-plan", "name": "Gated Plan", "programs": ["medi-cal"],
-             "excluded": {
-                 "reason": "developer portal requires registration to view the base URL",
-                 "basis": "portal_reviewed",
-                 "reviewed": {"method": "retrieved the plan's interoperability page",
-                              "date": "2026-08-07",
-                              "source": "https://example.test/gated"}}},
+            {
+                "id": "alpha-health",
+                "name": "Alpha Health",
+                "programs": ["medi-cal", "covered-ca"],
+                "endpoints": ["alpha", "alpha-dir"],
+            },
+            {
+                "id": "gated-plan",
+                "name": "Gated Plan",
+                "programs": ["medi-cal"],
+                "excluded": {
+                    "reason": "developer portal requires registration to view the base URL",
+                    "basis": "portal_reviewed",
+                    "reviewed": {
+                        "method": "retrieved the plan's interoperability page",
+                        "date": "2026-08-07",
+                        "source": "https://example.test/gated",
+                    },
+                },
+            },
         ],
     }
 
@@ -51,12 +65,20 @@ def _write(tmp_path: Path, payload: dict[str, Any]) -> Path:
 
 def _card(eid: str, name: str, kind: str = "payer"):
     return build_scorecard(
-        eid, name,
-        FetchResult(url=f"https://{eid}.test/metadata", ok=True, status=200, elapsed_ms=10,
-                    body=b"", error=None),
+        eid,
+        name,
+        FetchResult(
+            url=f"https://{eid}.test/metadata",
+            ok=True,
+            status=200,
+            elapsed_ms=10,
+            body=b"",
+            error=None,
+        ),
         parse_capability(json.dumps(good_capability()).encode()),
         parse_smart(json.dumps(good_smart()).encode()),
-        kind=kind)
+        kind=kind,
+    )
 
 
 def test_valid_cohort_loads_with_both_populations(tmp_path: Path) -> None:
@@ -231,9 +253,12 @@ def test_cohort_dir_loads_files_sorted(tmp_path: Path) -> None:
 
 def test_cohort_page_lists_grades_and_exclusions(tmp_path: Path) -> None:
     cohort = load_cohort(_write(tmp_path, _cohort_payload()), _REGISTRY_IDS)
-    cards = {"alpha": _card("alpha", "Alpha Health Patient Access API"),
-             "alpha-dir": _card("alpha-dir", "Alpha Health Provider Directory API",
-                                kind="payer_provider_directory")}
+    cards = {
+        "alpha": _card("alpha", "Alpha Health Patient Access API"),
+        "alpha-dir": _card(
+            "alpha-dir", "Alpha Health Provider Directory API", kind="payer_provider_directory"
+        ),
+    }
     page = cohort_page(cohort, cards, "https://example.test")
     assert page.path == "california"
     flat = " ".join(page.body.split())
@@ -263,9 +288,11 @@ def test_cohort_page_escapes_member_names(tmp_path: Path) -> None:
     payload = _cohort_payload()
     payload["members"][1]["name"] = "<script>x</script>"
     cohort = load_cohort(_write(tmp_path, payload), _REGISTRY_IDS)
-    page = cohort_page(cohort, {"alpha": _card("alpha", "Alpha"),
-                                "alpha-dir": _card("alpha-dir", "Alpha Dir")},
-                       "https://example.test")
+    page = cohort_page(
+        cohort,
+        {"alpha": _card("alpha", "Alpha"), "alpha-dir": _card("alpha-dir", "Alpha Dir")},
+        "https://example.test",
+    )
     assert "<script>x</script>" not in page.body
     assert "&lt;script&gt;" in page.body
 
@@ -282,14 +309,28 @@ def test_home_page_links_cohorts_only_when_present(tmp_path: Path) -> None:
 
 def _registry(tmp_path: Path) -> Path:
     path = tmp_path / "registry.json"
-    path.write_text(json.dumps({"endpoints": [
-        {"id": "alpha", "name": "Alpha Health Patient Access API", "kind": "payer",
-         "base_url": "https://alpha.test/r4",
-         "verification": {"method": "fixture", "date": "2026-08-07"}},
-        {"id": "alpha-dir", "name": "Alpha Health Provider Directory API",
-         "kind": "payer_provider_directory", "base_url": "https://alpha.test/pd",
-         "verification": {"method": "fixture", "date": "2026-08-07"}},
-    ]}))
+    path.write_text(
+        json.dumps(
+            {
+                "endpoints": [
+                    {
+                        "id": "alpha",
+                        "name": "Alpha Health Patient Access API",
+                        "kind": "payer",
+                        "base_url": "https://alpha.test/r4",
+                        "verification": {"method": "fixture", "date": "2026-08-07"},
+                    },
+                    {
+                        "id": "alpha-dir",
+                        "name": "Alpha Health Provider Directory API",
+                        "kind": "payer_provider_directory",
+                        "base_url": "https://alpha.test/pd",
+                        "verification": {"method": "fixture", "date": "2026-08-07"},
+                    },
+                ]
+            }
+        )
+    )
     return path
 
 
@@ -307,10 +348,27 @@ def test_cli_builds_cohort_page_into_site_and_sitemap(tmp_path: Path) -> None:
     cohorts_dir.mkdir()
     (cohorts_dir / "california.json").write_text(json.dumps(_cohort_payload()))
     out = tmp_path / "site"
-    assert main(["grade", "--registry", str(_registry(tmp_path)), "--offline",
-                 "--fixtures", str(_fixtures(tmp_path)), "--out", str(out),
-                 "--history", str(tmp_path / "h.json"), "--cohorts", str(cohorts_dir),
-                 "--origin", "https://example.test"]) == 0
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(_registry(tmp_path)),
+                "--offline",
+                "--fixtures",
+                str(_fixtures(tmp_path)),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+                "--cohorts",
+                str(cohorts_dir),
+                "--origin",
+                "https://example.test",
+            ]
+        )
+        == 0
+    )
     page = (out / "california" / "index.html").read_text()
     assert '<link rel="canonical" href="https://example.test/california/"' in page
     assert "Alpha Health Patient Access API" in page
@@ -322,10 +380,25 @@ def test_cli_builds_cohort_page_into_site_and_sitemap(tmp_path: Path) -> None:
 
 def test_cli_without_cohort_dir_builds_no_cohort_page(tmp_path: Path) -> None:
     out = tmp_path / "site"
-    assert main(["grade", "--registry", str(_registry(tmp_path)), "--offline",
-                 "--fixtures", str(_fixtures(tmp_path)), "--out", str(out),
-                 "--history", str(tmp_path / "h.json"),
-                 "--cohorts", str(tmp_path / "no-such-dir")]) == 0
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(_registry(tmp_path)),
+                "--offline",
+                "--fixtures",
+                str(_fixtures(tmp_path)),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+                "--cohorts",
+                str(tmp_path / "no-such-dir"),
+            ]
+        )
+        == 0
+    )
     assert not (out / "california").exists()
     assert "Curated cohorts" not in (out / "index.html").read_text()
 
@@ -341,8 +414,9 @@ def test_shipped_cohorts_load_against_the_shipped_registry() -> None:
 
     repo = Path(__file__).resolve().parent.parent
     endpoints = load_registry(repo / "data" / "registry.json")
-    cohorts = load_cohort_dir(repo / "data" / "cohorts",
-                              frozenset(e.endpoint_id for e in endpoints))
+    cohorts = load_cohort_dir(
+        repo / "data" / "cohorts", frozenset(e.endpoint_id for e in endpoints)
+    )
     assert cohorts, "data/cohorts should ship at least the California cohort"
     for cohort in cohorts:
         # Every member is in exactly one population, and an exclusion always carries its evidence.
@@ -360,7 +434,22 @@ def test_cli_fails_loudly_on_invalid_cohort_file(tmp_path: Path) -> None:
     payload = _cohort_payload()
     payload["members"][0]["endpoints"] = ["not-in-registry"]
     (cohorts_dir / "california.json").write_text(json.dumps(payload))
-    assert main(["grade", "--registry", str(_registry(tmp_path)), "--offline",
-                 "--fixtures", str(_fixtures(tmp_path)), "--out", str(tmp_path / "site"),
-                 "--history", str(tmp_path / "h.json"),
-                 "--cohorts", str(cohorts_dir)]) == 2
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(_registry(tmp_path)),
+                "--offline",
+                "--fixtures",
+                str(_fixtures(tmp_path)),
+                "--out",
+                str(tmp_path / "site"),
+                "--history",
+                str(tmp_path / "h.json"),
+                "--cohorts",
+                str(cohorts_dir),
+            ]
+        )
+        == 2
+    )

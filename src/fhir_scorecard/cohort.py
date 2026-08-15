@@ -101,8 +101,10 @@ def _parse_exclusion(where: str, raw: object) -> Exclusion:
         raise ValueError(f"{where}.excluded.basis must be one of {sorted(EXCLUSION_BASES)}")
     reviewed = raw.get("reviewed")
     if not isinstance(reviewed, dict):
-        raise ValueError(f"{where}.excluded has no review record; an exclusion without one is "
-                         "an assertion, not a finding")
+        raise ValueError(
+            f"{where}.excluded has no review record; an exclusion without one is "
+            "an assertion, not a finding"
+        )
     date = _require_str(where + ".excluded.reviewed", reviewed, "date")
     if not _DATE_RE.match(date):
         raise ValueError(f"{where}.excluded.reviewed.date must be YYYY-MM-DD")
@@ -127,8 +129,7 @@ def _parse_programs(where: str, raw: object) -> tuple[str, ...]:
     return tuple(programs)
 
 
-def _parse_endpoint_ids(where: str, raw: object,
-                        registry_ids: frozenset[str]) -> tuple[str, ...]:
+def _parse_endpoint_ids(where: str, raw: object, registry_ids: frozenset[str]) -> tuple[str, ...]:
     if not isinstance(raw, list):
         raise ValueError(f"{where}.endpoints must be a list")
     endpoint_ids: list[str] = []
@@ -136,13 +137,15 @@ def _parse_endpoint_ids(where: str, raw: object,
         if not isinstance(endpoint_id, str) or endpoint_id not in registry_ids:
             raise ValueError(
                 f"{where}.endpoints references {endpoint_id!r}, which is not a graded registry "
-                "endpoint; a cohort only ever points at endpoints the registry stands behind")
+                "endpoint; a cohort only ever points at endpoints the registry stands behind"
+            )
         endpoint_ids.append(endpoint_id)
     return tuple(endpoint_ids)
 
 
-def _parse_member(where: str, item: dict[str, object], registry_ids: frozenset[str],
-                  seen: set[str]) -> CohortMember:
+def _parse_member(
+    where: str, item: dict[str, object], registry_ids: frozenset[str], seen: set[str]
+) -> CohortMember:
     member_id = _require_str(where, item, "id")
     if not _ID_RE.match(member_id):
         raise ValueError(f"{where}.id {member_id!r} is not a lowercase slug")
@@ -159,8 +162,10 @@ def _parse_member(where: str, item: dict[str, object], registry_ids: frozenset[s
     if endpoint_ids and excluded_raw is not None:
         raise ValueError(f"{where} has both endpoints and an exclusion; it cannot be both")
     if not endpoint_ids and excluded_raw is None:
-        raise ValueError(f"{where} has neither endpoints nor an exclusion; every member must "
-                         "carry one or the other")
+        raise ValueError(
+            f"{where} has neither endpoints nor an exclusion; every member must "
+            "carry one or the other"
+        )
 
     return CohortMember(
         member_id=member_id,
@@ -184,11 +189,13 @@ def _parse_sources(raw: object) -> tuple[CohortSource, ...]:
         date = _require_str(where, item, "date")
         if not _DATE_RE.match(date):
             raise ValueError(f"{where}.date must be YYYY-MM-DD")
-        sources.append(CohortSource(
-            label=_require_str(where, item, "label"),
-            url=_require_str(where, item, "url"),
-            date=date,
-        ))
+        sources.append(
+            CohortSource(
+                label=_require_str(where, item, "label"),
+                url=_require_str(where, item, "url"),
+                date=date,
+            )
+        )
     return tuple(sources)
 
 
@@ -207,8 +214,10 @@ def load_cohort(path: Path, registry_ids: frozenset[str]) -> Cohort:
 
     members_raw = raw.get("members")
     if not isinstance(members_raw, list) or not members_raw:
-        raise ValueError(f"{path}: members must be a non-empty list; a cohort with no members "
-                         "is a page with nothing to say")
+        raise ValueError(
+            f"{path}: members must be a non-empty list; a cohort with no members "
+            "is a page with nothing to say"
+        )
     seen: set[str] = set()
     members: list[CohortMember] = []
     for i, item in enumerate(members_raw):
@@ -236,7 +245,4 @@ def load_cohort_dir(directory: Path, registry_ids: frozenset[str]) -> tuple[Coho
     """
     if not directory.is_dir():
         return ()
-    return tuple(
-        load_cohort(path, registry_ids)
-        for path in sorted(directory.glob("*.json"))
-    )
+    return tuple(load_cohort(path, registry_ids) for path in sorted(directory.glob("*.json")))

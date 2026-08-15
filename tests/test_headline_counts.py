@@ -29,19 +29,38 @@ from fhir_scorecard.site import cohort_page, home_page, kind_page
 
 def _answering(eid: str, kind: str = "payer") -> Scorecard:
     return build_scorecard(
-        eid, eid.replace("-", " ").title(),
-        FetchResult(url=f"https://{eid}.test/metadata", ok=True, status=200, elapsed_ms=120,
-                    body=b"", error=None),
+        eid,
+        eid.replace("-", " ").title(),
+        FetchResult(
+            url=f"https://{eid}.test/metadata",
+            ok=True,
+            status=200,
+            elapsed_ms=120,
+            body=b"",
+            error=None,
+        ),
         parse_capability(json.dumps(good_capability()).encode()),
-        parse_smart(json.dumps(good_smart()).encode()), kind=kind)
+        parse_smart(json.dumps(good_smart()).encode()),
+        kind=kind,
+    )
 
 
 def _silent(eid: str, kind: str = "payer") -> Scorecard:
     return build_scorecard(
-        eid, eid.replace("-", " ").title(),
-        FetchResult(url=f"https://{eid}.test/metadata", ok=False, status=None, elapsed_ms=0,
-                    body=b"", error="connection timed out"),
-        NO_CAPABILITY_RETRIEVED, NO_SMART_RETRIEVED, kind=kind)
+        eid,
+        eid.replace("-", " ").title(),
+        FetchResult(
+            url=f"https://{eid}.test/metadata",
+            ok=False,
+            status=None,
+            elapsed_ms=0,
+            body=b"",
+            error="connection timed out",
+        ),
+        NO_CAPABILITY_RETRIEVED,
+        NO_SMART_RETRIEVED,
+        kind=kind,
+    )
 
 
 def test_home_headline_counts_endpoints_that_answered_not_registry_rows() -> None:
@@ -62,21 +81,29 @@ def test_category_page_counts_answers_not_rows() -> None:
 
 def _cohort(*members: CohortMember) -> Cohort:
     return Cohort(
-        cohort_id="testville", name="Testville payer cohort",
+        cohort_id="testville",
+        name="Testville payer cohort",
         description="Every plan on the public Testville roster.",
-        notes=(), sources=(CohortSource(label="Roster", url="https://roster.test",
-                                        date="2026-08-06"),),
-        members=members)
+        notes=(),
+        sources=(CohortSource(label="Roster", url="https://roster.test", date="2026-08-06"),),
+        members=members,
+    )
 
 
 def test_cohort_page_separates_the_curated_count_from_the_measured_one() -> None:
     """Two members were verified as publishing a base URL, which is a dated curation record.
     One of them answered today. Both numbers appear, labelled as what they are."""
     cohort = _cohort(
-        CohortMember(member_id="alpha-plan", name="Alpha Plan", programs=("medi-cal",),
-                     endpoint_ids=("alpha",)),
-        CohortMember(member_id="beta-plan", name="Beta Plan", programs=("medi-cal",),
-                     endpoint_ids=("beta",)))
+        CohortMember(
+            member_id="alpha-plan",
+            name="Alpha Plan",
+            programs=("medi-cal",),
+            endpoint_ids=("alpha",),
+        ),
+        CohortMember(
+            member_id="beta-plan", name="Beta Plan", programs=("medi-cal",), endpoint_ids=("beta",)
+        ),
+    )
     cards = {"alpha": _answering("alpha"), "beta": _silent("beta")}
     page = cohort_page(cohort, cards, "https://example.test")
 
@@ -90,29 +117,66 @@ def test_cohort_page_separates_the_curated_count_from_the_measured_one() -> None
 def test_cohort_endpoint_count_never_exceeds_the_endpoints_it_can_show() -> None:
     """The count came from ids in the curation file while the table came from graded cards, so
     a listed id with no card inflated the number above the rows beneath it."""
-    cohort = _cohort(CohortMember(member_id="alpha-plan", name="Alpha Plan",
-                                  programs=("medi-cal",), endpoint_ids=("alpha", "ghost")))
+    cohort = _cohort(
+        CohortMember(
+            member_id="alpha-plan",
+            name="Alpha Plan",
+            programs=("medi-cal",),
+            endpoint_ids=("alpha", "ghost"),
+        )
+    )
     page = cohort_page(cohort, {"alpha": _answering("alpha")}, "https://example.test")
     assert "<strong>1</strong><span>endpoints listed</span>" in page.body
-    assert page.body.count("<td><a href=\"/fhir-scorecard/endpoint/") == 1
+    assert page.body.count('<td><a href="/fhir-scorecard/endpoint/') == 1
 
 
 def test_published_api_reports_both_numbers(tmp_path: Path) -> None:
     registry = tmp_path / "registry.json"
-    registry.write_text(json.dumps({"endpoints": [
-        {"id": "alpha", "name": "Alpha", "kind": "payer", "base_url": "https://alpha.test/r4",
-         "verification": {"method": "fixture", "date": "2026-08-06"}},
-        {"id": "dark", "name": "Dark", "kind": "payer", "base_url": "https://dark.test/r4",
-         "verification": {"method": "fixture", "date": "2026-08-06"}}]}))
+    registry.write_text(
+        json.dumps(
+            {
+                "endpoints": [
+                    {
+                        "id": "alpha",
+                        "name": "Alpha",
+                        "kind": "payer",
+                        "base_url": "https://alpha.test/r4",
+                        "verification": {"method": "fixture", "date": "2026-08-06"},
+                    },
+                    {
+                        "id": "dark",
+                        "name": "Dark",
+                        "kind": "payer",
+                        "base_url": "https://dark.test/r4",
+                        "verification": {"method": "fixture", "date": "2026-08-06"},
+                    },
+                ]
+            }
+        )
+    )
     fixtures = tmp_path / "fixtures" / "alpha"
     fixtures.mkdir(parents=True)
     (fixtures / "metadata.json").write_text(json.dumps(good_capability()))
     (fixtures / "smart.json").write_text(json.dumps(good_smart()))
 
     out = tmp_path / "site"
-    assert main(["grade", "--registry", str(registry), "--offline",
-                 "--fixtures", str(tmp_path / "fixtures"), "--out", str(out),
-                 "--history", str(tmp_path / "h.json")]) == 0
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(registry),
+                "--offline",
+                "--fixtures",
+                str(tmp_path / "fixtures"),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+            ]
+        )
+        == 0
+    )
     index = json.loads((out / "api" / "index.json").read_text())
     assert index["endpoints_listed"] == 2
     assert index["answered_on_this_run"] == 1

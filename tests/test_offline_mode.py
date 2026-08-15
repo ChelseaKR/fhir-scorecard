@@ -31,19 +31,36 @@ def test_the_fixtures_the_readme_names_exist() -> None:
 
 def test_the_documented_offline_command_grades_real_captured_documents(tmp_path: Path) -> None:
     out = tmp_path / "offline-site"
-    assert main(["grade", "--offline", "--fixtures", str(FIXTURES),
-                 "--registry", str(FIXTURE_REGISTRY), "--out", str(out),
-                 "--history", str(tmp_path / "history.json")]) == 0
+    assert (
+        main(
+            [
+                "grade",
+                "--offline",
+                "--fixtures",
+                str(FIXTURES),
+                "--registry",
+                str(FIXTURE_REGISTRY),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "history.json"),
+            ]
+        )
+        == 0
+    )
 
-    cards = {c["endpoint_id"]: c for c in
-             json.loads((out / "scorecards.json").read_text())["scorecards"]}
+    cards = {
+        c["endpoint_id"]: c for c in json.loads((out / "scorecards.json").read_text())["scorecards"]
+    }
     assert set(cards) == {"cms-blue-button-2", "inferno-reference", "oracle-health-open"}
     # Every one of them was retrieved, so every one of them is graded rather than "not observed".
     assert all(card["grade"] in set("ABCDF") for card in cards.values())
 
     # Facts from the real documents, which no hand-written fixture in conftest.py exercises.
-    findings = {eid: {f["code"]: f for d in card["dimensions"] for f in d["findings"]}
-                for eid, card in cards.items()}
+    findings = {
+        eid: {f["code"]: f for d in card["dimensions"] for f in d["findings"]}
+        for eid, card in cards.items()
+    }
     assert "narrow but fully documented" in findings["cms-blue-button-2"]["T3"]["message"]
     assert findings["inferno-reference"]["I1"]["ok"]
     # Oracle Health answers 404 at .well-known/smart-configuration, so no smart.json is
@@ -57,14 +74,30 @@ def test_an_offline_run_writes_its_history_to_a_scratch_path(tmp_path: Path) -> 
     runs from a throwaway directory, so this checks the resolution rather than the damage."""
     real = tmp_path / "data" / "history.json"
     real.parent.mkdir()
-    before = json.dumps({META_KEY: {"mode": "live"},
-                         "cms-blue-button-2": {"observations": [{"date": "2026-08-13",
-                                                                 "up": True}]}}, indent=2)
+    before = json.dumps(
+        {
+            META_KEY: {"mode": "live"},
+            "cms-blue-button-2": {"observations": [{"date": "2026-08-13", "up": True}]},
+        },
+        indent=2,
+    )
     real.write_text(before)
 
-    assert main(["grade", "--offline", "--fixtures", str(FIXTURES),
-                 "--registry", str(FIXTURE_REGISTRY),
-                 "--out", str(tmp_path / "site")]) == 0
+    assert (
+        main(
+            [
+                "grade",
+                "--offline",
+                "--fixtures",
+                str(FIXTURES),
+                "--registry",
+                str(FIXTURE_REGISTRY),
+                "--out",
+                str(tmp_path / "site"),
+            ]
+        )
+        == 0
+    )
 
     assert real.read_text() == before, "an offline run must not touch the live history"
     scratch = tmp_path / ".cache" / "offline-history.json"
@@ -77,26 +110,79 @@ def test_an_offline_run_does_not_load_the_shipped_cohorts(tmp_path: Path) -> Non
     lacks fails the build by design. That must not make the documented command fail."""
     cohorts = tmp_path / "data" / "cohorts"
     cohorts.mkdir(parents=True)
-    (cohorts / "california.json").write_text(json.dumps({
-        "id": "california", "name": "California", "description": "x", "sources": [
-            {"label": "roster", "url": "https://example.test", "date": "2026-08-06"}],
-        "members": [{"id": "plan", "name": "Plan", "programs": ["medi-cal"],
-                     "endpoints": ["not-in-the-fixture-registry"]}]}))
-    assert main(["grade", "--offline", "--fixtures", str(FIXTURES),
-                 "--registry", str(FIXTURE_REGISTRY),
-                 "--out", str(tmp_path / "site")]) == 0
+    (cohorts / "california.json").write_text(
+        json.dumps(
+            {
+                "id": "california",
+                "name": "California",
+                "description": "x",
+                "sources": [
+                    {"label": "roster", "url": "https://example.test", "date": "2026-08-06"}
+                ],
+                "members": [
+                    {
+                        "id": "plan",
+                        "name": "Plan",
+                        "programs": ["medi-cal"],
+                        "endpoints": ["not-in-the-fixture-registry"],
+                    }
+                ],
+            }
+        )
+    )
+    assert (
+        main(
+            [
+                "grade",
+                "--offline",
+                "--fixtures",
+                str(FIXTURES),
+                "--registry",
+                str(FIXTURE_REGISTRY),
+                "--out",
+                str(tmp_path / "site"),
+            ]
+        )
+        == 0
+    )
 
 
 def test_a_live_run_refuses_a_history_an_offline_run_wrote(tmp_path: Path) -> None:
     history = tmp_path / "history.json"
-    assert main(["grade", "--offline", "--fixtures", str(FIXTURES),
-                 "--registry", str(FIXTURE_REGISTRY), "--out", str(tmp_path / "site"),
-                 "--history", str(history)]) == 0
+    assert (
+        main(
+            [
+                "grade",
+                "--offline",
+                "--fixtures",
+                str(FIXTURES),
+                "--registry",
+                str(FIXTURE_REGISTRY),
+                "--out",
+                str(tmp_path / "site"),
+                "--history",
+                str(history),
+            ]
+        )
+        == 0
+    )
     written = history.read_text()
 
     # The live run never gets as far as a request: it refuses on the history file.
-    assert main(["grade", "--registry", str(FIXTURE_REGISTRY),
-                 "--out", str(tmp_path / "site2"), "--history", str(history)]) == 2
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(FIXTURE_REGISTRY),
+                "--out",
+                str(tmp_path / "site2"),
+                "--history",
+                str(history),
+            ]
+        )
+        == 2
+    )
     assert history.read_text() == written
 
 

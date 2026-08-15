@@ -13,13 +13,19 @@ from fhir_scorecard.mcp import PROTOCOL_VERSION, call_tool, handle, serve
 def site(tmp_path: Path) -> Path:
     api = tmp_path / "api" / "endpoint"
     api.mkdir(parents=True)
-    (tmp_path / "api" / "index.json").write_text(json.dumps({
-        "generated_at": "2026-08-05", "vantage": "test", "count": 2,
-        "endpoints": [
-            {"endpoint_id": "alpha", "name": "Alpha", "kind": "payer", "grade": "A"},
-            {"endpoint_id": "beta", "name": "Beta", "kind": "ehr", "grade": "C"},
-        ],
-    }))
+    (tmp_path / "api" / "index.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-08-05",
+                "vantage": "test",
+                "count": 2,
+                "endpoints": [
+                    {"endpoint_id": "alpha", "name": "Alpha", "kind": "payer", "grade": "A"},
+                    {"endpoint_id": "beta", "name": "Beta", "kind": "ehr", "grade": "C"},
+                ],
+            }
+        )
+    )
     (api / "alpha.json").write_text(json.dumps({"endpoint": {"grade": "A"}, "dimensions": []}))
     return tmp_path
 
@@ -52,17 +58,23 @@ def test_list_filters_and_carries_the_comparability_caveat(site: Path) -> None:
 
 
 def test_get_endpoint_and_unknown(site: Path) -> None:
-    assert _payload(call_tool(site, "get_endpoint", {"endpoint_id": "alpha"}))["endpoint"][
-        "grade"] == "A"
-    assert "unknown endpoint" in _payload(
-        call_tool(site, "get_endpoint", {"endpoint_id": "nope"}))["error"]
+    assert (
+        _payload(call_tool(site, "get_endpoint", {"endpoint_id": "alpha"}))["endpoint"]["grade"]
+        == "A"
+    )
+    assert (
+        "unknown endpoint"
+        in _payload(call_tool(site, "get_endpoint", {"endpoint_id": "nope"}))["error"]
+    )
 
 
 @pytest.mark.parametrize("bad", ["../../etc/passwd", "a/b", "a\\b", "", ".."])
 def test_get_endpoint_refuses_path_traversal(site: Path, bad: str) -> None:
     """An identifier from a model must never become an arbitrary filesystem path."""
-    assert "bare identifier" in _payload(
-        call_tool(site, "get_endpoint", {"endpoint_id": bad}))["error"]
+    assert (
+        "bare identifier"
+        in _payload(call_tool(site, "get_endpoint", {"endpoint_id": bad}))["error"]
+    )
 
 
 def test_grading_method_states_the_limits(site: Path) -> None:
@@ -71,8 +83,9 @@ def test_grading_method_states_the_limits(site: Path) -> None:
     # An assistant reading this must not be able to call three runner images three networks,
     # nor read a failed run as a statement that the endpoint is down.
     assert any("one provider's network" in limit for limit in method["limits"])
-    assert any("does not establish that the endpoint is down" in limit
-               for limit in method["limits"])
+    assert any(
+        "does not establish that the endpoint is down" in limit for limit in method["limits"]
+    )
     assert any("no public base URL was found" in limit for limit in method["limits"])
 
 
@@ -88,8 +101,14 @@ def test_notifications_get_no_response(site: Path) -> None:
 
 def test_missing_dataset_is_an_error_not_a_crash(tmp_path: Path) -> None:
     out = io.StringIO()
-    serve(tmp_path, io.StringIO('{"jsonrpc":"2.0","id":1,"method":"tools/call",'
-                                '"params":{"name":"list_endpoints","arguments":{}}}\n'), out)
+    serve(
+        tmp_path,
+        io.StringIO(
+            '{"jsonrpc":"2.0","id":1,"method":"tools/call",'
+            '"params":{"name":"list_endpoints","arguments":{}}}\n'
+        ),
+        out,
+    )
     assert "FileNotFoundError" in out.getvalue()
 
 

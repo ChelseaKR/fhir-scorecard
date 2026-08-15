@@ -22,8 +22,13 @@ from conftest import good_capability
 from fhir_scorecard.capability import parse_capability, parse_smart
 from fhir_scorecard.grading import Finding, grade_interop
 
-_ELEMENTS = ("rest.resource.supportedProfile", "rest.resource.profile", "instantiates",
-             "imports", "meta.profile")
+_ELEMENTS = (
+    "rest.resource.supportedProfile",
+    "rest.resource.profile",
+    "instantiates",
+    "imports",
+    "meta.profile",
+)
 
 
 def _bare() -> dict[str, object]:
@@ -35,8 +40,7 @@ def _bare() -> dict[str, object]:
 
 
 def _i1(doc: dict[str, object]) -> Finding:
-    dim = grade_interop(parse_capability(json.dumps(doc).encode()), parse_smart(b""),
-                        kind="payer")
+    dim = grade_interop(parse_capability(json.dumps(doc).encode()), parse_smart(b""), kind="payer")
     return next(f for f in dim.findings if f.code == "I1")
 
 
@@ -67,7 +71,8 @@ def test_a_profile_declared_in_the_singular_resource_element_is_a_declaration() 
     """CMS Blue Button 2.0 uses this element; the parser read only the plural one."""
     doc = _bare()
     doc["rest"][0]["resource"][0]["profile"] = (  # type: ignore[index]
-        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient")
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    )
     finding = _i1(doc)
     assert finding.ok
     assert "rest.resource.profile" in finding.message
@@ -75,8 +80,7 @@ def test_a_profile_declared_in_the_singular_resource_element_is_a_declaration() 
 
 def test_a_profile_declared_on_the_document_itself_is_a_declaration() -> None:
     doc = _bare()
-    doc["meta"] = {"profile": [
-        "http://hl7.org/fhir/us/core/CapabilityStatement/us-core-server"]}
+    doc["meta"] = {"profile": ["http://hl7.org/fhir/us/core/CapabilityStatement/us-core-server"]}
     assert _i1(doc).ok
 
 
@@ -85,7 +89,8 @@ def test_an_stu3_shaped_reference_is_still_read() -> None:
     same mistake in miniature."""
     doc = _bare()
     doc["rest"][0]["resource"][0]["profile"] = {  # type: ignore[index]
-        "reference": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"}
+        "reference": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    }
     assert _i1(doc).ok
 
 
@@ -107,23 +112,22 @@ def test_prose_that_names_a_guide_gets_a_note_worth_nothing() -> None:
     doc = _bare()
     doc["title"] = "Base FHIR Capability Statement AETNA's CARIN PatientAccess Implementation"
     doc["implementation"] = {"description": "AETNA implementation of FHIR on top of USCORE - CARIN"}
-    dim = grade_interop(parse_capability(json.dumps(doc).encode()), parse_smart(b""),
-                        kind="payer")
+    dim = grade_interop(parse_capability(json.dumps(doc).encode()), parse_smart(b""), kind="payer")
     note = next(f for f in dim.findings if f.code == "I4")
     assert note.max_points == 0 and note.points == 0
     assert "implementation.description, title" in note.message
     assert "rest.resource.supportedProfile" in note.message
 
-    without_prose = grade_interop(parse_capability(json.dumps(_bare()).encode()),
-                                  parse_smart(b""), kind="payer")
+    without_prose = grade_interop(
+        parse_capability(json.dumps(_bare()).encode()), parse_smart(b""), kind="payer"
+    )
     assert dim.score == without_prose.score  # prose is not a conformance claim and never scores
 
 
 def test_no_prose_note_when_the_profile_is_actually_declared() -> None:
     doc = good_capability()
     doc["title"] = "CARIN PatientAccess"
-    dim = grade_interop(parse_capability(json.dumps(doc).encode()), parse_smart(b""),
-                        kind="payer")
+    dim = grade_interop(parse_capability(json.dumps(doc).encode()), parse_smart(b""), kind="payer")
     assert not any(f.code == "I4" for f in dim.findings)
 
 

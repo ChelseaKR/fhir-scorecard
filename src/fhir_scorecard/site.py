@@ -389,7 +389,7 @@ def kind_page(kind: str, cards: list[Scorecard], origin: str) -> Page:
 <h1>{html.escape(label)}</h1>
 <p class="lede">{html.escape(blurb)}</p>
 <div class="category-summary">
-<p><strong>{sum(c.reachable for c in cards)}</strong><span>answer publicly</span></p>
+<p><strong>{sum(c.reachable for c in cards)}</strong><span>answered on this run</span></p>
 <div class="grade-distribution" aria-label="Grade distribution">{_grade_counts(cards)}</div>
 </div>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Graded endpoints">
@@ -466,7 +466,13 @@ def cohort_page(cohort: Cohort, cards: dict[str, Scorecard], origin: str) -> Pag
     "this plan publishes no base URL an unregistered visitor can see" is as much a result as any
     grade, and omitting it would make the included list read as the whole cohort.
     """
-    included_endpoints = sum(len(m.endpoint_ids) for m in cohort.included)
+    # Counted from the cards this run actually produced, not from the ids in the curation file:
+    # a listed endpoint is a row somebody wrote down, and the number beside "answered" has to
+    # come from a probe. They are usually the same number, and when they are not, the difference
+    # is the interesting part.
+    listed = [cards[eid] for m in cohort.included for eid in m.endpoint_ids if eid in cards]
+    included_endpoints = len(listed)
+    answered = sum(card.reachable for card in listed)
     notes = "".join(f"<p>{html.escape(note)}</p>" for note in cohort.notes)
     sources = "".join(
         f'<li><a href="{html.escape(s.url)}" rel="nofollow">{html.escape(s.label)}</a> '
@@ -495,14 +501,18 @@ we missed, please <a href="/fhir-scorecard/claim/">tell us</a>.</p>
 <p class="lede">{html.escape(cohort.description)}</p>
 <div class="cohort-stats" aria-label="Cohort coverage">
 <p><strong>{len(cohort.members)}</strong><span>organizations reviewed</span></p>
-<p><strong>{len(cohort.included)}</strong><span>with verified public URLs</span></p>
-<p><strong>{included_endpoints}</strong><span>graded endpoints</span></p>
+<p><strong>{len(cohort.included)}</strong><span>published a base URL we could verify</span></p>
+<p><strong>{included_endpoints}</strong><span>endpoints listed</span></p>
+<p><strong>{answered}</strong><span>answered on this run</span></p>
 </div>
 <p>{len(cohort.included)} of {len(cohort.members)} member organizations publish a FHIR base URL
-this project could verify from public documentation; {included_endpoints} verified
-{"endpoint is" if included_endpoints == 1 else "endpoints are"} listed below. The rest are
-recorded with the reason they could not be, because for a cohort whose membership is public and
-finite, the gap is itself a finding.</p>
+this project could verify from public documentation, which is a curation record with a date on
+it, not a live figure; {included_endpoints} verified
+{"endpoint is" if included_endpoints == 1 else "endpoints are"} listed below. Of those,
+<strong>{answered} answered when this page was generated</strong>, which is the measured number:
+it comes from this run's probes, and it moves when the endpoints do. The rest of the roster is
+recorded with the reason it could not be listed, because for a cohort whose membership is public
+and finite, the gap is itself a finding.</p>
 {notes}
 {sources_html}
 <h2>Listed endpoints</h2>
@@ -523,7 +533,9 @@ is not violating anything; it is only not independently checkable from outside.<
         path=cohort.cohort_id,
         title=f"{cohort.name}: public FHIR endpoint grades",
         description=(f"{cohort.description} {len(cohort.included)} of {len(cohort.members)} "
-                     "member organizations publish a verifiable public FHIR endpoint."),
+                     f"member organizations publish a verifiable public FHIR endpoint; "
+                     f"{answered} of {included_endpoints} listed endpoints answered on the "
+                     "latest run."),
         body=body,
         priority="0.9",
     )
@@ -868,6 +880,12 @@ nav[aria-label="Breadcrumb"] {
 .signal-f, .grade-count-f, .signal.signal-f { color: #d85b6b; background: #d85b6b; }
 .signal-not-observed, .grade-count-not-observed,
 .signal.signal-not-observed { color: #8fa3ac; background: #8fa3ac; }
+.signal-note {
+  margin: 1.25rem 0 0;
+  max-width: 62ch;
+  color: #a9bec3;
+  font-size: .78rem;
+}
 .signal-legend { display: flex; gap: 1rem; margin-top: 1.5rem; color: #a9bec3; font-size: .72rem; }
 .signal-legend span { display: flex; align-items: center; gap: .35rem; }
 .signal-legend i { width: .5rem; height: .5rem; border-radius: 50%; }
@@ -1041,6 +1059,7 @@ li.unobserved .finding-copy { color: var(--ink-soft); font-style: italic; }
 .badge-embed code { display: block; padding: .75rem; white-space: normal; }
 .category-summary, .cohort-stats {
   display: flex;
+  flex-wrap: wrap;
   gap: 2rem;
   margin: 3rem 0 2rem;
   padding: 1.2rem 0;
@@ -1265,8 +1284,19 @@ def home_page(cards: list[Scorecard], origin: str,
     reachable = sum(card.reachable for card in cards)
     orgs = len({org_slug(card.name) for card in cards})
     # The legend only claims a state the snapshot actually contains.
+    unobserved = sum(card.grade == NOT_OBSERVED for card in cards)
     unobserved_legend = ('<span><i class="signal-not-observed"></i>not observed</span>'
-                         if any(card.grade == NOT_OBSERVED for card in cards) else "")
+                         if unobserved else "")
+    # Both numbers above are said out loud, because one is a count of rows in the registry and
+    # the other is a count of endpoints that answered a probe, and a reader takes the headline
+    # away without reading the method page.
+    registry_note = (
+        f"{len(cards)} is how many endpoints the registry lists and this run graded; "
+        f"{reachable} is how many answered /metadata during the run that generated this page, "
+        "from at least one vantage."
+        + (f" {unobserved} " + ("was" if unobserved == 1 else "were")
+           + " not observed on this run and " + ("is" if unobserved == 1 else "are")
+           + " not counted as answering." if unobserved else ""))
     jsonld = {
         "@context": "https://schema.org",
         "@type": "Dataset",
@@ -1322,9 +1352,10 @@ person can check: reachable or not, clearly documented or not, ready to interope
 <section class="signal-panel" aria-labelledby="signal-title">
 <div class="signal-panel-heading"><div><p class="eyebrow">Latest registry snapshot</p>
 <h2 id="signal-title">Every dot is a public endpoint.</h2></div>
-<div class="signal-totals"><p><strong>{len(cards)}</strong> endpoints</p>
-<p><strong>{reachable}</strong> answering</p>
+<div class="signal-totals"><p><strong>{len(cards)}</strong> endpoints listed</p>
+<p><strong>{reachable}</strong> answered on this run</p>
 <p><strong>{orgs}</strong> organizations</p></div></div>
+<p class="signal-note">{registry_note}</p>
 <div class="signal-map">{_signal_map(cards)}</div>
 <div class="signal-legend"><span>Grade</span>
 <span><i class="signal-a"></i>A</span><span><i class="signal-b"></i>B</span>

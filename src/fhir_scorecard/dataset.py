@@ -150,7 +150,12 @@ def write_dataset(out: Path, cards: list[Scorecard], endpoints: list[Endpoint], 
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
         "vantage": vantage,
+        # Two different facts, published as two numbers so neither can stand in for the other:
+        # how many endpoints the registry lists and this run graded, and how many of them
+        # answered a probe during it.
         "count": len(index),
+        "endpoints_listed": len(index),
+        "answered_on_this_run": sum(1 for card in cards if card.reachable),
         "dataset_csv": f"{origin}/dataset.csv",
         "schema": f"{origin}/dataset.schema.json",
         "endpoints": sorted(index, key=lambda e: str(e["endpoint_id"])),

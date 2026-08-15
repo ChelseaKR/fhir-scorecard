@@ -109,7 +109,10 @@ discoverable are part of the published result rather than an absence in it.
 
 The first is the **California payer cohort** at `/california/`: the Medi-Cal managed care plans DHCS
 lists plus the Covered California qualified health plan issuers, deduplicated to 27 organizations.
-Eight publish a base URL that answers. Those endpoints are required to exist by the federal CMS
+Eight publish a base URL this project verified from their own documentation, on the dates in
+`data/registry.json`; how many of those endpoints answered on any given day is a separate number,
+measured by the run that generated the page and printed beside the curated one. Those endpoints
+are required to exist by the federal CMS
 Interoperability and Patient Access rule (CMS-9115-F), which is the only obligation this project
 claims about them. The rule does not require a plan to print its base URL where an unregistered
 visitor can read it; California's Data Exchange Framework runs through the DSA and QHIOs and
@@ -129,6 +132,7 @@ registry size is gated on payers publishing base URLs.
 | Artifact | What it is |
 |---|---|
 | `dataset.csv` | One row per endpoint, flat, with a documented schema |
+| `api/index.json` counts | `endpoints_listed` is how many endpoints the registry carries and the run graded; `answered_on_this_run` is how many answered a probe during it. Never one standing in for the other |
 | `dataset.schema.json` | Column names, types, and meanings |
 | `api/index.json` | Every endpoint with links to its detail and its page |
 | `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift |

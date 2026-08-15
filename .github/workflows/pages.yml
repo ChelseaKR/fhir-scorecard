@@ -99,7 +99,7 @@ jobs:
           if git ls-remote --exit-code --heads origin "$HISTORY_BRANCH" >/dev/null 2>&1; then
             git fetch --no-tags --depth=1 origin "$HISTORY_BRANCH"
             git show "FETCH_HEAD:history.json" > data/history.json
-            echo "restored history for $(python -c 'import json,sys;print(len(json.load(open("data/history.json"))))') endpoints from $HISTORY_BRANCH"
+            echo "restored history for $(python -c 'import json;from fhir_scorecard.drift import endpoint_count;print(endpoint_count(json.load(open("data/history.json"))))') endpoints from $HISTORY_BRANCH"
           else
             echo "::notice title=seeding history::$HISTORY_BRANCH does not exist yet; this run seeds it from the copy committed on main"
           fi

@@ -16,7 +16,7 @@ from fhir_scorecard.capability import (
 )
 from fhir_scorecard.cohort import Cohort, load_cohort_dir
 from fhir_scorecard.dataset import write_dataset
-from fhir_scorecard.drift import load_history, observe, save_history
+from fhir_scorecard.drift import ensure_mode, load_history, observe, save_history
 from fhir_scorecard.fetch import FetchResult, fetch_json
 from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.registry import Endpoint, load_registry, version_prefix
@@ -158,8 +158,11 @@ def _build_parser() -> argparse.ArgumentParser:
     grade.add_argument("--offline", action="store_true",
                        help="read fixtures instead of the network")
     grade.add_argument("--fixtures", type=Path, default=None)
-    grade.add_argument("--history", type=Path, default=Path("data/history.json"),
-                       help="capability drift history file (read and updated each run)")
+    grade.add_argument("--history", type=Path, default=None,
+                       help="capability drift history file (read and updated each run); "
+                            "defaults to data/history.json for a live run and to "
+                            ".cache/offline-history.json under --offline, so a fixture run "
+                            "cannot write observations into the real availability record")
     grade.add_argument("--origin", default=DEFAULT_ORIGIN,
                        help="canonical site origin, used for canonical URLs and the sitemap")
     grade.add_argument("--probes-out", type=Path, default=None,
@@ -172,10 +175,12 @@ def _build_parser() -> argparse.ArgumentParser:
     grade.add_argument("--vantage", default="unspecified",
                        help="label for where this run measured from; latency is single-vantage "
                             "and a network path difference must not be read as a server change")
-    grade.add_argument("--cohorts", type=Path, default=Path("data/cohorts"),
+    grade.add_argument("--cohorts", type=Path, default=None,
                        help="directory of curated cohort files, each published as its own page; "
                             "an absent directory means no cohorts, a file that fails validation "
-                            "fails the build")
+                            "fails the build. Defaults to data/cohorts for a live run, and to "
+                            "no cohorts under --offline, whose fixture registry is a subset the "
+                            "shipped cohorts do not match")
     mcp = sub.add_parser(
         "mcp", help="serve the published dataset over MCP (stdio, read-only)")
     mcp.add_argument("--site", type=Path, default=Path("site"),
@@ -185,6 +190,46 @@ def _build_parser() -> argparse.ArgumentParser:
         help="re-probe previously rejected candidates; reports only, never edits the registry")
     recheck.add_argument("--candidates", type=Path, default=Path("data/rejected.json"))
     return parser
+
+
+def _history_path(args: argparse.Namespace) -> Path:
+    """Where this run's observations go.
+
+    An offline run defaults to a scratch path. The README's own offline command used to write a
+    ``{"up": false}`` for every endpoint in the registry into ``data/history.json``, on a date
+    that had none, and exit 0.
+    """
+    if args.history is not None:
+        return Path(args.history)
+    return Path(".cache/offline-history.json") if args.offline else Path("data/history.json")
+
+
+def _cohorts_path(args: argparse.Namespace) -> Path | None:
+    """Cohort directory, or None when an offline run did not ask for one.
+
+    The shipped cohorts reference registry ids a fixture registry does not carry, and a cohort
+    that references an endpoint the graded registry lacks fails the build by design.
+    """
+    if args.cohorts is not None:
+        return Path(args.cohorts)
+    return None if args.offline else Path("data/cohorts")
+
+
+def _prepare_history(args: argparse.Namespace) -> tuple[Path, dict[str, Any]] | str:
+    """Open the run's history file, or return why this run must not write to it.
+
+    An offline run must never append "did not answer" to a record of live observations, and a
+    live run must never continue one a fixture run started.
+    """
+    path = _history_path(args)
+    history = load_history(path)
+    try:
+        ensure_mode(history, offline=args.offline)
+    except ValueError as exc:
+        return str(exc)
+    if args.offline and args.history is None:
+        print(f"offline run: history goes to {path}, not data/history.json", file=sys.stderr)
+    return path, history
 
 
 def _flag_conflict(args: argparse.Namespace) -> str | None:
@@ -223,14 +268,20 @@ def main(argv: list[str] | None = None) -> int:
 
     # Validated before any probe leaves this machine: a cohort that references an endpoint the
     # graded registry does not carry should fail the build here, not after a network run.
+    cohorts_path = _cohorts_path(args)
     try:
-        cohorts = load_cohort_dir(args.cohorts, frozenset(e.endpoint_id for e in endpoints))
+        cohorts = (load_cohort_dir(cohorts_path, frozenset(e.endpoint_id for e in endpoints))
+                   if cohorts_path is not None else ())
     except (OSError, ValueError) as exc:
         print(f"cohort error: {exc}", file=sys.stderr)
         return 2
 
     today = time.strftime("%Y-%m-%d", time.gmtime())
-    history = load_history(args.history)
+    prepared = _prepare_history(args)
+    if isinstance(prepared, str):
+        print(f"history error: {prepared}", file=sys.stderr)
+        return 2
+    history_path, history = prepared
     other_probes = load_probe_files(list(args.probes_in or []))
     probes_seen: dict[str, VantageProbe] = {}
     run_vantage = args.vantage
@@ -248,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
                                       history=history, today=today, vantage=args.vantage,
                                       other_probes=other_probes, probes_seen=probes_seen)
                       for e in endpoints]
-    save_history(args.history, history)
+    save_history(history_path, history)
     if args.probes_out is not None:
         write_probes(args.probes_out, args.vantage, probes_seen)
 

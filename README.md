@@ -17,11 +17,18 @@ make verify                       # lint, strict typecheck, tests with coverage 
 .venv/bin/fhir-scorecard grade --registry data/registry.json --out site/
 ```
 
-Offline mode (no network, fixture-driven) exists for CI and demos:
+Offline mode (no network) grades the discovery documents captured under `tests/fixtures/`, which
+are real `/metadata` and SMART documents with a capture date on them, not hand-written examples:
 
 ```bash
-.venv/bin/fhir-scorecard grade --offline --fixtures tests/fixtures --out site/
+.venv/bin/fhir-scorecard grade --offline \
+  --fixtures tests/fixtures --registry tests/fixtures/registry.json --out .cache/offline-site
 ```
+
+An offline run writes its availability history to `.cache/` unless you name a path, and refuses
+to write into a history file a live run wrote. Fixture observations in the real availability
+record would report a day nobody measured. See `tests/fixtures/README.md` for what each capture
+covers and how to refresh one.
 
 ## What it observes, and what it never touches
 

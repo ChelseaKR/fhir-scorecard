@@ -1,0 +1,38 @@
+{
+  "policy": "The three endpoints whose public discovery documents are captured under this directory, so `--offline --fixtures tests/fixtures` grades a complete registry rather than a registry of missing files. Entries are copied verbatim from data/registry.json, including the verification records, because a fixture registry that drifted from the real one would demo something this project does not publish.",
+  "endpoints": [
+    {
+      "id": "cms-blue-button-2",
+      "name": "CMS Blue Button 2.0 (Medicare)",
+      "kind": "payer",
+      "base_url": "https://api.bluebutton.cms.gov/v2/fhir",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed via implementation description 'gov.cms.bfd:bfd-server-war' and software 'Blue Button API'",
+        "date": "2026-08-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "inferno-reference",
+      "name": "ONC Inferno reference server (US Core / SMART)",
+      "kind": "reference",
+      "base_url": "https://inferno.healthit.gov/reference-server/r4",
+      "verification": {
+        "method": "live CapabilityStatement fetch; publisher confirmed via implementation description naming Inferno Reference Server on healthit.gov",
+        "date": "2026-08-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "oracle-health-open",
+      "name": "Oracle Health (Cerner) open sandbox",
+      "kind": "ehr",
+      "base_url": "https://fhir-open.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d",
+      "verification": {
+        "method": "live CapabilityStatement fetch; implementation description 'Oracle Health implementation of FHIR on top of Millennium'",
+        "date": "2026-08-05"
+      },
+      "enabled": true
+    }
+  ]
+}

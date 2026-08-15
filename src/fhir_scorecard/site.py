@@ -1259,11 +1259,13 @@ _FINDING_DOCS = [
     ("R1", "Reachability", "Does /metadata answer with HTTP 2xx over HTTPS?",
      "An endpoint that cannot be reached scores F with the reason stated, rather than dropping "
      "out of the dataset. Causes are distinguished: DNS non-resolution, TLS failure, timeout, "
-     "and refusal are different facts, and only some of them are about the endpoint."),
+     "and refusal are different facts, and only some of them are about the endpoint. Reaching "
+     "an endpoint from any vantage settles that it is up; failing from every vantage we have is "
+     "reported as not reached from those vantages, which is a weaker statement than down."),
     ("R2", "Response time", "How long did /metadata take?",
-     "Measured from a single vantage point per run, so bands are deliberately coarse: full "
-     "credit under 3s, partial under 8s. The raw milliseconds and the vantage are always shown. "
-     "A network path difference must never flip a grade."),
+     "The median across the vantages that answered, which today share one network, so bands are "
+     "deliberately coarse: full credit under 3s, partial under 8s. The raw milliseconds and the "
+     "vantages are always shown. A network path difference must never flip a grade."),
     ("T1", "FHIR version", "Does the server declare the release it intends to serve?",
      "Checked against the endpoint's registered intent, not against R4 unconditionally. An R5 "
      "server declaring 5.0.0 is correct. R4 is the default because the CMS interoperability "
@@ -1306,18 +1308,29 @@ us about an endpoint</a></p></section>
 <section><span class="action-number">02</span><h2>Something here is wrong</h2>
 <p>This has happened. A live payer endpoint was recorded as dead because a middlebox on the
 probing network intercepted TLS and the error surfaced as one uninformative word. That is why
-probing now runs from several vantages and why reaching an endpoint from anywhere settles that
-it is up.</p>
+every published grade reconciles probes from more than one vantage, and why reaching an endpoint
+from any of them settles that it is up.</p>
+<p>What those vantages are, exactly: three GitHub-hosted runner images (Ubuntu, macOS, Windows).
+They are three hosts on one provider's network, not three independent networks. They catch a
+fault local to one host, which is the failure above; they cannot catch a source-address rule,
+bot filter, geo rule, or rate limit your edge applies to that provider's address space, because
+that hits all three at once. So when all three fail, the page says the endpoint was not reached
+from that network on that day. It does not say the endpoint is down.</p>
 <p>You do not need to prove anything before asking us to look again.</p>
 <p><a class="button button-secondary" href="https://github.com/ChelseaKR/fhir-scorecard/issues/new?template=remove-or-dispute.yml">Dispute
 or remove an entry</a></p></section>
 </div>
 <section class="probe-contract"><div><p class="eyebrow">Our probe contract</p>
 <h2>What we do to your servers</h2></div>
-<p>At most two unauthenticated GET requests per run: <code>/metadata</code> and
-<code>/.well-known/smart-configuration</code>. Requests carry an identifying User-Agent with a
-contact address. We never authenticate, never register for API access, never request patient
-data, and never probe beyond those two paths.</p></section>
+<p>At most two unauthenticated GET requests per endpoint per probing run: <code>/metadata</code>
+and <code>/.well-known/smart-configuration</code>. Three probing runs a day, one per runner
+image, so a scheduled day is at most six requests to any one endpoint. The run that publishes
+this site adds none: it grades the documents those runs already retrieved.</p>
+<p>Requests carry an identifying User-Agent with a contact address. We never authenticate, never
+register for API access, never request patient data, and never probe beyond those two paths.
+Publishing is triggered on a schedule and by hand, not by commits, because a commit says nothing
+about your endpoint and a commit-triggered rebuild once turned an ordinary working day into
+dozens of requests to every endpoint here.</p></section>
 <p class="caveat">Grades describe observable properties of public documents. They are not
 audits, not compliance determinations, and not statements about care quality.</p>
 """
@@ -1350,10 +1363,27 @@ observed.</p></div><div class="weight-bars">
 </div></section>
 <h2>Findings</h2>
 <div class="method-list">{rows}</div>
+<h2>Where the measurement comes from</h2>
+<p>Every published grade reconciles probes from more than one vantage, on the rule that reaching
+an endpoint from anywhere settles that it is up, while failing from one place settles nothing.
+That rule exists because a live payer endpoint was once recorded as dead when a middlebox on the
+probing network intercepted TLS.</p>
+<p>What the vantages are, precisely: three GitHub-hosted runner images, Ubuntu, macOS and
+Windows. They are three hosts on one provider's network. They are not three independent
+networks, and nothing here calls them that. Three hosts catch a fault local to one host or one
+trust store; they cannot catch a source-address rule, bot filter, geo rule, or rate limit
+applied to that provider's address space, because such a rule reaches all three at once. So a
+run where every vantage failed publishes that the endpoint was not reached from that network on
+that day, and says why it cannot separate that from an endpoint being down. A genuinely
+independent vantage is an open item, and until one exists this page will keep saying one
+network.</p>
+<p>Each vantage counts once. The publishing run makes no probe of its own; it grades the
+documents the probing runs retrieved, which is also why a scheduled day costs an endpoint at
+most six requests.</p>
 <h2>What a grade is not</h2>
 <p>It is not an audit, a compliance determination, or a statement about care quality. It
-describes what a public document declared on a given day, from one vantage point. Grades are
-comparable within a category only.</p>
+describes what a public document declared on a given day, from a handful of hosts on one
+network. Grades are comparable within a category only.</p>
 <h2>Corrections</h2>
 <p>This project has made and published several measurement errors, including grading narrow APIs
 as deficient, penalizing a public-by-design API for having no authorization surface, and

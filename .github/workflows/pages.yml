@@ -1,14 +1,26 @@
 name: grade-and-publish
 
-# Probing runs from several vantages and the results are reconciled, because a single network is
+# Probing runs from three vantages and the results are reconciled, because a single network is
 # an unreliable narrator: on 2026-08-05 a live payer endpoint was recorded as dead because a
 # middlebox on the probing network intercepted TLS. Reaching an endpoint from anywhere settles
 # that it is up; failing from one place settles nothing.
+#
+# What the three vantages are, precisely: ubuntu-latest, macos-latest and windows-latest, all
+# GitHub-hosted runners. They are three hosts on one provider's network, not three networks.
+# They catch a fault local to one host or one TLS trust store; they cannot catch a source-address
+# rule, bot filter, geo rule or rate limit applied to that provider's address space, because such
+# a rule hits all three at once. The published sentences say "one network" wherever that is what
+# happened, and an all-vantage failure is reported as not reached from here rather than as an
+# endpoint being down.
+#
+# Triggered on a schedule and on demand, not on push: what the site says is a function of the
+# endpoints, not of a commit, and a push-triggered probe sweep multiplied a working day's
+# requests to every registry endpoint by more than an order of magnitude (14 pushes on
+# 2026-08-05). Merging a change reaches the site at the next scheduled run, or immediately via
+# workflow_dispatch.
 on:
-  push:
-    branches: [main]
   schedule:
-    - cron: "17 14 * * *" # daily; one /metadata request per registry endpoint per vantage
+    - cron: "17 14 * * *" # daily; two requests per registry endpoint per probing vantage
   workflow_dispatch:
 
 permissions: {}
@@ -92,16 +104,34 @@ jobs:
             echo "::notice title=seeding history::$HISTORY_BRANCH does not exist yet; this run seeds it from the copy committed on main"
           fi
       - name: Grade and reconcile across vantages
+        # This job used to make its own live probe under "github-actions/ubuntu-latest", the
+        # same label the ubuntu probe artifact already carried, and reconcile() did not dedupe:
+        # every card published "reachable from all 4 vantage(s)" when three vantages had
+        # reported, and ubuntu's latency counted twice in the median. It also spent a fourth
+        # request on every endpoint to learn nothing the artifacts did not already hold. With
+        # --from-probes it grades the documents the probing runs retrieved and makes no request
+        # of its own. Falling back to a live probe only if no vantage reported at all, so a
+        # failed matrix degrades the consensus rather than publishing a registry of failures.
         shell: bash
         run: |
+          set -euo pipefail
           shopt -s nullglob
           peers=(probes/*.json)
-          python -m fhir_scorecard.cli grade \
-            --registry data/registry.json \
-            --out site \
-            --origin "https://chelseakr.github.io/fhir-scorecard" \
-            --vantage "github-actions/ubuntu-latest" \
-            ${peers:+--probes-in "${peers[@]}"}
+          if [ ${#peers[@]} -gt 0 ]; then
+            python -m fhir_scorecard.cli grade \
+              --registry data/registry.json \
+              --out site \
+              --origin "https://chelseakr.github.io/fhir-scorecard" \
+              --from-probes \
+              --probes-in "${peers[@]}"
+          else
+            echo "::warning title=no vantages reported::no probe artifact was produced; grading from this run's own single probe"
+            python -m fhir_scorecard.cli grade \
+              --registry data/registry.json \
+              --out site \
+              --origin "https://chelseakr.github.io/fhir-scorecard" \
+              --vantage "github-actions/ubuntu-latest"
+          fi
       - name: Persist drift and availability history
         # History is data this run observed, not source, and it lives on a branch of
         # its own. It used to be pushed straight to main, which could never work: main

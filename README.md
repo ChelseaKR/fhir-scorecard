@@ -31,8 +31,32 @@ Everything graded here is **public, unauthenticated surface**:
 - `[base]/.well-known/smart-configuration` , SMART on FHIR discovery
 
 This project **never accesses patient data, never authenticates, and never probes beyond the
-public discovery surface**. One request per resource per run, an identifying User-Agent with a
-contact address, HTTPS only, and conservative timeouts.
+public discovery surface**. One request per resource per probing run, an identifying User-Agent
+with a contact address, HTTPS only, and conservative timeouts. The site is rebuilt on a schedule
+and on demand, never on a commit, so a scheduled day costs an endpoint at most six requests: two
+documents from each of three probing runs, and none from the run that publishes.
+
+## Where it measures from
+
+Every published grade reconciles probes from more than one vantage (`vantage.py`), on a
+deliberately asymmetric rule: **one vantage reaching an endpoint proves it is reachable; one
+vantage failing proves nothing.** That rule exists because a live payer endpoint was once
+recorded as dead when a middlebox on the probing network intercepted TLS.
+
+What the vantages are, precisely: **three GitHub-hosted runner images** (Ubuntu, macOS, Windows).
+They are three hosts on one provider's network, not three independent networks, and nothing this
+project publishes calls them that. Three hosts catch a fault local to one host or one TLS trust
+store, which is the failure that prompted the mechanism. They cannot catch a source-address rule,
+bot filter, geo rule, or rate limit applied to that provider's address space, because such a rule
+reaches all three at once. A run where every vantage failed is therefore published as *not
+reached from that network on that day*, with the reason, rather than as an endpoint being down.
+
+Each vantage counts once. The publishing run makes no probe of its own and grades the documents
+the probing runs retrieved (`--from-probes`); before that it re-probed under a label one artifact
+already carried, and every card reported four vantages when three had reported. Adding a
+genuinely independent vantage — a residential or other-provider runner posting a `probes-*.json`
+— is an open item in [ROADMAP.md](ROADMAP.md), and until one exists the published wording stays
+"one network."
 
 ## What it grades (v0.1)
 

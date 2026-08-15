@@ -90,7 +90,12 @@ def grade_reachability(metadata: FetchResult, *, vantage: str = "unspecified",
         acceptable = elapsed <= 8000
         points = 40 if fast else (20 if acceptable else 0)
         if consensus is not None and consensus.vantages > 1:
+            # Distinct vantages, and how many networks they sit on: three runner images on one
+            # provider's network are one network path sampled three times, and a median over
+            # them is not a median over three networks.
             where = f"median across {consensus.agreeing} reachable vantages"
+            where += (" on one network" if consensus.networks == 1
+                      else f" across {consensus.networks} networks")
         else:
             where = f"single vantage point: {vantage}"
         findings.append(Finding(

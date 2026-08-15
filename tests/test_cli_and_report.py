@@ -195,6 +195,85 @@ def test_blocked_vantage_grades_on_borrowed_documents(tmp_path: Path) -> None:
     assert int(detail["endpoint"]["transparency_score"]) > 0
 
 
+def test_from_probes_grades_without_probing_and_counts_each_vantage_once(
+        tmp_path: Path, monkeypatch) -> None:
+    """The publishing run has three vantages' documents in hand and nothing left to observe.
+
+    It used to probe anyway, under a label one of the artifacts already carried, so every card
+    reported one more vantage than had reported and the extra sample skewed the median latency.
+    """
+    from fhir_scorecard.vantage import VantageProbe, write_probes
+
+    def no_network(*args: object, **kwargs: object) -> None:
+        raise AssertionError("--from-probes must not make a request of its own")
+
+    monkeypatch.setattr("fhir_scorecard.cli.fetch_json", no_network)
+
+    registry = tmp_path / "registry.json"
+    registry.write_text(json.dumps({"endpoints": [
+        {"id": "alpha", "name": "Alpha Health", "kind": "payer",
+         "base_url": "https://alpha.test/r4",
+         "verification": {"method": "fixture", "date": "2026-08-06"}}]}))
+
+    documents = {"capability": json.dumps(good_capability()), "smart": json.dumps(good_smart())}
+    ubuntu = tmp_path / "probes-ubuntu.json"
+    macos = tmp_path / "probes-macos.json"
+    write_probes(ubuntu, "github-actions/ubuntu-latest", {"alpha": VantageProbe(
+        "github-actions/ubuntu-latest", True, 300, **documents)})
+    write_probes(macos, "github-actions/macos-latest", {"alpha": VantageProbe(
+        "github-actions/macos-latest", True, 900, **documents)})
+
+    out = tmp_path / "site"
+    assert main(["grade", "--registry", str(registry), "--out", str(out),
+                 "--history", str(tmp_path / "h.json"), "--from-probes",
+                 "--probes-in", str(ubuntu), str(macos)]) == 0
+
+    payload = json.loads((out / "scorecards.json").read_text())
+    alpha = payload["scorecards"][0]
+    assert alpha["grade"] == "A"  # graded on the documents the vantages retrieved
+    r2 = next(f for d in alpha["dimensions"] for f in d["findings"] if f["code"] == "R2")
+    assert "median across 2 reachable vantages on one network" in r2["message"]
+    assert "3 reachable" not in r2["message"]
+    assert alpha["vantage_note"].startswith("reachable from all 2 vantages")
+    # The run reports the vantages that reported to it, never itself as a vantage.
+    assert payload["vantage"] == ("reconciled from github-actions/macos-latest, "
+                                  "github-actions/ubuntu-latest")
+
+
+def test_from_probes_refuses_to_invent_a_vantage(tmp_path: Path) -> None:
+    registry = _registry(tmp_path)
+    assert main(["grade", "--registry", str(registry), "--out", str(tmp_path / "s"),
+                 "--history", str(tmp_path / "h.json"), "--from-probes"]) == 2
+    probe = tmp_path / "peer.json"
+    probe.write_text(json.dumps({"vantage": "peer", "probes": {}}))
+    assert main(["grade", "--registry", str(registry), "--out", str(tmp_path / "s"),
+                 "--history", str(tmp_path / "h.json"), "--from-probes",
+                 "--probes-in", str(probe), "--probes-out", str(tmp_path / "out.json")]) == 2
+
+
+def test_from_probes_with_no_report_for_an_endpoint_is_not_a_measurement(
+        tmp_path: Path, monkeypatch) -> None:
+    """A vantage file that says nothing about an endpoint must not become a reachability fact."""
+    from fhir_scorecard.vantage import VantageProbe, write_probes
+
+    monkeypatch.setattr("fhir_scorecard.cli.fetch_json", lambda *a, **k: None)
+    peer = tmp_path / "peer.json"
+    write_probes(peer, "peer", {"alpha": VantageProbe(
+        "peer", True, 100, capability=json.dumps(good_capability()),
+        smart=json.dumps(good_smart()))})
+    out = tmp_path / "site"
+    assert main(["grade", "--registry", str(_registry(tmp_path)), "--out", str(out),
+                 "--history", str(tmp_path / "h.json"), "--from-probes",
+                 "--probes-in", str(peer)]) == 0
+    cards = {s["endpoint_id"]: s for s in json.loads(
+        (out / "scorecards.json").read_text())["scorecards"]}
+    assert cards["alpha"]["reachable"] is True
+    assert cards["beta-dark"]["reachable"] is False
+    r1 = next(f for d in cards["beta-dark"]["dimensions"] for f in d["findings"]
+              if f["code"] == "R1")
+    assert "no vantage reported" in r1["message"]
+
+
 def test_probes_out_records_this_runs_observations(tmp_path: Path) -> None:
     from fhir_scorecard.vantage import load_probe_files
 

@@ -53,10 +53,16 @@ _TOOLS = [
 
 _METHOD_NOTE = {
     "dimensions": {
-        "reachability": "35% weight. Unreachable is an F regardless of anything else.",
+        "reachability": "35% weight. Does /metadata answer, over HTTPS, in reasonable time.",
         "transparency": "35% weight. What the CapabilityStatement declares about itself.",
         "interop": "30% weight. Declared profiles and authorization surface.",
     },
+    "not_observed": (
+        "An endpoint whose documents no vantage retrieved on a run is published with grade "
+        "'not observed' and empty dimension scores, not F. Nothing on such a record describes "
+        "what the endpoint publishes, and it must not be characterized as a low grade, a "
+        "failure, or an absence of declared capability. F means the endpoint answered and its "
+        "documents scored below the D threshold."),
     "comparability": ("Grades are comparable within a kind only. A payer Patient Access API and "
                       "an EHR vendor sandbox answer to different implementation guides and are "
                       "never ranked against each other."),
@@ -67,7 +73,11 @@ _METHOD_NOTE = {
     "limits": [
         "Observational snapshot of public surfaces; not an audit, not a compliance "
         "determination, not a statement about care quality.",
-        "Latency is measured from a single vantage point per run; bands are deliberately coarse.",
+        "Latency is a median across the vantages that answered, and those vantages are three "
+        "GitHub-hosted runner images on one provider's network rather than three independent "
+        "networks; bands are deliberately coarse for that reason.",
+        "A run in which no vantage reached an endpoint says the endpoint was not reached from "
+        "that network on that day. It does not establish that the endpoint is down.",
         "Small sample. Do not generalize a handful of endpoints to an industry.",
         "Absence from this dataset means no public base URL was found, not that no API exists.",
     ],

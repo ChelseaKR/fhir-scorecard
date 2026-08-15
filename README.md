@@ -17,11 +17,18 @@ make verify                       # lint, strict typecheck, tests with coverage 
 .venv/bin/fhir-scorecard grade --registry data/registry.json --out site/
 ```
 
-Offline mode (no network, fixture-driven) exists for CI and demos:
+Offline mode (no network) grades the discovery documents captured under `tests/fixtures/`, which
+are real `/metadata` and SMART documents with a capture date on them, not hand-written examples:
 
 ```bash
-.venv/bin/fhir-scorecard grade --offline --fixtures tests/fixtures --out site/
+.venv/bin/fhir-scorecard grade --offline \
+  --fixtures tests/fixtures --registry tests/fixtures/registry.json --out .cache/offline-site
 ```
+
+An offline run writes its availability history to `.cache/` unless you name a path, and refuses
+to write into a history file a live run wrote. Fixture observations in the real availability
+record would report a day nobody measured. See `tests/fixtures/README.md` for what each capture
+covers and how to refresh one.
 
 ## What it observes, and what it never touches
 
@@ -31,8 +38,32 @@ Everything graded here is **public, unauthenticated surface**:
 - `[base]/.well-known/smart-configuration` , SMART on FHIR discovery
 
 This project **never accesses patient data, never authenticates, and never probes beyond the
-public discovery surface**. One request per resource per run, an identifying User-Agent with a
-contact address, HTTPS only, and conservative timeouts.
+public discovery surface**. One request per resource per probing run, an identifying User-Agent
+with a contact address, HTTPS only, and conservative timeouts. The site is rebuilt on a schedule
+and on demand, never on a commit, so a scheduled day costs an endpoint at most six requests: two
+documents from each of three probing runs, and none from the run that publishes.
+
+## Where it measures from
+
+Every published grade reconciles probes from more than one vantage (`vantage.py`), on a
+deliberately asymmetric rule: **one vantage reaching an endpoint proves it is reachable; one
+vantage failing proves nothing.** That rule exists because a live payer endpoint was once
+recorded as dead when a middlebox on the probing network intercepted TLS.
+
+What the vantages are, precisely: **three GitHub-hosted runner images** (Ubuntu, macOS, Windows).
+They are three hosts on one provider's network, not three independent networks, and nothing this
+project publishes calls them that. Three hosts catch a fault local to one host or one TLS trust
+store, which is the failure that prompted the mechanism. They cannot catch a source-address rule,
+bot filter, geo rule, or rate limit applied to that provider's address space, because such a rule
+reaches all three at once. A run where every vantage failed is therefore published as *not
+reached from that network on that day*, with the reason, rather than as an endpoint being down.
+
+Each vantage counts once. The publishing run makes no probe of its own and grades the documents
+the probing runs retrieved (`--from-probes`); before that it re-probed under a label one artifact
+already carried, and every card reported four vantages when three had reported. Adding a
+genuinely independent vantage — a residential or other-provider runner posting a `probes-*.json`
+— is an open item in [ROADMAP.md](ROADMAP.md), and until one exists the published wording stays
+"one network."
 
 ## What it grades (v0.1)
 
@@ -40,10 +71,17 @@ contact address, HTTPS only, and conservative timeouts.
 |---|---|
 | **Reachability** | Does `/metadata` answer, over HTTPS, with FHIR JSON, in reasonable time? |
 | **Capability transparency** | Does the CapabilityStatement say what the server runs (FHIR version, software, resources, interactions), or is it boilerplate? |
-| **Interop readiness** | Are US Core / CARIN profiles declared? Is SMART discovery present? Is OAuth security declared? |
+| **Interop readiness** | Are US Core / CARIN / Da Vinci canonicals declared in any of the five conformance elements R4 defines (`rest.resource.supportedProfile`, `rest.resource.profile`, `instantiates`, `imports`, `meta.profile`)? Is SMART discovery present? Is OAuth security declared? |
 
-Grades are deterministic and fail closed: an unreachable endpoint is an F with a reason, not a
-gap in the data. Every finding carries a citation to the FHIR R4 or SMART App Launch spec.
+Grades are deterministic. Every finding carries a citation to the FHIR R4 or SMART App Launch
+spec, and every finding describes a document this project actually retrieved.
+
+An endpoint no vantage could reach is published as **not observed**, with the reason and the
+vantages that tried, and is not graded: its content dimensions carry no score, and the checks
+that read a CapabilityStatement do not run. It never drops out of the dataset, and it never
+acquires findings about what its publisher did not publish. `F` means the opposite and only the
+opposite: the endpoint answered, and what it declares falls short across the checks. The two used
+to share a letter, and the site rendered both with one sentence about a network.
 
 ## How this relates to Inferno and Lantern
 
@@ -78,7 +116,10 @@ discoverable are part of the published result rather than an absence in it.
 
 The first is the **California payer cohort** at `/california/`: the Medi-Cal managed care plans DHCS
 lists plus the Covered California qualified health plan issuers, deduplicated to 27 organizations.
-Eight publish a base URL that answers. Those endpoints are required to exist by the federal CMS
+Eight publish a base URL this project verified from their own documentation, on the dates in
+`data/registry.json`; how many of those endpoints answered on any given day is a separate number,
+measured by the run that generated the page and printed beside the curated one. Those endpoints
+are required to exist by the federal CMS
 Interoperability and Patient Access rule (CMS-9115-F), which is the only obligation this project
 claims about them. The rule does not require a plan to print its base URL where an unregistered
 visitor can read it; California's Data Exchange Framework runs through the DSA and QHIOs and
@@ -98,6 +139,7 @@ registry size is gated on payers publishing base URLs.
 | Artifact | What it is |
 |---|---|
 | `dataset.csv` | One row per endpoint, flat, with a documented schema |
+| `api/index.json` counts | `endpoints_listed` is how many endpoints the registry carries and the run graded; `answered_on_this_run` is how many answered a probe during it. Never one standing in for the other |
 | `dataset.schema.json` | Column names, types, and meanings |
 | `api/index.json` | Every endpoint with links to its detail and its page |
 | `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift |

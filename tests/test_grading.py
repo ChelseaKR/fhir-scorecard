@@ -3,9 +3,17 @@ from __future__ import annotations
 from hypothesis import given
 from hypothesis import strategies as st
 
-from fhir_scorecard.capability import CapabilityFacts, SmartFacts, parse_capability, parse_smart
+from fhir_scorecard.capability import (
+    NO_CAPABILITY_RETRIEVED,
+    NO_SMART_RETRIEVED,
+    CapabilityFacts,
+    SmartFacts,
+    parse_capability,
+    parse_smart,
+)
 from fhir_scorecard.fetch import FetchResult
 from fhir_scorecard.grading import (
+    NOT_OBSERVED,
     build_scorecard,
     grade_interop,
     grade_reachability,
@@ -28,10 +36,12 @@ def test_good_endpoint_grades_a(good_capability_bytes: bytes, good_smart_bytes: 
     assert card.reachable
 
 
-def test_unreachable_is_f_with_reason() -> None:
+def test_unreachable_is_published_with_a_reason_and_not_graded() -> None:
+    """Unreachable is a fact about this run's reach, and it is published as one: the reason is
+    stated, the endpoint stays in the dataset, and nothing is graded from documents nobody got."""
     card = build_scorecard("x", "X", _fetch(False, status=None, error="URLError"),
-                           parse_capability(b""), parse_smart(b""))
-    assert card.grade == "F"
+                           NO_CAPABILITY_RETRIEVED, NO_SMART_RETRIEVED)
+    assert card.grade == NOT_OBSERVED
     assert not card.reachable
     r1 = card.dimensions[0].findings[0]
     assert not r1.ok and "unreachable" in r1.message
@@ -118,17 +128,18 @@ def test_scores_always_bounded_and_grade_valid(facts: CapabilityFacts, smart_aut
                        has_token_endpoint=smart_token)
     card = build_scorecard("p", "P", _fetch(ok, elapsed_ms=elapsed), facts, smart)
     for dim in card.dimensions:
-        assert 0 <= dim.score <= 100
+        assert dim.score is None or 0 <= dim.score <= 100
         for f in dim.findings:
             assert 0 <= f.points <= f.max_points
-    assert card.grade in {"A", "B", "C", "D", "F"}
+    assert card.grade in {"A", "B", "C", "D", "F", NOT_OBSERVED}
     if not ok:
-        assert card.grade == "F"
+        assert card.grade == NOT_OBSERVED
 
 
 def test_letter_thresholds() -> None:
+    from fhir_scorecard.grading import DimensionScore
+
     def dims(score: int) -> tuple:
-        from fhir_scorecard.grading import DimensionScore
         return tuple(DimensionScore(key=k, title=k, score=score, findings=())
                      for k in ("reachability", "transparency", "interop"))
     assert letter(dims(95), reachable=True) == "A"
@@ -136,7 +147,13 @@ def test_letter_thresholds() -> None:
     assert letter(dims(75), reachable=True) == "C"
     assert letter(dims(65), reachable=True) == "D"
     assert letter(dims(10), reachable=True) == "F"
-    assert letter(dims(100), reachable=False) == "F"
+    # Unreachable is not a letter at all: F is what a graded endpoint earns, and a reader
+    # compares an F against a C.
+    assert letter(dims(100), reachable=False) == NOT_OBSERVED
+    unscored = (DimensionScore(key="reachability", title="r", score=100, findings=()),
+                DimensionScore(key="transparency", title="t", score=None, findings=()),
+                DimensionScore(key="interop", title="i", score=None, findings=()))
+    assert letter(unscored, reachable=True) == NOT_OBSERVED
 
 
 def test_kind_defaults_and_propagates(good_capability_bytes: bytes,
@@ -211,18 +228,20 @@ def test_consensus_rescues_a_vantage_local_failure(good_capability_bytes: bytes,
 
     # Without the second vantage, the same run still fails closed.
     alone = build_scorecard("cap", "Capital", blocked,
-                            parse_capability(good_capability_bytes),
-                            parse_smart(good_smart_bytes))
-    assert not alone.reachable and alone.grade == "F"
+                            NO_CAPABILITY_RETRIEVED, NO_SMART_RETRIEVED)
+    assert not alone.reachable and alone.grade == NOT_OBSERVED
 
 
-def test_unanimous_failure_still_grades_f(good_capability_bytes: bytes) -> None:
+def test_unanimous_failure_is_not_observed_not_f(good_capability_bytes: bytes) -> None:
     from fhir_scorecard.vantage import VantageProbe, reconcile
     down = FetchResult(url="https://x.test/metadata", ok=False, status=404, elapsed_ms=0,
                        body=b"", error="HTTP 404")
     consensus = reconcile([VantageProbe("home", False, 0, "HTTP 404"),
                            VantageProbe("ci", False, 0, "HTTP 404")])
-    card = build_scorecard("gone", "Gone", down, parse_capability(b""), parse_smart(b""),
+    card = build_scorecard("gone", "Gone", down, NO_CAPABILITY_RETRIEVED, NO_SMART_RETRIEVED,
                            consensus=consensus)
-    assert not card.reachable and card.grade == "F"
-    assert "unreachable from all 2" in card.vantage_note
+    assert not card.reachable and card.grade == NOT_OBSERVED
+    # Every vantage failing is reported as what it is, a failure to reach from the vantages
+    # tried, rather than as a settled fact about the endpoint.
+    assert "not reached from any of the 2 vantages tried" in card.vantage_note
+    assert "HTTP 404" in card.vantage_note

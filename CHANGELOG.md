@@ -17,8 +17,10 @@ here are dated records of change, not version-tagged release notes.
   the build rather than publishing a membership list with members quietly missing.
 - **The California payer cohort** at `/california/`, the first one. Membership is the DHCS Medi-Cal
   managed care plan roster plus the Covered California qualified health plan issuer list,
-  deduplicated to **27 organizations**, seven of which run in both programs. **Eight publish a base
-  URL that answers; 11 endpoints entered the registry.** The other nineteen are listed with the
+  deduplicated to **27 organizations**, seven of which run in both programs. **Eight published a
+  base URL this project verified from their own documentation, on the dates recorded in the
+  registry; 11 endpoints entered it.** How many of those answer on a given day is a separate,
+  measured number, published beside the curated one. The other nineteen are listed with the
   reason they could not be, because for a cohort whose membership is public and finite, the gap is
   the finding. Every endpoint here is required by the federal CMS Interoperability and Patient
   Access rule (CMS-9115-F); the page says so, and says equally plainly that publishing a base URL
@@ -57,6 +59,111 @@ here are dated records of change, not version-tagged release notes.
 
 ### Fixed
 
+- **The README's offline command named a directory that did not exist** (#6). `tests/fixtures`
+  was in the Quick start and in no commit, so `--offline --fixtures tests/fixtures` failed to load
+  a fixture for every endpoint, exited 0, wrote a complete site in which every named organization
+  was ungraded, and appended a `{"up": false}` observation for all thirty of them to the real
+  `data/history.json`, on a date that had none.
+  - **The fixtures exist now**: real `/metadata` and SMART documents captured 2026-08-14 from CMS
+    Blue Button 2.0, the ONC Inferno reference server, and the Oracle Health open sandbox, with a
+    `tests/fixtures/README.md` recording where each came from, when, what it exercises, and how to
+    refresh it. They are the parser's first test against documents real servers publish rather
+    than against hand-written ones, and Oracle's missing SMART document is part of the capture:
+    the live server answers 404 there, so I2 fails offline exactly as it does in production.
+    `tests/fixtures/registry.json` lists those three, so the documented command grades a complete
+    registry rather than a registry of missing files.
+  - **`--offline` chooses scratch paths.** Without an explicit `--history` it writes to
+    `.cache/offline-history.json`, and without an explicit `--cohorts` it loads none, because the
+    shipped cohorts reference registry ids a fixture registry does not carry.
+  - **The mode guard can fire on the committed file.** `ensure_mode()` refuses to mix fixture and
+    live observations in one history file, and `data/history.json` now carries the `_meta` stamp it
+    compares against, which a file predating the guard could not. There is deliberately no
+    override: the fix is a scratch path, which is now the default.
+- **I1 said "no recognized interoperability profiles declared" after reading one element** (#5).
+  `capability.py` collected profile strings from `rest[].resource[].supportedProfile` and nothing
+  else, and the failure message was an absolute claim worth 40 of 100 interop points. It now reads
+  every element R4 gives a server to declare conformance in — `rest.resource.supportedProfile`,
+  `rest.resource.profile` (including an STU3-shaped `{"reference": ...}`), `instantiates`,
+  `imports`, and `meta.profile` — and the message names the element a declaration was found in, or
+  names all five when none carries one. Where declarations exist but none is US Core, CARIN or Da
+  Vinci, it says how many were found and where, rather than that none exist.
+  - Measured while writing this (one `/metadata` request each, 2026-08-14): **CMS Blue Button 2.0
+    declares `rest.resource.profile` on all three of its resources**, an element the parser had
+    never read. The values are base FHIR StructureDefinitions, so its I1 stays negative — but it
+    is now a negative that was earned by looking. **Aetna** declares no profile canonical anywhere,
+    which the old message was right about and overstated.
+  - New **I4**, worth zero points in either direction and shown only when I1 finds no declaration:
+    when `implementation.description`, `title` or `name` names US Core, CARIN or Da Vinci in prose,
+    the card says so and says that adding `rest.resource.supportedProfile` entries would make the
+    claim machine-readable. `implementation_description` was parsed on every run and read by
+    nothing; it is the field Aetna's own registry entry was verified from.
+  - Findings worth no points now render as neutral notes rather than as a ✓ or a ✗, which also
+    fixes the Provider Directory "not applicable" findings reading as passes.
+  - The drift fingerprint still counts `supportedProfile` alone, so widening what I1 reads does not
+    report a capability change no server made.
+- **Headline numbers now count what their words say they count** (#4). "Answering" was doing two
+  jobs: on the cohort page it came from the curation files (a count of rows somebody wrote down,
+  in the present tense, on a page regenerated daily), and the endpoint count it sat beside came
+  from the registry. Every published headline now says which kind of number it is:
+  - The landing page reads **"N endpoints listed"** and **"N answered on this run"**, with a
+    sentence underneath saying exactly that one is a registry count and the other is a probe
+    result, plus how many endpoints were not observed and therefore not counted as answering.
+  - The cohort page publishes four figures rather than three: organizations reviewed, those that
+    published a base URL this project could verify (a dated curation record, said in those words),
+    endpoints listed, and **how many of those answered on the run that generated the page**. The
+    listed count is now derived from the graded cards rather than from ids in the curation file,
+    so it can never exceed the rows in the table beneath it.
+  - `api/index.json` carries `endpoints_listed` and `answered_on_this_run` beside the existing
+    `count`, so the distinction survives into the dataset a citation would use.
+- **An unreachable endpoint published four findings about what the payer had not published**
+  (#2). `capital-bluecross` on 2026-08-05 is the measured case: R1 named the cause as ours
+  ("likely a vantage-local interception, not an endpoint fault") and the four findings beneath it
+  said the CapabilityStatement was unparseable, that no interoperability profiles were declared,
+  that SMART discovery was absent, and that no OAuth security service was declared, each with a
+  spec citation. `data/history.json` in this repository recorded 37 declared profiles, 28 resource
+  types and OAuth declared for that endpoint on that date. All four were false, produced by
+  `parse_capability(b"")` being read downstream as a fact about the server rather than as no data.
+  - `CapabilityFacts` and `SmartFacts` now carry `observed`, which separates a document that
+    arrived and could not be parsed (an observation of the endpoint) from a document that was
+    never retrieved (an observation of nothing). Only the first is graded.
+  - A dimension nobody could observe carries `score=None`, not 0, and exactly one neutral finding
+    (`NR`) that says nothing was retrieved. The site draws no bar, the CSV leaves the cell empty,
+    and `/how-we-grade/` documents `NR`.
+- **`F` meant two opposite things, and the site rendered both with one sentence about a network**
+  (#2). `letter()` returned `F` for an endpoint nobody could reach and for a reachable endpoint
+  scoring below 60, and every `F` on the site read "could not be reached from this vantage point"
+  — which was a sentence about this project's network printed under a card whose own reachability
+  score was 100. Now: an unreachable or undocumented run publishes the status **`not observed`**,
+  with a sentence keyed on what actually happened, and `F` publishes "answers publicly, and what
+  it declares falls short across the graded checks". The badge for a not-observed endpoint says
+  so instead of stamping an F on it, `dataset.schema.json` documents the new value and says which
+  of the two is a statement about the endpoint, and the MCP `grading_method` tool tells an
+  assistant not to characterize a not-observed record as a low grade.
+- **One vantage was counted twice, and three runner images were described as several networks**
+  (#3). The publishing job made its own live probe under `github-actions/ubuntu-latest` and then
+  merged the artifact written under the same label, and `reconcile()` did not dedupe: every card
+  published "reachable from all 4 vantage(s)" on days when three vantages reported, R2 called it a
+  median across four, and ubuntu's latency carried double weight in a median whose bands are 3s
+  and 8s. Three fixes, none of which is a deletion of the claim:
+  - `collapse_by_vantage()` reduces duplicate labels to one observation before anything is counted
+    or averaged, so a vantage counts once whatever the merge contains.
+  - `Consensus` now carries `networks` alongside `vantages`, derived from the `<network>/<host>`
+    label convention, and every published sentence uses it. What CI has is three GitHub-hosted
+    runner images on one provider's network: three hosts, one network. The site, README, SECURITY
+    and the responsible-tech record now say that in those words, and a run where every vantage
+    failed publishes "not reached from that network on that day, and this run cannot separate that
+    from an endpoint being down" instead of "unreachable from all 3 vantage(s)". A genuinely
+    independent vantage is named in ROADMAP as what would let the wording change.
+  - `grade --from-probes` grades the documents the probing runs retrieved and makes no request of
+    its own, which removes the duplicate at its source and takes a quarter off every endpoint's
+    daily request count.
+- **The published request budget understated a working day by more than an order of magnitude**
+  (#3). "At most two unauthenticated GET requests per run" was true per run and read as a daily
+  promise to payer operations staff; the publish workflow also triggered on every push to `main`,
+  and on 2026-08-05 it ran fifteen times, so each registry endpoint took roughly 48 requests that
+  day. Publishing is now scheduled and manual only, the publishing run probes nothing, and
+  `/claim/`, the README and SECURITY.md state the per-day figure a payer's ops team would actually
+  measure: at most six requests per endpoint on a scheduled day.
 - **Organization pages were named after whichever endpoint came first**, so "Cigna Patient Access
   API" headed a page that also lists Cigna's provider directory. The heading is now the leading
   words all of the group's endpoints share. Latent until now; the California cohort tripled the

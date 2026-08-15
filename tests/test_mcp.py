@@ -68,7 +68,11 @@ def test_get_endpoint_refuses_path_traversal(site: Path, bad: str) -> None:
 def test_grading_method_states_the_limits(site: Path) -> None:
     method = _payload(call_tool(site, "grading_method", {}))
     assert "not an audit" in " ".join(method["limits"])
-    assert any("single vantage" in limit for limit in method["limits"])
+    # An assistant reading this must not be able to call three runner images three networks,
+    # nor read a failed run as a statement that the endpoint is down.
+    assert any("one provider's network" in limit for limit in method["limits"])
+    assert any("does not establish that the endpoint is down" in limit
+               for limit in method["limits"])
     assert any("no public base URL was found" in limit for limit in method["limits"])
 
 

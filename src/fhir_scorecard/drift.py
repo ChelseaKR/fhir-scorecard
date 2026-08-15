@@ -80,6 +80,37 @@ def fingerprint(facts: CapabilityFacts) -> dict[str, object]:
     return fp
 
 
+#: Where the history file records which kind of run wrote it. Endpoint ids can never collide with
+#: it: the registry's id pattern requires a leading letter or digit.
+META_KEY = "_meta"
+
+
+def ensure_mode(history: dict[str, Any], *, offline: bool) -> None:
+    """Refuse to mix fixture observations and live ones in one history file.
+
+    Running an offline build against the real ``data/history.json`` writes a ``false`` observation
+    for every endpoint in the registry, on a date that had none, and availability then reports a
+    day nobody measured. The file records which kind of run wrote it, and a run of the other kind
+    raises rather than appending. The fix on the reader's side is a scratch path, which
+    ``--offline`` now chooses by default; there is deliberately no flag to override this, because
+    an override is the thing that gets passed in a hurry.
+    """
+    mode = "offline" if offline else "live"
+    meta = history.get(META_KEY)
+    recorded = meta.get("mode") if isinstance(meta, dict) else None
+    if isinstance(recorded, str) and recorded != mode:
+        raise ValueError(
+            f"this history file was written by a {recorded} run and this is a {mode} run; "
+            f"point --history at a scratch path rather than mixing {recorded} and {mode} "
+            "observations in one availability record")
+    history[META_KEY] = {"mode": mode}
+
+
+def endpoint_count(history: dict[str, Any]) -> int:
+    """How many endpoints a history file describes, ignoring bookkeeping keys."""
+    return sum(1 for key in history if not key.startswith("_"))
+
+
 def load_history(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {}

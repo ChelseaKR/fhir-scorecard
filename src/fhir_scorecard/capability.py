@@ -2,6 +2,11 @@
 
 Parsing is defensive throughout: malformed input produces facts with ``parsed=False`` and a
 reason, never an exception. Grading decides what missing facts cost; parsing only observes.
+
+``observed`` separates the two ways there can be no facts, which the grader must not confuse.
+A document that was retrieved and could not be parsed is an observation of the endpoint. A
+document that was never retrieved is an observation of nothing, and every check downstream of it
+has to say so rather than report absence as a property of the server.
 """
 
 from __future__ import annotations
@@ -13,14 +18,25 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class CapabilityFacts:
     parsed: bool
+    # False only when no vantage retrieved the document at all. Never False for a document that
+    # arrived and turned out to be unparseable, empty, or the wrong resource type.
+    observed: bool = True
     resource_type_ok: bool = False
     fhir_version: str | None = None
     software_name: str | None = None
     software_version: str | None = None
     implementation_description: str | None = None
+    title: str | None = None
+    name: str | None = None
     resource_count: int = 0
     resources_with_interactions: int = 0
+    # Canonicals from ``rest.resource.supportedProfile`` alone. Kept as its own field because the
+    # drift fingerprint counts it, and widening what it means would report a change no server made.
     supported_profiles: tuple[str, ...] = field(default=())
+    # (element, canonical) for every conformance declaration R4 defines a place for. Grading a
+    # profile claim from one element and then reporting "no profiles declared" was a conclusion
+    # drawn from a place the server was never obliged to use.
+    conformance_profiles: tuple[tuple[str, str], ...] = field(default=())
     declares_oauth_security: bool = False
     parse_error: str | None = None
 
@@ -28,9 +44,20 @@ class CapabilityFacts:
 @dataclass(frozen=True)
 class SmartFacts:
     parsed: bool
+    observed: bool = True
     has_authorization_endpoint: bool = False
     has_token_endpoint: bool = False
     parse_error: str | None = None
+
+
+#: Facts for a document no vantage retrieved. Distinct from ``parse_capability(b"")``, which
+#: describes a server that answered with nothing; these describe a run that heard nothing.
+NO_CAPABILITY_RETRIEVED = CapabilityFacts(
+    parsed=False, observed=False,
+    parse_error="no CapabilityStatement was retrieved from any vantage on this run")
+NO_SMART_RETRIEVED = SmartFacts(
+    parsed=False, observed=False,
+    parse_error="no SMART discovery document was retrieved from any vantage on this run")
 
 
 def _as_dict(value: object) -> dict[str, object]:
@@ -64,6 +91,47 @@ def _security_declares_oauth(doc: dict[str, object]) -> bool:
     return False
 
 
+def _canonical(value: object) -> str | None:
+    """A canonical URL, whether written as one or as a Reference-shaped object.
+
+    R4 types ``rest.resource.profile`` as a canonical string, and servers migrated from STU3
+    sometimes still send ``{"reference": "..."}``. Reading both costs nothing and avoids
+    concluding "nothing declared" from a shape difference.
+    """
+    if isinstance(value, str):
+        return _as_str(value)
+    if isinstance(value, dict):
+        return _as_str(value.get("reference"))
+    return None
+
+
+def _conformance_profiles(doc: dict[str, object],
+                          resources: list[dict[str, object]]) -> list[tuple[str, str]]:
+    """Every profile canonical the document declares, tagged with the element it came from.
+
+    R4 gives a server several honest places to declare conformance. Reading one of them and
+    publishing "no recognized interoperability profiles declared" states a conclusion about all
+    of them.
+    """
+    found: list[tuple[str, str]] = []
+    for element, raw in (("CapabilityStatement.instantiates", doc.get("instantiates")),
+                         ("CapabilityStatement.imports", doc.get("imports")),
+                         ("meta.profile", _as_dict(doc.get("meta")).get("profile"))):
+        for value in _as_list(raw):
+            canonical = _canonical(value)
+            if canonical:
+                found.append((element, canonical))
+    for resource in resources:
+        for value in _as_list(resource.get("supportedProfile")):
+            canonical = _canonical(value)
+            if canonical:
+                found.append(("rest.resource.supportedProfile", canonical))
+        single = _canonical(resource.get("profile"))
+        if single:
+            found.append(("rest.resource.profile", single))
+    return found
+
+
 def parse_capability(body: bytes) -> CapabilityFacts:
     try:
         doc_raw = json.loads(body.decode("utf-8"))
@@ -93,9 +161,12 @@ def parse_capability(body: bytes) -> CapabilityFacts:
         software_name=_as_str(software.get("name")),
         software_version=_as_str(software.get("version")),
         implementation_description=_as_str(implementation.get("description")),
+        title=_as_str(doc.get("title")),
+        name=_as_str(doc.get("name")),
         resource_count=len(resources),
         resources_with_interactions=with_interactions,
         supported_profiles=tuple(profiles),
+        conformance_profiles=tuple(_conformance_profiles(doc, resources)),
         declares_oauth_security=_security_declares_oauth(doc),
     )
 

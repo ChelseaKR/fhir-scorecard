@@ -8,10 +8,15 @@ import time
 from pathlib import Path
 from typing import Any
 
-from fhir_scorecard.capability import parse_capability, parse_smart
+from fhir_scorecard.capability import (
+    NO_CAPABILITY_RETRIEVED,
+    NO_SMART_RETRIEVED,
+    parse_capability,
+    parse_smart,
+)
 from fhir_scorecard.cohort import Cohort, load_cohort_dir
 from fhir_scorecard.dataset import write_dataset
-from fhir_scorecard.drift import load_history, observe, save_history
+from fhir_scorecard.drift import ensure_mode, load_history, observe, save_history
 from fhir_scorecard.fetch import FetchResult, fetch_json
 from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.registry import Endpoint, load_registry, version_prefix
@@ -45,6 +50,42 @@ def _offline_fetch(fixtures: Path, endpoint_id: str, filename: str, url: str) ->
                        body=path.read_bytes(), error=None)
 
 
+def _grade_from_probes(endpoint: Endpoint, *, history: dict[str, Any], today: str,
+                       other_probes: dict[str, list[VantageProbe]]) -> Scorecard:
+    """Grade from probe files alone, making no request of this run's own.
+
+    The publishing run used to re-probe every endpoint that the probing runs had just probed.
+    That added a fourth request to each endpoint's day for nothing new, and it merged the
+    publishing run's probe under a label one of the artifacts already carried, so every card
+    reported one more vantage than had actually reported. A run that has three vantages'
+    documents in hand has nothing left to observe.
+    """
+    probes = other_probes.get(endpoint.endpoint_id, [])
+    consensus = reconcile(probes) if probes else None
+    reachable = consensus is not None and consensus.reachable
+    capability_body = (consensus.capability or "").encode("utf-8") if consensus else b""
+    smart_body = (consensus.smart or "").encode("utf-8") if consensus else b""
+    metadata = FetchResult(
+        url=f"{endpoint.base_url}/metadata", ok=reachable,
+        status=200 if reachable else None,
+        elapsed_ms=consensus.elapsed_ms if consensus is not None else 0,
+        body=capability_body,
+        error=None if reachable else (consensus.detail if consensus is not None
+                                      else "no vantage reported"))
+    facts = (parse_capability(capability_body) if capability_body else NO_CAPABILITY_RETRIEVED)
+    smart_facts = parse_smart(smart_body) if smart_body else NO_SMART_RETRIEVED
+    drift = observe(history, endpoint.endpoint_id, facts, today, reachable=reachable)
+    # Name the vantages that did report, so a single-vantage merge does not attribute the
+    # measurement to a run that never made one.
+    reported = ", ".join(sorted({p.vantage for p in probes})) or "no vantage reported"
+    return build_scorecard(endpoint.endpoint_id, endpoint.name, metadata, facts, smart_facts,
+                           kind=endpoint.kind, vantage=reported, consensus=consensus,
+                           version_prefix=version_prefix(endpoint.expects),
+                           observed_since=drift.first_seen,
+                           drift_events=drift.recorded_events,
+                           availability=drift.availability.summary())
+
+
 def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
                     history: dict[str, Any], today: str, vantage: str,
                     other_probes: dict[str, list[VantageProbe]],
@@ -57,9 +98,6 @@ def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
     else:
         metadata = fetch_json(metadata_url)
         smart = fetch_json(smart_url)
-    facts = parse_capability(metadata.body) if metadata.ok else parse_capability(b"")
-    smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
-
     mine = VantageProbe(
         vantage=vantage, reachable=metadata.ok, elapsed_ms=metadata.elapsed_ms,
         error=metadata.error,
@@ -73,12 +111,22 @@ def _grade_endpoint(endpoint: Endpoint, *, offline: bool, fixtures: Path | None,
     # whatever this network saw.
     was_up = consensus.reachable if consensus is not None else metadata.ok
 
-    # If this vantage was blocked but another retrieved the documents, grade their content
-    # rather than scoring zero for material we simply never received.
-    if not metadata.ok and consensus is not None and consensus.capability:
+    if metadata.ok:
+        facts = parse_capability(metadata.body)
+        # This run reached the host, so it did ask for the SMART document: a failed SMART fetch
+        # is an observation that it is absent or unusable, and grades as one.
+        smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
+    elif consensus is not None and consensus.capability:
+        # This vantage was blocked but another retrieved the documents: grade their content
+        # rather than scoring zero for material we simply never received.
         facts = parse_capability(consensus.capability.encode("utf-8"))
-        if consensus.smart:
-            smart_facts = parse_smart(consensus.smart.encode("utf-8"))
+        smart_facts = (parse_smart(consensus.smart.encode("utf-8")) if consensus.smart
+                       else NO_SMART_RETRIEVED)
+    else:
+        # Nothing was retrieved by anyone. The content dimensions are not scored, because every
+        # finding in them would be a claim about a document this run never saw.
+        facts = NO_CAPABILITY_RETRIEVED
+        smart_facts = NO_SMART_RETRIEVED
 
     drift = observe(history, endpoint.endpoint_id, facts, today, reachable=was_up)
     return build_scorecard(endpoint.endpoint_id, endpoint.name, metadata, facts, smart_facts,
@@ -101,7 +149,7 @@ def _recheck(candidates_path: Path) -> int:
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fhir-scorecard")
     sub = parser.add_subparsers(dest="command", required=True)
     grade = sub.add_parser("grade", help="grade every enabled endpoint in the registry")
@@ -110,21 +158,29 @@ def main(argv: list[str] | None = None) -> int:
     grade.add_argument("--offline", action="store_true",
                        help="read fixtures instead of the network")
     grade.add_argument("--fixtures", type=Path, default=None)
-    grade.add_argument("--history", type=Path, default=Path("data/history.json"),
-                       help="capability drift history file (read and updated each run)")
+    grade.add_argument("--history", type=Path, default=None,
+                       help="capability drift history file (read and updated each run); "
+                            "defaults to data/history.json for a live run and to "
+                            ".cache/offline-history.json under --offline, so a fixture run "
+                            "cannot write observations into the real availability record")
     grade.add_argument("--origin", default=DEFAULT_ORIGIN,
                        help="canonical site origin, used for canonical URLs and the sitemap")
     grade.add_argument("--probes-out", type=Path, default=None,
                        help="write this run's per-endpoint probe results for later merging")
     grade.add_argument("--probes-in", type=Path, nargs="*", default=None,
                        help="probe files from other vantages to reconcile with this run")
+    grade.add_argument("--from-probes", action="store_true",
+                       help="grade from --probes-in alone and make no requests of this run's "
+                            "own; for a publishing run whose vantages have already probed")
     grade.add_argument("--vantage", default="unspecified",
                        help="label for where this run measured from; latency is single-vantage "
                             "and a network path difference must not be read as a server change")
-    grade.add_argument("--cohorts", type=Path, default=Path("data/cohorts"),
+    grade.add_argument("--cohorts", type=Path, default=None,
                        help="directory of curated cohort files, each published as its own page; "
                             "an absent directory means no cohorts, a file that fails validation "
-                            "fails the build")
+                            "fails the build. Defaults to data/cohorts for a live run, and to "
+                            "no cohorts under --offline, whose fixture registry is a subset the "
+                            "shipped cohorts do not match")
     mcp = sub.add_parser(
         "mcp", help="serve the published dataset over MCP (stdio, read-only)")
     mcp.add_argument("--site", type=Path, default=Path("site"),
@@ -133,7 +189,64 @@ def main(argv: list[str] | None = None) -> int:
         "recheck",
         help="re-probe previously rejected candidates; reports only, never edits the registry")
     recheck.add_argument("--candidates", type=Path, default=Path("data/rejected.json"))
-    args = parser.parse_args(argv)
+    return parser
+
+
+def _history_path(args: argparse.Namespace) -> Path:
+    """Where this run's observations go.
+
+    An offline run defaults to a scratch path. The README's own offline command used to write a
+    ``{"up": false}`` for every endpoint in the registry into ``data/history.json``, on a date
+    that had none, and exit 0.
+    """
+    if args.history is not None:
+        return Path(args.history)
+    return Path(".cache/offline-history.json") if args.offline else Path("data/history.json")
+
+
+def _cohorts_path(args: argparse.Namespace) -> Path | None:
+    """Cohort directory, or None when an offline run did not ask for one.
+
+    The shipped cohorts reference registry ids a fixture registry does not carry, and a cohort
+    that references an endpoint the graded registry lacks fails the build by design.
+    """
+    if args.cohorts is not None:
+        return Path(args.cohorts)
+    return None if args.offline else Path("data/cohorts")
+
+
+def _prepare_history(args: argparse.Namespace) -> tuple[Path, dict[str, Any]] | str:
+    """Open the run's history file, or return why this run must not write to it.
+
+    An offline run must never append "did not answer" to a record of live observations, and a
+    live run must never continue one a fixture run started.
+    """
+    path = _history_path(args)
+    history = load_history(path)
+    try:
+        ensure_mode(history, offline=args.offline)
+    except ValueError as exc:
+        return str(exc)
+    if args.offline and args.history is None:
+        print(f"offline run: history goes to {path}, not data/history.json", file=sys.stderr)
+    return path, history
+
+
+def _flag_conflict(args: argparse.Namespace) -> str | None:
+    """Reject flag combinations that could only produce a claim the run cannot support."""
+    if args.offline and args.fixtures is None:
+        return "--offline requires --fixtures"
+    if args.from_probes and not args.probes_in:
+        return "--from-probes requires --probes-in"
+    if args.from_probes and args.probes_out is not None:
+        # A run that makes no observation has none to publish, and writing an empty or borrowed
+        # probe file under this run's label is how a vantage gets counted that never reported.
+        return "--from-probes makes no observation of its own; --probes-out has nothing to write"
+    return None
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _build_parser().parse_args(argv)
 
     if args.command == "recheck":
         return _recheck(args.candidates)
@@ -142,8 +255,9 @@ def main(argv: list[str] | None = None) -> int:
         from fhir_scorecard.mcp import serve
         return serve(args.site)
 
-    if args.offline and args.fixtures is None:
-        print("--offline requires --fixtures", file=sys.stderr)
+    conflict = _flag_conflict(args)
+    if conflict is not None:
+        print(conflict, file=sys.stderr)
         return 2
 
     try:
@@ -154,34 +268,51 @@ def main(argv: list[str] | None = None) -> int:
 
     # Validated before any probe leaves this machine: a cohort that references an endpoint the
     # graded registry does not carry should fail the build here, not after a network run.
+    cohorts_path = _cohorts_path(args)
     try:
-        cohorts = load_cohort_dir(args.cohorts, frozenset(e.endpoint_id for e in endpoints))
+        cohorts = (load_cohort_dir(cohorts_path, frozenset(e.endpoint_id for e in endpoints))
+                   if cohorts_path is not None else ())
     except (OSError, ValueError) as exc:
         print(f"cohort error: {exc}", file=sys.stderr)
         return 2
 
     today = time.strftime("%Y-%m-%d", time.gmtime())
-    history = load_history(args.history)
+    prepared = _prepare_history(args)
+    if isinstance(prepared, str):
+        print(f"history error: {prepared}", file=sys.stderr)
+        return 2
+    history_path, history = prepared
     other_probes = load_probe_files(list(args.probes_in or []))
     probes_seen: dict[str, VantageProbe] = {}
-    scorecards = [_grade_endpoint(e, offline=args.offline, fixtures=args.fixtures,
-                                  history=history, today=today, vantage=args.vantage,
-                                  other_probes=other_probes, probes_seen=probes_seen)
-                  for e in endpoints]
-    save_history(args.history, history)
+    run_vantage = args.vantage
+    if args.from_probes:
+        # The published "vantage" must name where the measurement came from. A run that only
+        # reconciles has no vantage of its own, so it reports the ones that reported to it.
+        labels = sorted({p.vantage for probes in other_probes.values() for p in probes})
+        run_vantage = ("reconciled from " + ", ".join(labels) if labels
+                       else "no vantage reported")
+        scorecards = [_grade_from_probes(e, history=history, today=today,
+                                         other_probes=other_probes)
+                      for e in endpoints]
+    else:
+        scorecards = [_grade_endpoint(e, offline=args.offline, fixtures=args.fixtures,
+                                      history=history, today=today, vantage=args.vantage,
+                                      other_probes=other_probes, probes_seen=probes_seen)
+                      for e in endpoints]
+    save_history(history_path, history)
     if args.probes_out is not None:
         write_probes(args.probes_out, args.vantage, probes_seen)
 
     generated_at = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "scorecards.json").write_text(
-        to_json(scorecards, generated_at=generated_at, vantage=args.vantage), encoding="utf-8")
+        to_json(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8")
     (args.out / "index.html").write_text(
-        render_html(scorecards, generated_at=generated_at, vantage=args.vantage),
+        render_html(scorecards, generated_at=generated_at, vantage=run_vantage),
         encoding="utf-8")
     _write_site(scorecards, endpoints, args.out, args.origin, generated_at, cohorts)
     write_dataset(args.out, scorecards, endpoints, origin=args.origin.rstrip("/"),
-                  generated_at=generated_at, vantage=args.vantage)
+                  generated_at=generated_at, vantage=run_vantage)
 
     for s in scorecards:
         print(f"{s.grade}  {s.endpoint_id}")

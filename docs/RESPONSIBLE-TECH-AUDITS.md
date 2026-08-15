@@ -31,9 +31,13 @@ the probing pattern. Both are constrained in code and policy:
   `/.well-known/smart-configuration`); the fetcher sends an identifying User-Agent with a
   contact address, uses HTTPS only, and makes one request per resource per run
   (`src/fhir_scorecard/fetch.py`).
-- A false "endpoint is dead" claim is treated as a defect: probing runs from multiple vantages
-  and results are reconciled, because a single network is an unreliable narrator
-  (`.github/workflows/pages.yml`, `src/fhir_scorecard/vantage.py`).
+- A false "endpoint is dead" claim is treated as a defect: probing runs from three vantages and
+  results are reconciled, because a single host is an unreliable narrator
+  (`.github/workflows/pages.yml`, `src/fhir_scorecard/vantage.py`). Those three vantages are
+  GitHub-hosted runner images sharing one provider's network, which the published copy says
+  outright: they catch a host-local fault and cannot catch a rule applied to that provider's
+  address space, so a failure from all three is published as "not reached from that network"
+  rather than as an endpoint being down. A genuinely independent vantage remains an open item.
 - Graded organizations have a public correction path: the site's claim page ("Add, correct, or
   remove an endpoint", `src/fhir_scorecard/site.py`).
 - The site states plainly that grades are observational snapshots, not audits, rankings of care

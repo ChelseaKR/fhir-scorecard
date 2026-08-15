@@ -23,11 +23,16 @@ _COLUMNS = [
     ("kind", "Category: payer, payer_provider_directory, provider, ehr, or reference. "
              "Grades are comparable within a kind only"),
     ("base_url", "FHIR base URL; the CapabilityStatement is at <base_url>/metadata"),
-    ("grade", "Letter grade A-F, or F when the endpoint could not be reached"),
-    ("reachable", "Whether /metadata answered on this run"),
+    ("grade", "Letter grade A-F for an endpoint whose documents were retrieved and graded, or "
+              "the literal 'not observed' when no vantage retrieved them on this run. 'not "
+              "observed' is a statement about the run, not about the endpoint; F is a statement "
+              "about the endpoint"),
+    ("reachable", "Whether /metadata answered on this run, from any vantage"),
     ("reachability_score", "0-100 for the reachability dimension"),
-    ("transparency_score", "0-100 for the capability transparency dimension"),
-    ("interop_score", "0-100 for the interoperability readiness dimension"),
+    ("transparency_score", "0-100 for the capability transparency dimension, empty when no "
+                           "CapabilityStatement was retrieved on this run"),
+    ("interop_score", "0-100 for the interoperability readiness dimension, empty when no "
+                      "CapabilityStatement was retrieved on this run"),
     ("expects_fhir", "FHIR release this endpoint is registered as intending to serve"),
     ("availability", "Rolling reachability across recorded runs, as published text"),
     ("observed_since", "First date this endpoint was observed"),
@@ -36,11 +41,16 @@ _COLUMNS = [
 ]
 
 
-def _dimension(card: Scorecard, key: str) -> int:
+def _dimension(card: Scorecard, key: str) -> int | str:
+    """A dimension's score, or an empty cell when it was not observed.
+
+    Never 0 for an absent measurement: a consumer summing this column must not be handed a zero
+    that no run produced.
+    """
     for dim in card.dimensions:
         if dim.key == key:
-            return dim.score
-    return 0
+            return dim.score if dim.score is not None else ""
+    return ""
 
 
 def _row(card: Scorecard, endpoint: Endpoint | None) -> dict[str, object]:
@@ -140,7 +150,12 @@ def write_dataset(out: Path, cards: list[Scorecard], endpoints: list[Endpoint], 
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
         "vantage": vantage,
+        # Two different facts, published as two numbers so neither can stand in for the other:
+        # how many endpoints the registry lists and this run graded, and how many of them
+        # answered a probe during it.
         "count": len(index),
+        "endpoints_listed": len(index),
+        "answered_on_this_run": sum(1 for card in cards if card.reachable),
         "dataset_csv": f"{origin}/dataset.csv",
         "schema": f"{origin}/dataset.schema.json",
         "endpoints": sorted(index, key=lambda e: str(e["endpoint_id"])),

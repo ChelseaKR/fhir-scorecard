@@ -1,0 +1,36 @@
+{
+  "authorization_endpoint": "https://api.bluebutton.cms.gov/v2/o/authorize",
+  "capabilities": [
+    "client-confidential-symmetric",
+    "context-standalone-patient",
+    "launch-standalone",
+    "permission-offline",
+    "permission-patient",
+    "permission-v1",
+    "permission-v2",
+    "authorize-post"
+  ],
+  "code_challenge_methods_supported": [
+    "S256"
+  ],
+  "grant_types_supported": [
+    "authorization_code"
+  ],
+  "response_types_supported": [
+    "code",
+    "token"
+  ],
+  "revocation_endpoint": "https://api.bluebutton.cms.gov/v2/o/revoke_token",
+  "scopes_supported": [
+    "openid",
+    "profile",
+    "launch/patient",
+    "patient/Patient.read",
+    "patient/ExplanationOfBenefit.read",
+    "patient/Coverage.read",
+    "patient/Patient.rs",
+    "patient/ExplanationOfBenefit.rs",
+    "patient/Coverage.rs"
+  ],
+  "token_endpoint": "https://api.bluebutton.cms.gov/v2/o/token"
+}

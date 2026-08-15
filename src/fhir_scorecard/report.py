@@ -6,7 +6,11 @@ import html
 import json
 from dataclasses import asdict
 
-from fhir_scorecard.grading import Scorecard
+from fhir_scorecard.grading import NOT_OBSERVED, Scorecard
+
+
+def _grade_class(grade: str) -> str:
+    return "not-observed" if grade == NOT_OBSERVED else grade.lower()
 
 
 def to_json(scorecards: list[Scorecard], *, generated_at: str,
@@ -27,13 +31,14 @@ def _card(s: Scorecard) -> str:
     rows: list[str] = []
     for d in s.dimensions:
         items = "".join(
-            f"<li>{'✓' if f.ok else '✗'} {html.escape(f.message)} "
+            f"<li>{'○' if not f.observed or f.max_points == 0 else ('✓' if f.ok else '✗')} "
+            f"{html.escape(f.message)} "
             f'<a href="{html.escape(f.citation)}">spec</a></li>'
             for f in d.findings
         )
-        rows.append(
-            f"<h3>{html.escape(d.title)}: {d.score}/100</h3><ul>{items}</ul>"
-        )
+        heading = (f"{html.escape(d.title)}: not observed on this run" if d.score is None
+                   else f"{html.escape(d.title)}: {d.score}/100")
+        rows.append(f"<h3>{heading}</h3><ul>{items}</ul>")
     availability_html = (f"<p class=\"avail\">Availability: {html.escape(s.availability)}</p>"
                          if s.availability else "")
     drift_html = ""
@@ -49,7 +54,8 @@ def _card(s: Scorecard) -> str:
     return (
         f'<section aria-labelledby="h-{html.escape(s.endpoint_id)}">'
         f'<h2 id="h-{html.escape(s.endpoint_id)}">{html.escape(s.name)} '
-        f"<span class=\"grade grade-{s.grade.lower()}\">{s.grade}</span></h2>"
+        f"<span class=\"grade grade-{_grade_class(s.grade)}\">"
+        f"{html.escape(s.grade)}</span></h2>"
         + availability_html + "".join(rows) + drift_html + "</section>"
     )
 
@@ -75,7 +81,8 @@ def _summary_table(scorecards: list[Scorecard]) -> str:
             continue
         rows = "".join(
             f'<tr><td><a href="#h-{html.escape(s.endpoint_id)}">{html.escape(s.name)}</a></td>'
-            f'<td><span class="grade grade-{s.grade.lower()}">{s.grade}</span></td></tr>'
+            f'<td><span class="grade grade-{_grade_class(s.grade)}">'
+            f"{html.escape(s.grade)}</span></td></tr>"
             for s in sorted(group, key=lambda s: (s.grade, s.name))
         )
         label = _KIND_LABELS.get(kind, kind)
@@ -103,7 +110,7 @@ body {{ font-family: system-ui, sans-serif; max-width: 46rem; margin: 2rem auto;
           padding: 0 .3em; color: #fff; background: #666; }}
 .grade-a {{ background: #14691f; }} .grade-b {{ background: #3f7d20; }}
 .grade-c {{ background: #9a6700; }} .grade-d {{ background: #b4432c; }}
-.grade-f {{ background: #a01212; }}
+.grade-f {{ background: #a01212; }} .grade-not-observed {{ background: #435c68; }}
 section {{ border-top: 1px solid #ddd; padding-top: 1rem; margin-top: 1.5rem; }}
 table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
 caption {{ text-align: left; font-weight: 600; margin-bottom: .5rem; }}
@@ -115,9 +122,11 @@ th, td {{ text-align: left; padding: .35rem .5rem; border-bottom: 1px solid #eee
 <header>
 <h1>FHIR Scorecard</h1>
 <p>Deterministic grades for publicly observable FHIR endpoint surfaces. Generated
-{html.escape(generated_at)} from a single vantage point ({html.escape(vantage)}).
-No patient data is ever accessed; only public <code>/metadata</code> and SMART discovery
-documents are graded. Grades are comparable only within a kind.</p>
+{html.escape(generated_at)} from {html.escape(vantage)}. An endpoint marked
+<em>not observed</em> is one whose documents no vantage retrieved on this run; nothing on such a
+record describes what it publishes. No patient data is ever accessed; only public
+<code>/metadata</code> and SMART discovery documents are graded. Grades are comparable only
+within a kind.</p>
 </header>
 <main>
 {body}

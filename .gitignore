@@ -4,6 +4,7 @@ __pycache__/
 .coverage
 site/
 .hypothesis/
+.cache/
 
 # Agent worktrees are scratch checkouts, never repository content.
 .claude/

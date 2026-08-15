@@ -83,9 +83,14 @@ read.*
       held elsewhere in the portfolio
 - [ ] **SEO config validation** in CI: sitemap completeness, canonical correctness, JSON-LD
       validity, no orphan pages
-- [ ] **Multi-vantage probing** so availability is not one network's opinion. This is now a known
+- [~] **Multi-vantage probing** so availability is not one network's opinion. This is now a known
       real failure: a live payer endpoint was recorded as dead because of TLS interception on the
-      probing network
+      probing network. The reconciliation is built and each vantage is counted once, but the
+      three vantages feeding it are GitHub-hosted runner images on one provider's network, so
+      today it is one network's opinion sampled three times and every published sentence says so.
+      Finishing this means **one genuinely independent vantage** — a residential or other-provider
+      runner posting a `probes-*.json`, however irregular — after which the wording can change and
+      not before
 - [ ] OpenSSF Scorecard, CodeQL, dependency and secret scanning, SHA-pinned actions
       (partly done), signed dataset releases
 - [ ] `CHANGELOG.md` and semantic versioning with a real `v0.1.0` tag

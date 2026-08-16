@@ -9,6 +9,33 @@ here are dated records of change, not version-tagged release notes.
 
 ### Added
 
+- **A single-endpoint check and the composite GitHub Action that packages it** (`fhir-scorecard
+  check`, `gate.py`, `action.yml`, `action/render_result.py`,
+  [docs/ci-action.md](docs/ci-action.md)). It grades one FHIR base URL from its own two public
+  discovery documents and, when the caller sets `--min-grade`, exits non-zero below it. The
+  intended user is the operator of the endpoint being checked, gating their own build; the
+  command publishes nothing, opens no history, renders no page, and reads nothing under `data/`.
+  Registry-free on purpose: every listed endpoint carries a record of how and when it was
+  verified and who it may be attributed to, a one-off check has no such record to make, and
+  synthesizing one would put a verification claim in the artifact that nobody performed. So the
+  result names the host the caller supplied and nothing else, and it claims no availability,
+  because one observation is not a record of one.
+- **Exit codes, documented for the first time and pinned by a test.** `0` ran and met every
+  threshold the caller set, `1` a threshold the caller set was not met, `2` input error. `1` is
+  new to this project and is reachable only through a threshold somebody asked for: a finding
+  about a document remains data everywhere else. An endpoint no vantage reached stays
+  `not observed` in the artifact, the Action outputs, the job summary, and the annotation, and
+  fails a set threshold on the stated ground that the threshold could not be evaluated rather
+  than by being scored an `F`.
+- **Two gates on the Action itself.** `tests/test_ci_action.py` drives a deliberately bad input
+  through the same code path the Action calls and asserts the non-zero exit, then drives the
+  Action's own shell contract against a host reserved never to resolve and asserts that the
+  result renderer still runs and the step still exits `1`. `test_workflow_shell_safety.py` now
+  scans `action.yml` alongside the workflows, because its shell block runs on a consumer's
+  runner, which is the one place a missing `pipefail` would fail quietly in someone else's
+  build. A `.gitattributes` export bound keeps the archive a consumer downloads on every
+  `uses:` to the Action runtime rather than the curated registry, cohorts, and fixtures.
+
 - **Curated cohorts** (`cohort.py`, `data/cohorts/`), a named view over the registry whose
   membership comes from a public roster rather than from whatever was easy to find. Each member
   either points at registry endpoints or carries an exclusion with a reason, a review record, a

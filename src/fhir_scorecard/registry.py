@@ -16,10 +16,15 @@ _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,63}$")
 # Kinds are not cosmetic: grades are only comparable within a kind. A payer Patient Access API
 # and an EHR vendor's sandbox answer to different implementation guides and different
 # expectations, so the report groups by kind and never ranks across them.
-_KINDS = {"reference", "payer", "payer_provider_directory", "ehr", "provider"}
+KINDS = frozenset({"reference", "payer", "payer_provider_directory", "ehr", "provider"})
+_KINDS = KINDS
 # Declared-intent FHIR releases. Values map to the version prefix a CapabilityStatement must
 # carry: STU3 declares 3.x, R4 declares 4.x, R5 declares 5.x.
 _EXPECTS = {"stu3": "3.", "r4": "4.", "r5": "5."}
+#: The declared-intent values a caller may name, for CLI choices. Public because the
+#: single-endpoint check takes one from the command line and must reject anything else, rather
+#: than silently falling back to the R4 prefix the way :func:`version_prefix` does.
+EXPECTS = tuple(sorted(_EXPECTS))
 
 
 @dataclass(frozen=True)

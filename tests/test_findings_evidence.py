@@ -235,7 +235,8 @@ def test_the_prose_counts_match_the_evidence() -> None:
 def test_the_write_up_dates_every_review_from_the_data() -> None:
     dates = {m["excluded"]["reviewed"]["date"] for m in _excluded()}
     assert len(dates) == 1, "the reviews no longer share one date; the write-up says they do"
-    assert f"completed on {dates.pop()}" in _flat(COHORT_WRITEUP)
+    (reviewed_on,) = dates
+    assert f"completed on {reviewed_on}" in _flat(COHORT_WRITEUP)
 
 
 def test_the_grouping_behind_finding_2_matches_the_committed_reasons() -> None:

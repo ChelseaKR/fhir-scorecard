@@ -295,11 +295,15 @@ class TestTheActionPreservesTheExitCode:
         assert not any(name.startswith(("data/", "docs/", "tests/", ".github/")) for name in names)
         assert len(names) < 60
 
-    def test_the_docs_do_not_advertise_a_release_tag_that_does_not_exist(self) -> None:
-        """The project is pre-release and publishes no tags, so ``@v1`` would be an invention.
+    def test_the_docs_advertise_exactly_the_release_tag_that_exists(self) -> None:
+        """The ref this page tells a consumer to pin has to be one they can actually pin.
 
-        The version in ``pyproject.toml`` is a development version; until it is not, the only
-        honest ref to document is a commit SHA.
+        Two states, and the test has to hold in both, because the earlier form only asserted
+        the pre-release case and so stopped testing anything the moment a version was cut.
+
+        Development version: no tag exists, so ``@v1`` would be an invention and a commit SHA
+        is the only honest ref. Released version: a tag exists, and every documented ``@vN``
+        must be *that* version rather than a stale one left behind by the next bump.
         """
         version = str(
             tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
@@ -307,11 +311,52 @@ class TestTheActionPreservesTheExitCode:
             ]
         )
         docs = (ROOT / "docs" / "ci-action.md").read_text(encoding="utf-8")
+        documented = set(re.findall(r"fhir-scorecard@(v[\w.]+)", docs))
         if ".dev" in version:
-            assert not re.search(r"fhir-scorecard@v\d", docs), (
-                "docs point at a release tag, but the version is still a development version"
+            assert not documented, (
+                f"docs point at {sorted(documented)}, but the version is still a development "
+                "version, so no such release tag exists"
             )
             assert "no release tag" in docs
+        else:
+            assert documented == {f"v{version}"}, (
+                f"docs pin {sorted(documented)}; the released version is {version}"
+            )
+            assert "no release tag" not in docs, (
+                "docs still say there is no release tag, but the version is a released one"
+            )
+
+    def test_the_package_version_matches_the_project_version(self) -> None:
+        """``__version__`` ships inside the wheel the Action installs on a consumer's runner.
+
+        The release workflow checks the tag against ``pyproject.toml`` and ``CHANGELOG.md``; it
+        cannot see this one, so a bump that misses it would ship a release whose own code
+        reports the previous version.
+        """
+        from fhir_scorecard import __version__
+
+        declared = str(
+            tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
+                "version"
+            ]
+        )
+        assert __version__ == declared
+
+    def test_the_changelog_documents_the_version_being_shipped(self) -> None:
+        """The release workflow builds its notes from ``## [<version>]`` and fails on an empty
+        extraction. Catch that here, on the pull request, rather than on the release run."""
+        version = str(
+            tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
+                "version"
+            ]
+        )
+        if ".dev" in version:
+            return
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        assert f"\n## [{version}] - " in changelog, (
+            f"CHANGELOG.md has no dated `## [{version}]` section for the release workflow to "
+            "use as notes"
+        )
 
     def test_the_documented_exit_codes_are_the_ones_the_check_returns(self) -> None:
         """The first exit-code table this repository publishes; it has to be true."""

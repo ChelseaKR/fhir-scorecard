@@ -89,6 +89,20 @@ here are dated records of change, not version-tagged release notes.
     resolved dependencies would repair the lockfile it was meant to be checked against and
     then pass. It writes nothing and reaches no network. Nothing in this repository invokes a
     bare `uv run`, which performs exactly that implicit repair.
+- **The quarterly re-probe reported "nothing revived" for every way it could fail.**
+  `recheck.yml` ran `fhir-scorecard recheck | tee report.txt` under the default `bash -e`
+  shell, which sets `-e` but not `pipefail`, so the pipeline's exit status was tee's and was
+  always 0. A crashed re-probe left a truncated `report.txt`, `grep -q "NOW ANSWERS"` found
+  nothing in it, the step set `revived=false`, and the workflow went green having checked
+  nothing. `recheck` returns 2 when it cannot load `data/rejected.json`, and that 2 was
+  discarded the same way: a malformed candidate file would have reported no revivals every
+  quarter, indefinitely, which is precisely the rot the workflow's own comment says it exists
+  to prevent. Every multi-line `run:` block now declares `shell: bash` and opens with
+  `set -euo pipefail`, including the gitleaks step, whose checksum verification is also a
+  pipeline.
+  - `tests/test_workflow_shell_safety.py` fails the build if a `run: |` block omits either.
+    It also asserts it found workflows and blocks to check, because a scan over nothing
+    passes trivially and that is the same class of bug.
 - **The README's offline command named a directory that did not exist** (#6). `tests/fixtures`
   was in the Quick start and in no commit, so `--offline --fixtures tests/fixtures` failed to load
   a fixture for every endpoint, exited 0, wrote a complete site in which every named organization

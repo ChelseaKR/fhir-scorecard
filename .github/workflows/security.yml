@@ -66,7 +66,9 @@ jobs:
         # disagree about what was audited. It exports the locked set (dropping the local
         # project, which is not on PyPI) and runs pip-audit --strict over it: an advisory
         # fails, and so does a dependency that could not be audited at all.
+        shell: bash
         run: |
+          set -euo pipefail
           make sync
           make audit
 
@@ -82,7 +84,11 @@ jobs:
         # Run the pinned gitleaks binary directly instead of a third-party action:
         # a checksum-verified, version-pinned binary is a deterministic supply-chain
         # pin. `gitleaks git` with a full-depth checkout walks the entire history.
+        shell: bash
         run: |
+          # pipefail so the checksum pipeline below cannot pass on a grep that matched
+          # nothing. The default shell is `bash -e`, which does not set it.
+          set -euo pipefail
           GL=8.30.1
           BASE="https://github.com/gitleaks/gitleaks/releases/download/v${GL}"
           ARCHIVE="gitleaks_${GL}_linux_x64.tar.gz"

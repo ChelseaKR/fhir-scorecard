@@ -26,7 +26,17 @@ jobs:
         run: python -m pip install -e .
       - name: Re-probe rejected candidates
         id: recheck
+        # `set -euo pipefail` is load-bearing here, not boilerplate. The default shell is
+        # `bash -e`, which does not set pipefail, so the exit status of
+        # `recheck ... | tee report.txt` is tee's and is always 0. Without pipefail a crashed
+        # or aborted re-probe left a truncated report.txt, `grep -q` found no "NOW ANSWERS"
+        # in it, this step set revived=false, and the workflow went green having checked
+        # nothing. `recheck` exits 2 when it cannot load data/rejected.json, and that 2 was
+        # discarded too: a malformed candidate file would have reported "no revivals" every
+        # quarter, forever, which is the exact rot this workflow exists to prevent.
+        shell: bash
         run: |
+          set -euo pipefail
           python -m fhir_scorecard.cli recheck --candidates data/rejected.json | tee report.txt
           if grep -q "NOW ANSWERS" report.txt; then
             echo "revived=true" >> "$GITHUB_OUTPUT"
@@ -37,7 +47,9 @@ jobs:
         if: steps.recheck.outputs.revived == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
+          set -euo pipefail
           {
             echo "A previously rejected endpoint now answers. It is **not** in the registry yet:"
             echo "confirm the publisher matches the claimed organization before adding it."

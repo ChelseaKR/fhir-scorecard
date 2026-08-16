@@ -81,8 +81,9 @@ def _parse_entry(i: int, item: dict[str, object], seen: set[str]) -> Endpoint:
 
     verification = item.get("verification")
     if not isinstance(verification, dict):
-        raise ValueError(f"endpoints[{i}] has no verification record; unverified entries "
-                         "are refused by policy")
+        raise ValueError(
+            f"endpoints[{i}] has no verification record; unverified entries are refused by policy"
+        )
     method = verification.get("method")
     date = verification.get("date")
     if not isinstance(method, str) or not method.strip():

@@ -32,8 +32,13 @@ _PROSE_MARKERS = ("us core", "uscore", "us-core", "carin", "da vinci", "davinci"
 # Every element R4 gives a server to declare conformance in. I1 reads all of them before
 # concluding anything, and its message names them, because "no recognized interoperability
 # profiles declared" was a conclusion drawn from exactly one of them.
-_PROFILE_ELEMENTS = ("rest.resource.supportedProfile", "rest.resource.profile",
-                     "instantiates", "imports", "meta.profile")
+_PROFILE_ELEMENTS = (
+    "rest.resource.supportedProfile",
+    "rest.resource.profile",
+    "instantiates",
+    "imports",
+    "meta.profile",
+)
 
 #: Published in place of a letter when a run observed nothing to grade. It is deliberately not a
 #: letter: a reader compares an F against a C, and "F" was carrying two opposite meanings, one of
@@ -100,13 +105,26 @@ def _score(findings: list[Finding]) -> int | None:
 def _not_retrieved(key: str, title: str, what: str, citation: str) -> DimensionScore:
     """A whole dimension that was not observed: one neutral finding, no score, no points."""
     return DimensionScore(
-        key=key, title=title, score=None,
-        findings=(Finding(code=_NOT_RETRIEVED_CODE, ok=False, points=0, max_points=0,
-                          message=what, citation=citation, observed=False),))
+        key=key,
+        title=title,
+        score=None,
+        findings=(
+            Finding(
+                code=_NOT_RETRIEVED_CODE,
+                ok=False,
+                points=0,
+                max_points=0,
+                message=what,
+                citation=citation,
+                observed=False,
+            ),
+        ),
+    )
 
 
-def grade_reachability(metadata: FetchResult, *, vantage: str = "unspecified",
-                       consensus: Consensus | None = None) -> DimensionScore:
+def grade_reachability(
+    metadata: FetchResult, *, vantage: str = "unspecified", consensus: Consensus | None = None
+) -> DimensionScore:
     """Grade reachability, preferring a multi-vantage consensus when one is available.
 
     One vantage reaching an endpoint settles that it is reachable; one vantage failing settles
@@ -115,14 +133,25 @@ def grade_reachability(metadata: FetchResult, *, vantage: str = "unspecified",
     findings: list[Finding] = []
     reachable = consensus.reachable if consensus is not None else metadata.ok
     if consensus is not None:
-        r1_message = ("/metadata answers with HTTP 2xx over HTTPS: " + consensus.detail
-                      if reachable else "/metadata " + consensus.detail)
+        r1_message = (
+            "/metadata answers with HTTP 2xx over HTTPS: " + consensus.detail
+            if reachable
+            else "/metadata " + consensus.detail
+        )
     elif reachable:
         r1_message = "/metadata answers with HTTP 2xx over HTTPS"
     else:
         r1_message = f"/metadata unreachable: {metadata.error or f'HTTP {metadata.status}'}"
-    findings.append(Finding(code="R1", ok=reachable, points=60 if reachable else 0,
-                            max_points=60, message=r1_message, citation=_FHIR_HTTP))
+    findings.append(
+        Finding(
+            code="R1",
+            ok=reachable,
+            points=60 if reachable else 0,
+            max_points=60,
+            message=r1_message,
+            citation=_FHIR_HTTP,
+        )
+    )
     if reachable:
         # Latency is measured from a single vantage point per run, so bands are deliberately
         # coarse (2026-08-05): a ~1s network difference between vantages must not flip a grade.
@@ -136,75 +165,132 @@ def grade_reachability(metadata: FetchResult, *, vantage: str = "unspecified",
             # provider's network are one network path sampled three times, and a median over
             # them is not a median over three networks.
             where = f"median across {consensus.agreeing} reachable vantages"
-            where += (" on one network" if consensus.networks == 1
-                      else f" across {consensus.networks} networks")
+            where += (
+                " on one network"
+                if consensus.networks == 1
+                else f" across {consensus.networks} networks"
+            )
         else:
             where = f"single vantage point: {vantage}"
-        findings.append(Finding(
-            code="R2", ok=fast, points=points, max_points=40,
-            message=f"/metadata responded in {elapsed} ms ({where})",
-            citation=_FHIR_HTTP,
-        ))
+        findings.append(
+            Finding(
+                code="R2",
+                ok=fast,
+                points=points,
+                max_points=40,
+                message=f"/metadata responded in {elapsed} ms ({where})",
+                citation=_FHIR_HTTP,
+            )
+        )
     else:
-        findings.append(Finding(code="R2", ok=False, points=0, max_points=40,
-                                message="latency unmeasured: endpoint unreachable",
-                                citation=_FHIR_HTTP))
-    return DimensionScore(key="reachability", title="Reachability",
-                          score=_score(findings), findings=tuple(findings))
+        findings.append(
+            Finding(
+                code="R2",
+                ok=False,
+                points=0,
+                max_points=40,
+                message="latency unmeasured: endpoint unreachable",
+                citation=_FHIR_HTTP,
+            )
+        )
+    return DimensionScore(
+        key="reachability", title="Reachability", score=_score(findings), findings=tuple(findings)
+    )
 
 
-def grade_transparency(facts: CapabilityFacts, *,
-                       version_prefix: str = "4.") -> DimensionScore:
+def grade_transparency(facts: CapabilityFacts, *, version_prefix: str = "4.") -> DimensionScore:
     findings: list[Finding] = []
     if not facts.observed:
         # Nothing arrived. Every check below this line is a statement about a document, and we
         # do not have one; the four findings this used to publish read as "the payer declares
         # none of this" and were disproved by the project's own history file.
         return _not_retrieved(
-            "transparency", "Capability transparency",
-            facts.parse_error or "no CapabilityStatement was retrieved on this run", _FHIR_CAPS)
+            "transparency",
+            "Capability transparency",
+            facts.parse_error or "no CapabilityStatement was retrieved on this run",
+            _FHIR_CAPS,
+        )
     if not facts.parsed or not facts.resource_type_ok:
-        findings.append(Finding(
-            code="T0", ok=False, points=0, max_points=100,
-            message=f"CapabilityStatement unparseable: {facts.parse_error}",
-            citation=_FHIR_CAPS,
-        ))
-        return DimensionScore(key="transparency", title="Capability transparency",
-                              score=0, findings=tuple(findings))
+        findings.append(
+            Finding(
+                code="T0",
+                ok=False,
+                points=0,
+                max_points=100,
+                message=f"CapabilityStatement unparseable: {facts.parse_error}",
+                citation=_FHIR_CAPS,
+            )
+        )
+        return DimensionScore(
+            key="transparency", title="Capability transparency", score=0, findings=tuple(findings)
+        )
 
     # Check the server against the release it intends to serve, not against R4 unconditionally
     # (calibration 2026-08-05): an endpoint registered as R5 declaring 5.0.0 is correct, and
     # marking it down for not being R4 would measure the wrong thing.
     version_ok = (facts.fhir_version or "").startswith(version_prefix)
-    findings.append(Finding(code="T1", ok=version_ok, points=30 if version_ok else 0,
-                            max_points=30,
-                            message=(f"fhirVersion declared: {facts.fhir_version!r} "
-                                     f"(expected {version_prefix}x)"),
-                            citation=_FHIR_CAPS))
+    findings.append(
+        Finding(
+            code="T1",
+            ok=version_ok,
+            points=30 if version_ok else 0,
+            max_points=30,
+            message=(f"fhirVersion declared: {facts.fhir_version!r} (expected {version_prefix}x)"),
+            citation=_FHIR_CAPS,
+        )
+    )
     sw = facts.software_name is not None and facts.software_version is not None
-    findings.append(Finding(code="T2", ok=sw, points=20 if sw else 0, max_points=20,
-                            message="software name and version declared" if sw
-                            else "software name/version missing",
-                            citation=_FHIR_CAPS))
+    findings.append(
+        Finding(
+            code="T2",
+            ok=sw,
+            points=20 if sw else 0,
+            max_points=20,
+            message="software name and version declared" if sw else "software name/version missing",
+            citation=_FHIR_CAPS,
+        )
+    )
     # Calibration (2026-08-05): breadth alone under-credits deliberately narrow APIs. CMS Blue
     # Button 2.0 declares exactly three resource types by design (Patient/Coverage/EOB) with
     # every one fully documented; that is transparent, not deficient. Narrow-but-complete
     # (2-4 resource types, all documenting their interactions) earns full points.
-    narrow_but_complete = (2 <= facts.resource_count < 5
-                           and facts.resources_with_interactions == facts.resource_count)
+    narrow_but_complete = (
+        2 <= facts.resource_count < 5 and facts.resources_with_interactions == facts.resource_count
+    )
     enough = facts.resource_count >= 5 or narrow_but_complete
-    findings.append(Finding(code="T3", ok=enough, points=25 if enough else 0, max_points=25,
-                            message=f"{facts.resource_count} resource types declared"
-                            + (" (narrow but fully documented)" if narrow_but_complete else ""),
-                            citation=_FHIR_CAPS))
-    covered = (facts.resource_count > 0
-               and facts.resources_with_interactions >= 0.8 * facts.resource_count)
-    findings.append(Finding(code="T4", ok=covered, points=25 if covered else 0, max_points=25,
-                            message=(f"{facts.resources_with_interactions}/{facts.resource_count} "
-                                     "declared resources document their interactions"),
-                            citation=_FHIR_CAPS))
-    return DimensionScore(key="transparency", title="Capability transparency",
-                          score=_score(findings), findings=tuple(findings))
+    findings.append(
+        Finding(
+            code="T3",
+            ok=enough,
+            points=25 if enough else 0,
+            max_points=25,
+            message=f"{facts.resource_count} resource types declared"
+            + (" (narrow but fully documented)" if narrow_but_complete else ""),
+            citation=_FHIR_CAPS,
+        )
+    )
+    covered = (
+        facts.resource_count > 0 and facts.resources_with_interactions >= 0.8 * facts.resource_count
+    )
+    findings.append(
+        Finding(
+            code="T4",
+            ok=covered,
+            points=25 if covered else 0,
+            max_points=25,
+            message=(
+                f"{facts.resources_with_interactions}/{facts.resource_count} "
+                "declared resources document their interactions"
+            ),
+            citation=_FHIR_CAPS,
+        )
+    )
+    return DimensionScore(
+        key="transparency",
+        title="Capability transparency",
+        score=_score(findings),
+        findings=tuple(findings),
+    )
 
 
 def _profiles_finding(facts: CapabilityFacts) -> Finding:
@@ -215,20 +301,36 @@ def _profiles_finding(facts: CapabilityFacts) -> Finding:
     it: it claimed more than it had checked, and it told a payer nothing about which element to
     populate.
     """
-    matched = sorted({element for element, url in facts.conformance_profiles
-                      if any(marker in url.lower() for marker in _PROFILE_MARKERS)})
+    matched = sorted(
+        {
+            element
+            for element, url in facts.conformance_profiles
+            if any(marker in url.lower() for marker in _PROFILE_MARKERS)
+        }
+    )
     if matched:
         message = "US Core / CARIN / Da Vinci profiles declared in " + ", ".join(matched)
     elif facts.conformance_profiles:
         where = sorted({element for element, _ in facts.conformance_profiles})
-        message = (f"{len(facts.conformance_profiles)} profile canonical(s) declared in "
-                   f"{', '.join(where)}, none of them US Core, CARIN, or Da Vinci; also checked "
-                   + ", ".join(e for e in _PROFILE_ELEMENTS if e not in where))
+        message = (
+            f"{len(facts.conformance_profiles)} profile canonical(s) declared in "
+            f"{', '.join(where)}, none of them US Core, CARIN, or Da Vinci; also checked "
+            + ", ".join(e for e in _PROFILE_ELEMENTS if e not in where)
+        )
     else:
-        message = ("no profile canonical declared in " + ", ".join(_PROFILE_ELEMENTS[:-1])
-                   + f", or {_PROFILE_ELEMENTS[-1]}")
-    return Finding(code="I1", ok=bool(matched), points=40 if matched else 0, max_points=40,
-                   message=message, citation=_US_CORE)
+        message = (
+            "no profile canonical declared in "
+            + ", ".join(_PROFILE_ELEMENTS[:-1])
+            + f", or {_PROFILE_ELEMENTS[-1]}"
+        )
+    return Finding(
+        code="I1",
+        ok=bool(matched),
+        points=40 if matched else 0,
+        max_points=40,
+        message=message,
+        citation=_US_CORE,
+    )
 
 
 def _prose_only_note(facts: CapabilityFacts, *, declared: bool) -> Finding | None:
@@ -243,28 +345,44 @@ def _prose_only_note(facts: CapabilityFacts, *, declared: bool) -> Finding | Non
     """
     if declared:
         return None
-    prose = {"implementation.description": facts.implementation_description,
-             "title": facts.title, "name": facts.name}
-    named_in = sorted(element for element, text in prose.items()
-                      if text and any(marker in text.lower() for marker in _PROSE_MARKERS))
+    prose = {
+        "implementation.description": facts.implementation_description,
+        "title": facts.title,
+        "name": facts.name,
+    }
+    named_in = sorted(
+        element
+        for element, text in prose.items()
+        if text and any(marker in text.lower() for marker in _PROSE_MARKERS)
+    )
     if not named_in:
         return None
     return Finding(
-        code="I4", ok=False, points=0, max_points=0,
-        message=(f"informational: {', '.join(named_in)} names US Core, CARIN, or Da Vinci in "
-                 "prose, but no profile canonical is declared in any conformance element. Prose "
-                 "is not a conformance claim and scores nothing either way; adding "
-                 "rest.resource.supportedProfile entries would make the claim machine-readable"),
-        citation=_US_CORE)
+        code="I4",
+        ok=False,
+        points=0,
+        max_points=0,
+        message=(
+            f"informational: {', '.join(named_in)} names US Core, CARIN, or Da Vinci in "
+            "prose, but no profile canonical is declared in any conformance element. Prose "
+            "is not a conformance claim and scores nothing either way; adding "
+            "rest.resource.supportedProfile entries would make the claim machine-readable"
+        ),
+        citation=_US_CORE,
+    )
 
 
-def grade_interop(facts: CapabilityFacts, smart: SmartFacts, *,
-                  kind: str = "reference") -> DimensionScore:
+def grade_interop(
+    facts: CapabilityFacts, smart: SmartFacts, *, kind: str = "reference"
+) -> DimensionScore:
     findings: list[Finding] = []
     if not facts.observed:
         return _not_retrieved(
-            "interop", "Interop readiness",
-            facts.parse_error or "no CapabilityStatement was retrieved on this run", _US_CORE)
+            "interop",
+            "Interop readiness",
+            facts.parse_error or "no CapabilityStatement was retrieved on this run",
+            _US_CORE,
+        )
     profiles = _profiles_finding(facts)
     findings.append(profiles)
     prose_note = _prose_only_note(facts, declared=profiles.ok)
@@ -277,45 +395,90 @@ def grade_interop(facts: CapabilityFacts, smart: SmartFacts, *,
     # those findings are reported as not applicable and carry no points either way.
     public_by_design = kind == "payer_provider_directory"
     if public_by_design:
-        findings.append(Finding(
-            code="I2", ok=True, points=0, max_points=0,
-            message="SMART discovery not applicable: a Provider Directory API is public by design",
-            citation=_SMART_DISCOVERY))
-        findings.append(Finding(
-            code="I3", ok=True, points=0, max_points=0,
-            message="OAuth security not applicable: a Provider Directory API is public by design",
-            citation=_SMART_DISCOVERY))
+        findings.append(
+            Finding(
+                code="I2",
+                ok=True,
+                points=0,
+                max_points=0,
+                message="SMART discovery not applicable: a Provider Directory API is public by design",
+                citation=_SMART_DISCOVERY,
+            )
+        )
+        findings.append(
+            Finding(
+                code="I3",
+                ok=True,
+                points=0,
+                max_points=0,
+                message="OAuth security not applicable: a Provider Directory API is public by design",
+                citation=_SMART_DISCOVERY,
+            )
+        )
     elif not smart.observed:
         # The CapabilityStatement came from a vantage that did not carry the SMART document, so
         # this run never asked for it. "Absent" would be a claim about the endpoint.
-        findings.append(Finding(
-            code="I2", ok=False, points=0, max_points=0, observed=False,
-            message=("no vantage retrieved .well-known/smart-configuration on this run, so "
-                     "whether it is published is unknown"),
-            citation=_SMART_DISCOVERY))
-        findings.append(Finding(code="I3", ok=facts.declares_oauth_security,
-                                points=25 if facts.declares_oauth_security else 0, max_points=25,
-                                message=("OAuth/SMART security service declared in "
-                                         "CapabilityStatement" if facts.declares_oauth_security
-                                         else "no OAuth security service declared"),
-                                citation=_SMART_DISCOVERY))
+        findings.append(
+            Finding(
+                code="I2",
+                ok=False,
+                points=0,
+                max_points=0,
+                observed=False,
+                message=(
+                    "no vantage retrieved .well-known/smart-configuration on this run, so "
+                    "whether it is published is unknown"
+                ),
+                citation=_SMART_DISCOVERY,
+            )
+        )
+        findings.append(
+            Finding(
+                code="I3",
+                ok=facts.declares_oauth_security,
+                points=25 if facts.declares_oauth_security else 0,
+                max_points=25,
+                message=(
+                    "OAuth/SMART security service declared in CapabilityStatement"
+                    if facts.declares_oauth_security
+                    else "no OAuth security service declared"
+                ),
+                citation=_SMART_DISCOVERY,
+            )
+        )
     else:
         smart_ok = smart.parsed and smart.has_authorization_endpoint and smart.has_token_endpoint
-        findings.append(Finding(code="I2", ok=smart_ok, points=35 if smart_ok else 0,
-                                max_points=35,
-                                message=("SMART discovery document present and complete"
-                                         if smart_ok
-                                         else "SMART .well-known/smart-configuration absent or "
-                                              "incomplete"),
-                                citation=_SMART_DISCOVERY))
-        findings.append(Finding(code="I3", ok=facts.declares_oauth_security,
-                                points=25 if facts.declares_oauth_security else 0, max_points=25,
-                                message=("OAuth/SMART security service declared in "
-                                         "CapabilityStatement" if facts.declares_oauth_security
-                                         else "no OAuth security service declared"),
-                                citation=_SMART_DISCOVERY))
-    return DimensionScore(key="interop", title="Interop readiness",
-                          score=_score(findings), findings=tuple(findings))
+        findings.append(
+            Finding(
+                code="I2",
+                ok=smart_ok,
+                points=35 if smart_ok else 0,
+                max_points=35,
+                message=(
+                    "SMART discovery document present and complete"
+                    if smart_ok
+                    else "SMART .well-known/smart-configuration absent or incomplete"
+                ),
+                citation=_SMART_DISCOVERY,
+            )
+        )
+        findings.append(
+            Finding(
+                code="I3",
+                ok=facts.declares_oauth_security,
+                points=25 if facts.declares_oauth_security else 0,
+                max_points=25,
+                message=(
+                    "OAuth/SMART security service declared in CapabilityStatement"
+                    if facts.declares_oauth_security
+                    else "no OAuth security service declared"
+                ),
+                citation=_SMART_DISCOVERY,
+            )
+        )
+    return DimensionScore(
+        key="interop", title="Interop readiness", score=_score(findings), findings=tuple(findings)
+    )
 
 
 _WEIGHTS = {"reachability": 0.35, "transparency": 0.35, "interop": 0.30}
@@ -342,15 +505,21 @@ def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:
     return "F"
 
 
-def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
-                    facts: CapabilityFacts, smart: SmartFacts, *,
-                    kind: str = "reference",
-                    version_prefix: str = "4.",
-                    vantage: str = "unspecified",
-                    consensus: Consensus | None = None,
-                    observed_since: str | None = None,
-                    drift_events: tuple[str, ...] = (),
-                    availability: str = "") -> Scorecard:
+def build_scorecard(
+    endpoint_id: str,
+    name: str,
+    metadata: FetchResult,
+    facts: CapabilityFacts,
+    smart: SmartFacts,
+    *,
+    kind: str = "reference",
+    version_prefix: str = "4.",
+    vantage: str = "unspecified",
+    consensus: Consensus | None = None,
+    observed_since: str | None = None,
+    drift_events: tuple[str, ...] = (),
+    availability: str = "",
+) -> Scorecard:
     dimensions = (
         grade_reachability(metadata, vantage=vantage, consensus=consensus),
         grade_transparency(facts, version_prefix=version_prefix),
@@ -361,8 +530,9 @@ def build_scorecard(endpoint_id: str, name: str, metadata: FetchResult,
         name=name,
         # The reconciled view decides the grade: an endpoint another vantage reached is not an
         # F just because this network could not get to it.
-        grade=letter(dimensions,
-                     reachable=consensus.reachable if consensus is not None else metadata.ok),
+        grade=letter(
+            dimensions, reachable=consensus.reachable if consensus is not None else metadata.ok
+        ),
         reachable=consensus.reachable if consensus is not None else metadata.ok,
         dimensions=dimensions,
         kind=kind,

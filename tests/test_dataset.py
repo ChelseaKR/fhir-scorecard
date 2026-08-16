@@ -17,18 +17,29 @@ from fhir_scorecard.registry import Endpoint
 
 def _card(eid: str = "acme", kind: str = "payer"):
     return build_scorecard(
-        eid, "Acme Health",
-        FetchResult(url="https://a.test/metadata", ok=True, status=200, elapsed_ms=10,
-                    body=b"", error=None),
+        eid,
+        "Acme Health",
+        FetchResult(
+            url="https://a.test/metadata", ok=True, status=200, elapsed_ms=10, body=b"", error=None
+        ),
         parse_capability(json.dumps(good_capability()).encode()),
         parse_smart(json.dumps(good_smart()).encode()),
-        kind=kind, availability="answered 5 of 5 checks", observed_since="2026-08-01")
+        kind=kind,
+        availability="answered 5 of 5 checks",
+        observed_since="2026-08-01",
+    )
 
 
 def _endpoint(eid: str = "acme") -> Endpoint:
-    return Endpoint(endpoint_id=eid, name="Acme Health", kind="payer",
-                    base_url="https://a.test/r4", verified_method="live fetch",
-                    verified_date="2026-08-05", expects="r4")
+    return Endpoint(
+        endpoint_id=eid,
+        name="Acme Health",
+        kind="payer",
+        base_url="https://a.test/r4",
+        verified_method="live fetch",
+        verified_date="2026-08-05",
+        expects="r4",
+    )
 
 
 def test_csv_has_documented_columns_and_scores() -> None:
@@ -62,10 +73,21 @@ def test_schema_documents_every_column() -> None:
 
 def _registry(tmp_path: Path) -> Path:
     path = tmp_path / "registry.json"
-    path.write_text(json.dumps({"endpoints": [
-        {"id": "alpha", "name": "Alpha Health Patient Access API", "kind": "payer",
-         "base_url": "https://alpha.test/r4",
-         "verification": {"method": "fixture", "date": "2026-08-05"}}]}))
+    path.write_text(
+        json.dumps(
+            {
+                "endpoints": [
+                    {
+                        "id": "alpha",
+                        "name": "Alpha Health Patient Access API",
+                        "kind": "payer",
+                        "base_url": "https://alpha.test/r4",
+                        "verification": {"method": "fixture", "date": "2026-08-05"},
+                    }
+                ]
+            }
+        )
+    )
     return path
 
 
@@ -75,10 +97,25 @@ def test_cli_writes_dataset_and_static_api(tmp_path: Path) -> None:
     (d / "metadata.json").write_text(json.dumps(good_capability()))
     (d / "smart.json").write_text(json.dumps(good_smart()))
     out = tmp_path / "site"
-    assert main(["grade", "--registry", str(_registry(tmp_path)), "--offline",
-                 "--fixtures", str(tmp_path / "fixtures"), "--out", str(out),
-                 "--history", str(tmp_path / "h.json"),
-                 "--origin", "https://example.test/"]) == 0
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(_registry(tmp_path)),
+                "--offline",
+                "--fixtures",
+                str(tmp_path / "fixtures"),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+                "--origin",
+                "https://example.test/",
+            ]
+        )
+        == 0
+    )
 
     assert (out / "dataset.csv").is_file()
     assert (out / "dataset.schema.json").is_file()
@@ -92,7 +129,7 @@ def test_cli_writes_dataset_and_static_api(tmp_path: Path) -> None:
 
     detail = json.loads((out / "api" / "endpoint" / "alpha.json").read_text())
     assert detail["endpoint"]["grade"] == "A"
-    assert {d["key"] for d in detail["dimensions"]} == {
-        "reachability", "transparency", "interop"}
-    assert all(f["citation"].startswith("https://")
-               for d in detail["dimensions"] for f in d["findings"])
+    assert {d["key"] for d in detail["dimensions"]} == {"reachability", "transparency", "interop"}
+    assert all(
+        f["citation"].startswith("https://") for d in detail["dimensions"] for f in d["findings"]
+    )

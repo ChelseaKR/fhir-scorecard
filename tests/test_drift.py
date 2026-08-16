@@ -69,8 +69,12 @@ def test_events_bounded() -> None:
     history: dict[str, Any] = {}
     observe(history, "x", _facts(), "2026-01-01")
     for i in range(30):
-        observe(history, "x",
-                _facts(software={"name": "S", "version": str(i)}), f"2026-02-{i % 28 + 1:02d}")
+        observe(
+            history,
+            "x",
+            _facts(software={"name": "S", "version": str(i)}),
+            f"2026-02-{i % 28 + 1:02d}",
+        )
     assert len(history["x"]["events"]) <= 20
 
 
@@ -92,6 +96,7 @@ def test_corrupt_history_fails_open_to_empty(tmp_path: Path) -> None:
 
 def test_availability_accumulates_and_is_gated_until_enough_data() -> None:
     from fhir_scorecard.drift import MIN_OBSERVATIONS_TO_REPORT
+
     history: dict[str, Any] = {}
     for day in range(1, 5):
         r = observe(history, "x", _facts(), f"2026-08-{day:02d}")
@@ -130,6 +135,7 @@ def test_observation_window_is_bounded() -> None:
 
 def test_fingerprint_stores_digest_not_every_profile() -> None:
     from fhir_scorecard.drift import fingerprint
+
     fp = fingerprint(_facts())
     assert "supported_profiles" not in fp
     assert fp["profile_count"] == 6
@@ -147,19 +153,32 @@ def test_profile_swap_detected_even_when_count_is_equal() -> None:
 
 
 def test_legacy_profile_list_migrates_without_false_drift() -> None:
-    history: dict[str, Any] = {"x": {
-        "first_seen": "2026-07-01", "last_seen": "2026-07-01",
-        "fingerprint": {
-            "fhir_version": "4.0.1", "software_name": "SyntheticServer",
-            "software_version": "9.9.9", "resource_count": 6,
-            "resources_with_interactions": 6, "declares_oauth_security": True,
-            "supported_profiles": [
-                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-{t}"
-                for t in ["patient", "coverage", "explanationofbenefit",
-                          "practitioner", "organization", "observation"]],
-        },
-        "events": [],
-    }}
+    history: dict[str, Any] = {
+        "x": {
+            "first_seen": "2026-07-01",
+            "last_seen": "2026-07-01",
+            "fingerprint": {
+                "fhir_version": "4.0.1",
+                "software_name": "SyntheticServer",
+                "software_version": "9.9.9",
+                "resource_count": 6,
+                "resources_with_interactions": 6,
+                "declares_oauth_security": True,
+                "supported_profiles": [
+                    f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-{t}"
+                    for t in [
+                        "patient",
+                        "coverage",
+                        "explanationofbenefit",
+                        "practitioner",
+                        "organization",
+                        "observation",
+                    ]
+                ],
+            },
+            "events": [],
+        }
+    }
     r = observe(history, "x", _facts(), "2026-08-05")
     assert r.changes == ()
     assert "profile_count" in history["x"]["fingerprint"]

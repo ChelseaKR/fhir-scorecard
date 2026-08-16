@@ -48,12 +48,14 @@ def load_candidates(path: Path) -> list[Candidate]:
         if cid in seen:
             raise ValueError(f"duplicate candidate id {cid!r}")
         seen.add(cid)
-        out.append(Candidate(
-            candidate_id=cid,
-            name=str(item.get("name") or cid),
-            base_url=base.rstrip("/"),
-            last_outcome=str(item.get("last_outcome") or "unknown"),
-        ))
+        out.append(
+            Candidate(
+                candidate_id=cid,
+                name=str(item.get("name") or cid),
+                base_url=base.rstrip("/"),
+                last_outcome=str(item.get("last_outcome") or "unknown"),
+            )
+        )
     return out
 
 
@@ -65,14 +67,19 @@ def reprobe(candidate: Candidate) -> ReprobeResult:
         return ReprobeResult(candidate=candidate, now_answers=False, detail=detail)
     facts = parse_capability(result.body)
     if not facts.parsed or not facts.resource_type_ok:
-        return ReprobeResult(candidate=candidate, now_answers=False,
-                             detail=f"answered, but not a CapabilityStatement: {facts.parse_error}")
+        return ReprobeResult(
+            candidate=candidate,
+            now_answers=False,
+            detail=f"answered, but not a CapabilityStatement: {facts.parse_error}",
+        )
     return ReprobeResult(
         candidate=candidate,
         now_answers=True,
-        detail=(f"CapabilityStatement present: fhirVersion {facts.fhir_version}, "
-                f"{facts.resource_count} resource types, "
-                f"software {facts.software_name or 'unstated'}"),
+        detail=(
+            f"CapabilityStatement present: fhirVersion {facts.fhir_version}, "
+            f"{facts.resource_count} resource types, "
+            f"software {facts.software_name or 'unstated'}"
+        ),
     )
 
 
@@ -80,13 +87,16 @@ def format_report(results: list[ReprobeResult]) -> str:
     """Human-readable summary. Newly-answering candidates need publisher confirmation before
     they can enter the registry, and the report says so rather than implying promotion."""
     answering = [r for r in results if r.now_answers]
-    lines = [f"re-probed {len(results)} previously rejected candidates; "
-             f"{len(answering)} now answer"]
+    lines = [
+        f"re-probed {len(results)} previously rejected candidates; {len(answering)} now answer"
+    ]
     for r in results:
         mark = "NOW ANSWERS" if r.now_answers else "still rejected"
         lines.append(f"  [{mark}] {r.candidate.candidate_id}: {r.detail}")
     if answering:
         lines.append("")
-        lines.append("Confirm the publisher matches the claimed organization before adding any "
-                     "of these to the registry; answering is not the same as verified.")
+        lines.append(
+            "Confirm the publisher matches the claimed organization before adding any "
+            "of these to the registry; answering is not the same as verified."
+        )
     return "\n".join(lines)

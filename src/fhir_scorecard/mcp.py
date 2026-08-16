@@ -21,9 +21,11 @@ SERVER_INFO = {"name": "io.github.chelseakr/fhir-scorecard", "version": "0.1.0"}
 _TOOLS = [
     {
         "name": "list_endpoints",
-        "description": ("List graded FHIR endpoints, optionally filtered by kind "
-                        "(payer, payer_provider_directory, provider, ehr, reference) "
-                        "or by grade."),
+        "description": (
+            "List graded FHIR endpoints, optionally filtered by kind "
+            "(payer, payer_provider_directory, provider, ehr, reference) "
+            "or by grade."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -34,8 +36,10 @@ _TOOLS = [
     },
     {
         "name": "get_endpoint",
-        "description": ("Full scorecard for one endpoint: every dimension, every finding with "
-                        "its spec citation, availability, and drift history."),
+        "description": (
+            "Full scorecard for one endpoint: every dimension, every finding with "
+            "its spec citation, availability, and drift history."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {"endpoint_id": {"type": "string"}},
@@ -44,9 +48,11 @@ _TOOLS = [
     },
     {
         "name": "grading_method",
-        "description": ("How grades are computed, what each finding code checks, and the "
-                        "documented limits of the dataset. Read this before characterizing "
-                        "any grade."),
+        "description": (
+            "How grades are computed, what each finding code checks, and the "
+            "documented limits of the dataset. Read this before characterizing "
+            "any grade."
+        ),
         "inputSchema": {"type": "object", "properties": {}},
     },
 ]
@@ -62,14 +68,21 @@ _METHOD_NOTE = {
         "'not observed' and empty dimension scores, not F. Nothing on such a record describes "
         "what the endpoint publishes, and it must not be characterized as a low grade, a "
         "failure, or an absence of declared capability. F means the endpoint answered and its "
-        "documents scored below the D threshold."),
-    "comparability": ("Grades are comparable within a kind only. A payer Patient Access API and "
-                      "an EHR vendor sandbox answer to different implementation guides and are "
-                      "never ranked against each other."),
-    "not_applicable": ("Provider Directory APIs are required to be reachable without "
-                       "authentication and are not scored on SMART discovery or OAuth."),
-    "version_awareness": ("Each endpoint declares the FHIR release it intends to serve and is "
-                          "checked against that, not against R4 unconditionally."),
+        "documents scored below the D threshold."
+    ),
+    "comparability": (
+        "Grades are comparable within a kind only. A payer Patient Access API and "
+        "an EHR vendor sandbox answer to different implementation guides and are "
+        "never ranked against each other."
+    ),
+    "not_applicable": (
+        "Provider Directory APIs are required to be reachable without "
+        "authentication and are not scored on SMART discovery or OAuth."
+    ),
+    "version_awareness": (
+        "Each endpoint declares the FHIR release it intends to serve and is "
+        "checked against that, not against R4 unconditionally."
+    ),
     "limits": [
         "Observational snapshot of public surfaces; not an audit, not a compliance "
         "determination, not a statement about care quality.",
@@ -109,13 +122,15 @@ def call_tool(site_dir: Path, name: str, arguments: dict[str, Any]) -> dict[str,
             rows = [e for e in rows if e.get("kind") == kind]
         if grade:
             rows = [e for e in rows if str(e.get("grade", "")).upper() == str(grade).upper()]
-        return _text({
-            "count": len(rows),
-            "generated_at": index.get("generated_at"),
-            "vantage": index.get("vantage"),
-            "endpoints": rows,
-            "note": _METHOD_NOTE["comparability"],
-        })
+        return _text(
+            {
+                "count": len(rows),
+                "generated_at": index.get("generated_at"),
+                "vantage": index.get("vantage"),
+                "endpoints": rows,
+                "note": _METHOD_NOTE["comparability"],
+            }
+        )
 
     if name == "get_endpoint":
         endpoint_id = str(arguments.get("endpoint_id") or "").strip()
@@ -148,8 +163,11 @@ def handle(site_dir: Path, request: dict[str, Any]) -> dict[str, Any] | None:
     elif request_id is None:
         return None  # a notification we do not act on
     else:
-        return {"jsonrpc": "2.0", "id": request_id,
-                "error": {"code": -32601, "message": f"unknown method {method!r}"}}
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "error": {"code": -32601, "message": f"unknown method {method!r}"},
+        }
 
     if request_id is None:
         return None
@@ -166,15 +184,26 @@ def serve(site_dir: Path, stdin: TextIO | None = None, stdout: TextIO | None = N
         try:
             request = json.loads(line)
         except ValueError:
-            sink.write(json.dumps({"jsonrpc": "2.0", "id": None,
-                                   "error": {"code": -32700, "message": "parse error"}}) + "\n")
+            sink.write(
+                json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": None,
+                        "error": {"code": -32700, "message": "parse error"},
+                    }
+                )
+                + "\n"
+            )
             sink.flush()
             continue
         try:
             response = handle(site_dir, request if isinstance(request, dict) else {})
         except Exception as exc:  # a bad request must not kill the server
-            response = {"jsonrpc": "2.0", "id": (request or {}).get("id"),
-                        "error": {"code": -32603, "message": f"{type(exc).__name__}: {exc}"}}
+            response = {
+                "jsonrpc": "2.0",
+                "id": (request or {}).get("id"),
+                "error": {"code": -32603, "message": f"{type(exc).__name__}: {exc}"},
+            }
         if response is not None:
             sink.write(json.dumps(response) + "\n")
             sink.flush()

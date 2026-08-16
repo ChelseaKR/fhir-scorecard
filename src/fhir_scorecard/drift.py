@@ -50,9 +50,11 @@ class Availability:
         if not self.observations:
             return "no availability observations recorded yet"
         if not self.reportable:
-            return (f"answered {self.reachable} of {self.observations} checks so far; "
-                    f"availability is reported once {MIN_OBSERVATIONS_TO_REPORT} "
-                    "observations exist")
+            return (
+                f"answered {self.reachable} of {self.observations} checks so far; "
+                f"availability is reported once {MIN_OBSERVATIONS_TO_REPORT} "
+                "observations exist"
+            )
         pct = round(100 * self.reachable / self.observations)
         return f"answered {self.reachable} of the last {self.observations} daily checks ({pct}%)"
 
@@ -75,8 +77,7 @@ def fingerprint(facts: CapabilityFacts) -> dict[str, object]:
     fp: dict[str, object] = {name: getattr(facts, name) for name in _FINGERPRINT_FIELDS}
     profiles = sorted(set(facts.supported_profiles))
     fp["profile_count"] = len(profiles)
-    fp["profile_digest"] = hashlib.sha256(
-        "\n".join(profiles).encode("utf-8")).hexdigest()[:16]
+    fp["profile_digest"] = hashlib.sha256("\n".join(profiles).encode("utf-8")).hexdigest()[:16]
     return fp
 
 
@@ -102,7 +103,8 @@ def ensure_mode(history: dict[str, Any], *, offline: bool) -> None:
         raise ValueError(
             f"this history file was written by a {recorded} run and this is a {mode} run; "
             f"point --history at a scratch path rather than mixing {recorded} and {mode} "
-            "observations in one availability record")
+            "observations in one availability record"
+        )
     history[META_KEY] = {"mode": mode}
 
 
@@ -156,17 +158,23 @@ def _record_observation(entry: dict[str, Any], today: str, reachable: bool) -> A
     does not double-count a day."""
     raw = entry.get("observations")
     observations: list[dict[str, Any]] = raw if isinstance(raw, list) else []
-    observations = [o for o in observations
-                    if isinstance(o, dict) and o.get("date") != today]
+    observations = [o for o in observations if isinstance(o, dict) and o.get("date") != today]
     observations.append({"date": today, "up": reachable})
     observations = observations[-_MAX_OBSERVATIONS:]
     entry["observations"] = observations
-    return Availability(observations=len(observations),
-                        reachable=sum(1 for o in observations if o.get("up")))
+    return Availability(
+        observations=len(observations), reachable=sum(1 for o in observations if o.get("up"))
+    )
 
 
-def observe(history: dict[str, Any], endpoint_id: str, facts: CapabilityFacts,
-            today: str, *, reachable: bool | None = None) -> DriftResult:
+def observe(
+    history: dict[str, Any],
+    endpoint_id: str,
+    facts: CapabilityFacts,
+    today: str,
+    *,
+    reachable: bool | None = None,
+) -> DriftResult:
     """Record today's observation, mutating ``history``; returns what changed since last run.
 
     Only parsed CapabilityStatements are observed: an outage must not read as the server's
@@ -205,15 +213,21 @@ def observe(history: dict[str, Any], endpoint_id: str, facts: CapabilityFacts,
 
     first_seen_raw = entry.get("first_seen")
     first_seen = first_seen_raw if isinstance(first_seen_raw, str) else today
-    entry.update({
-        "first_seen": first_seen,
-        "last_seen": today,
-        "fingerprint": current,
-        "events": events,
-    })
+    entry.update(
+        {
+            "first_seen": first_seen,
+            "last_seen": today,
+            "fingerprint": current,
+            "events": events,
+        }
+    )
     history[endpoint_id] = entry
-    return DriftResult(first_seen=first_seen, changes=tuple(changes),
-                       recorded_events=_event_lines(events), availability=availability)
+    return DriftResult(
+        first_seen=first_seen,
+        changes=tuple(changes),
+        recorded_events=_event_lines(events),
+        availability=availability,
+    )
 
 
 def _event_lines(events: list[dict[str, Any]]) -> tuple[str, ...]:

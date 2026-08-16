@@ -59,6 +59,36 @@ here are dated records of change, not version-tagged release notes.
 
 ### Fixed
 
+- **Three named AUTO gates were documented and never ran** (#26).
+  - **CQ-04, formatting.** `make lint` was `ruff check src tests` and nothing else, so
+    `ruff format --check` never ran. `make format` runs it now and is part of `make verify`.
+    Turning it on reformatted 28 of 31 files, and it needed the standard's own `ignore = ["E501"]`,
+    because `ruff format` cannot split a string literal and four of them land past column 100.
+    The select set is now the standard's pinned list exactly, which added `W` and `SIM`; both
+    were already clean.
+  - **CQ-11, dependency audit.** Nothing checked this dependency set for known vulnerabilities,
+    anywhere. `make audit` exports the locked set and runs `pip-audit --strict` over it, and
+    `security.yml` runs the same target on push, PR and the weekly schedule. `--strict` so a
+    dependency that could not be audited fails rather than being skipped past. No `|| true`.
+    First run: no known vulnerabilities.
+  - **CQ-27**, dev dependencies moved from `[project.optional-dependencies]` to a PEP 735
+    `[dependency-groups]` group, so the linters and type-checker cannot ship as an extra.
+- **CQ-09: the committed lockfile was decorative, and the standard's own remedy would have left
+  it that way** (#26). `verify.yml` installed with `pip install -e '.[dev]'`, which re-resolves
+  from PyPI and ignores `uv.lock` entirely, so the lockfile could drift indefinitely and the
+  toolchain gating a merge was never the one the lockfile described. CI now installs with
+  `make sync`.
+  - That target runs **`uv sync --locked`, not `uv sync --frozen`**, and `make verify` now
+    opens with a `lock-check` target running `uv lock --check --offline`. The control text says
+    `--frozen` and calls it a lockfile-drift check; measured here on uv 0.12.1, it is not one.
+    Against a deliberately drifted `pyproject.toml`: `uv lock --check --offline` exits 1,
+    `uv sync --locked` exits 1, and `uv sync --frozen` exits **0** having installed the stale
+    set, because `--frozen` means install from the lock without consulting the manifest. A
+    drift check that passes on a drifted lock is not a check.
+  - `lock-check` is deliberately the **first** prerequisite of `verify`: a later target that
+    resolved dependencies would repair the lockfile it was meant to be checked against and
+    then pass. It writes nothing and reaches no network. Nothing in this repository invokes a
+    bare `uv run`, which performs exactly that implicit repair.
 - **The README's offline command named a directory that did not exist** (#6). `tests/fixtures`
   was in the Quick start and in no commit, so `--offline --fixtures tests/fixtures` failed to load
   a fixture for every endpoint, exited 0, wrote a complete site in which every named organization

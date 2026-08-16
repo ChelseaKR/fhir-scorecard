@@ -15,12 +15,16 @@ from fhir_scorecard.site import endpoint_page, org_slug, robots, sitemap, status
 
 def _card(eid: str = "acme", kind: str = "payer", name: str = "Acme Health"):
     return build_scorecard(
-        eid, name,
-        FetchResult(url="https://a.test/metadata", ok=True, status=200, elapsed_ms=10,
-                    body=b"", error=None),
+        eid,
+        name,
+        FetchResult(
+            url="https://a.test/metadata", ok=True, status=200, elapsed_ms=10, body=b"", error=None
+        ),
         parse_capability(json.dumps(good_capability()).encode()),
         parse_smart(json.dumps(good_smart()).encode()),
-        kind=kind, availability="answered 5 of 5 checks")
+        kind=kind,
+        availability="answered 5 of 5 checks",
+    )
 
 
 def test_org_slug_strips_api_noise() -> None:
@@ -34,21 +38,30 @@ def test_org_display_name_is_the_shared_prefix_not_one_endpoints_name() -> None:
     """Naming an org page after whichever endpoint came first titled it with one surface."""
     from fhir_scorecard.site import org_display_name
 
-    assert org_display_name(["Cigna Patient Access API",
-                             "Cigna Provider Directory API"]) == "Cigna"
-    assert org_display_name(["Sharp Health Plan Patient Access API",
-                             "Sharp Health Plan Provider Directory API"]) == "Sharp Health Plan"
+    assert org_display_name(["Cigna Patient Access API", "Cigna Provider Directory API"]) == "Cigna"
+    assert (
+        org_display_name(
+            ["Sharp Health Plan Patient Access API", "Sharp Health Plan Provider Directory API"]
+        )
+        == "Sharp Health Plan"
+    )
     # Parenthetical qualifiers are dropped, so two releases of one server still share a name.
-    assert org_display_name(["HAPI FHIR public test server (R4)",
-                             "HAPI FHIR public test server (R5)"]) == "HAPI FHIR public test server"
+    assert (
+        org_display_name(["HAPI FHIR public test server (R4)", "HAPI FHIR public test server (R5)"])
+        == "HAPI FHIR public test server"
+    )
     # Nothing shared: fall back rather than render an empty heading.
     assert org_display_name(["Alpha", "Beta"]) == "Alpha"
     assert org_display_name([]) == ""
 
 
 def test_endpoint_page_escapes_and_carries_structured_data() -> None:
-    page = endpoint_page(_card(name="<script>x</script>"), base_url="https://a.test/r4",
-                         verified="live fetch", origin="https://example.test")
+    page = endpoint_page(
+        _card(name="<script>x</script>"),
+        base_url="https://a.test/r4",
+        verified="live fetch",
+        origin="https://example.test",
+    )
     assert "<script>x</script>" not in page.body
     assert "&lt;script&gt;" in page.body
     ld = re.search(r'<script type="application/ld\+json">(.*?)</script>', page.body, re.S)
@@ -62,8 +75,11 @@ def test_endpoint_page_escapes_and_carries_structured_data() -> None:
 
 def test_sitemap_and_robots_are_wellformed() -> None:
     from fhir_scorecard.site import Page
-    pages = [Page(path="", title="t", description="d", body=""),
-             Page(path="endpoint/acme", title="t", description="d", body="")]
+
+    pages = [
+        Page(path="", title="t", description="d", body=""),
+        Page(path="endpoint/acme", title="t", description="d", body=""),
+    ]
     xml = sitemap(pages, "https://example.test")
     assert xml.startswith("<?xml")
     assert "<loc>https://example.test/</loc>" in xml
@@ -82,14 +98,28 @@ def test_status_badge_is_accessible_and_escapes_registry_data() -> None:
 
 def _registry(tmp_path: Path) -> Path:
     path = tmp_path / "registry.json"
-    path.write_text(json.dumps({"endpoints": [
-        {"id": "alpha", "name": "Alpha Health Patient Access API", "kind": "payer",
-         "base_url": "https://alpha.test/r4",
-         "verification": {"method": "fixture", "date": "2026-08-05"}},
-        {"id": "alpha-dir", "name": "Alpha Health Provider Directory API",
-         "kind": "payer_provider_directory", "base_url": "https://alpha.test/pd",
-         "verification": {"method": "fixture", "date": "2026-08-05"}},
-    ]}))
+    path.write_text(
+        json.dumps(
+            {
+                "endpoints": [
+                    {
+                        "id": "alpha",
+                        "name": "Alpha Health Patient Access API",
+                        "kind": "payer",
+                        "base_url": "https://alpha.test/r4",
+                        "verification": {"method": "fixture", "date": "2026-08-05"},
+                    },
+                    {
+                        "id": "alpha-dir",
+                        "name": "Alpha Health Provider Directory API",
+                        "kind": "payer_provider_directory",
+                        "base_url": "https://alpha.test/pd",
+                        "verification": {"method": "fixture", "date": "2026-08-05"},
+                    },
+                ]
+            }
+        )
+    )
     return path
 
 
@@ -100,14 +130,37 @@ def test_site_build_produces_indexable_pages(tmp_path: Path) -> None:
         (d / "metadata.json").write_text(json.dumps(good_capability()))
         (d / "smart.json").write_text(json.dumps(good_smart()))
     out = tmp_path / "site"
-    assert main(["grade", "--registry", str(_registry(tmp_path)), "--offline",
-                 "--fixtures", str(tmp_path / "fixtures"), "--out", str(out),
-                 "--history", str(tmp_path / "h.json"),
-                 "--origin", "https://example.test"]) == 0
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(_registry(tmp_path)),
+                "--offline",
+                "--fixtures",
+                str(tmp_path / "fixtures"),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+                "--origin",
+                "https://example.test",
+            ]
+        )
+        == 0
+    )
 
-    for rel in ("index.html", "how-we-grade/index.html", "payers/index.html",
-                "provider-directories/index.html", "endpoint/alpha/index.html",
-                "org/alpha-health/index.html", "badge/alpha.svg", "sitemap.xml", "robots.txt"):
+    for rel in (
+        "index.html",
+        "how-we-grade/index.html",
+        "payers/index.html",
+        "provider-directories/index.html",
+        "endpoint/alpha/index.html",
+        "org/alpha-health/index.html",
+        "badge/alpha.svg",
+        "sitemap.xml",
+        "robots.txt",
+    ):
         assert (out / rel).is_file(), f"missing {rel}"
 
     home = (out / "index.html").read_text()
@@ -127,10 +180,7 @@ def test_site_build_produces_indexable_pages(tmp_path: Path) -> None:
 
     # Every generated page must appear in the sitemap: an orphan page is not indexable.
     xml = (out / "sitemap.xml").read_text()
-    generated = {
-        str(p.parent.relative_to(out)).replace(".", "")
-        for p in out.rglob("index.html")
-    }
+    generated = {str(p.parent.relative_to(out)).replace(".", "") for p in out.rglob("index.html")}
     for rel in generated:
         loc = f"https://example.test/{rel + '/' if rel else ''}"
         assert f"<loc>{loc}</loc>" in xml, f"orphan page {rel!r}"
@@ -139,17 +189,42 @@ def test_site_build_produces_indexable_pages(tmp_path: Path) -> None:
 def test_single_surface_orgs_get_no_thin_org_page(tmp_path: Path) -> None:
     """An org page duplicating one endpoint page is thin content, not a search surface."""
     path = tmp_path / "registry.json"
-    path.write_text(json.dumps({"endpoints": [
-        {"id": "solo", "name": "Solo Health Patient Access API", "kind": "payer",
-         "base_url": "https://solo.test/r4",
-         "verification": {"method": "fixture", "date": "2026-08-05"}}]}))
+    path.write_text(
+        json.dumps(
+            {
+                "endpoints": [
+                    {
+                        "id": "solo",
+                        "name": "Solo Health Patient Access API",
+                        "kind": "payer",
+                        "base_url": "https://solo.test/r4",
+                        "verification": {"method": "fixture", "date": "2026-08-05"},
+                    }
+                ]
+            }
+        )
+    )
     d = tmp_path / "fixtures" / "solo"
     d.mkdir(parents=True)
     (d / "metadata.json").write_text(json.dumps(good_capability()))
     out = tmp_path / "site"
-    assert main(["grade", "--registry", str(path), "--offline",
-                 "--fixtures", str(tmp_path / "fixtures"), "--out", str(out),
-                 "--history", str(tmp_path / "h.json")]) == 0
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(path),
+                "--offline",
+                "--fixtures",
+                str(tmp_path / "fixtures"),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+            ]
+        )
+        == 0
+    )
     assert (out / "endpoint" / "solo" / "index.html").is_file()
     assert not (out / "org").exists()
 
@@ -157,6 +232,7 @@ def test_single_surface_orgs_get_no_thin_org_page(tmp_path: Path) -> None:
 def test_claim_page_states_what_we_do_to_servers(tmp_path: Path) -> None:
     """The claim flow has to say plainly what probing does, or it is asking for trust blindly."""
     from fhir_scorecard.site import claim_page
+
     page = claim_page("https://example.test")
     # Normalized, because the source wraps at 100 columns and the promises span line breaks.
     flat = " ".join(page.body.split())

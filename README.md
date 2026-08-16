@@ -30,6 +30,21 @@ to write into a history file a live run wrote. Fixture observations in the real 
 record would report a day nobody measured. See `tests/fixtures/README.md` for what each capture
 covers and how to refresh one.
 
+Check a single endpoint without the registry, the history, or the site. Nothing is published and
+nothing under `data/` is written or read:
+
+```bash
+.venv/bin/fhir-scorecard check https://fhir.example.org/r4 --kind payer --min-grade B
+```
+
+With a `--min-grade` the command exits 1 when the measured grade is below it, which makes it a
+build gate for the operator of the endpoint being checked. Without one it reports what it saw
+and exits 0, because a finding about a published document is data, not a failure of the program
+that read it. An endpoint no vantage reached is reported as `not observed`, never as `F`; with a
+threshold set that fails the gate, on the stated ground that the threshold could not be
+evaluated. The same command is packaged as a composite GitHub Action in `action.yml` —
+see [docs/ci-action.md](docs/ci-action.md).
+
 ## What it observes, and what it never touches
 
 Everything graded here is **public, unauthenticated surface**:

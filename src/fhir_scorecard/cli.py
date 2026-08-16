@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from fhir_scorecard.capability import (
     NO_CAPABILITY_RETRIEVED,
@@ -17,9 +19,10 @@ from fhir_scorecard.capability import (
 from fhir_scorecard.cohort import Cohort, load_cohort_dir
 from fhir_scorecard.dataset import write_dataset
 from fhir_scorecard.drift import ensure_mode, load_history, observe, save_history
-from fhir_scorecard.fetch import FetchResult, fetch_json
+from fhir_scorecard.fetch import TIMEOUT_S, FetchResult, fetch_json
+from fhir_scorecard.gate import GRADE_ORDER, evaluate
 from fhir_scorecard.grading import Scorecard, build_scorecard
-from fhir_scorecard.registry import Endpoint, load_registry, version_prefix
+from fhir_scorecard.registry import EXPECTS, KINDS, Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import render_html, to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
 from fhir_scorecard.site import (
@@ -174,6 +177,87 @@ def _grade_endpoint(
     )
 
 
+def _check_slug(base_url: str) -> str:
+    """A stable, non-attributive identifier for a one-off check.
+
+    Derived from the host the caller named, never from a path segment and never from an
+    organization name this run has no verification record for. The registry's attribution rules
+    do not apply to a check that publishes nothing, and inventing an entry that looked as though
+    they did is the thing to avoid.
+    """
+    host = urlsplit(base_url).netloc.casefold()
+    slug = re.sub(r"[^a-z0-9]+", "-", host).strip("-")[:64]
+    return slug if re.fullmatch(r"[a-z0-9][a-z0-9-]{1,63}", slug) else "checked-endpoint"
+
+
+def _cmd_check(args: argparse.Namespace) -> int:
+    """Grade one endpoint from its own public documents and apply the caller's threshold.
+
+    Registry-free by design. The registry records how each listed endpoint was verified and who
+    it may be attributed to; a CI check of an endpoint the caller already operates has no such
+    record to make, and synthesizing one would put a verification claim in the artifact that
+    nobody performed. Nothing here is written to ``data/``, no history is opened, and no page is
+    rendered: a check observes, reports, and exits.
+    """
+    base_url = str(args.base_url).rstrip("/")
+    if not base_url.startswith("https://"):
+        print("check: base URL must be https", file=sys.stderr)
+        return 2
+
+    metadata = fetch_json(f"{base_url}/metadata", timeout=args.timeout)
+    smart = fetch_json(f"{base_url}/.well-known/smart-configuration", timeout=args.timeout)
+    if metadata.ok:
+        facts = parse_capability(metadata.body)
+        # This run reached the host, so it did ask for the SMART document: a failed fetch is an
+        # observation that it is absent or unusable, and grades as one.
+        smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
+    else:
+        # Nothing was retrieved. Every content finding would be a claim about a document this
+        # run never saw, so the content dimensions are not scored at all.
+        facts = NO_CAPABILITY_RETRIEVED
+        smart_facts = NO_SMART_RETRIEVED
+
+    card = build_scorecard(
+        _check_slug(base_url),
+        args.name or urlsplit(base_url).netloc,
+        metadata,
+        facts,
+        smart_facts,
+        kind=args.kind,
+        vantage=args.vantage,
+        version_prefix=version_prefix(args.expects),
+        # No drift, no availability, no first-seen date. One observation is not a record of
+        # one, and a check must not write into the record the daily run keeps.
+    )
+
+    payload = to_json(
+        [card],
+        generated_at=time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()),
+        vantage=args.vantage,
+    )
+    if args.json_out is not None:
+        # Written before the threshold is applied, so a failing gate still leaves behind the
+        # complete evidence a reader needs to disagree with it.
+        try:
+            out = Path(args.json_out)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(payload, encoding="utf-8")
+        except OSError as exc:
+            print(f"check: could not write {args.json_out}: {exc}", file=sys.stderr)
+            return 2
+
+    print(f"{card.grade}  {base_url}")
+    for dimension in card.dimensions:
+        measured = "not observed on this run" if dimension.score is None else f"{dimension.score}"
+        print(f"  {dimension.title}: {measured}")
+
+    outcome = evaluate(card, min_grade=args.min_grade, detail=metadata.error or "")
+    if not outcome.passed:
+        print(f"gate: {outcome.reason}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def _recheck(candidates_path: Path) -> int:
     try:
         candidates = load_candidates(candidates_path)
@@ -257,6 +341,40 @@ def _build_parser() -> argparse.ArgumentParser:
         help="re-probe previously rejected candidates; reports only, never edits the registry",
     )
     recheck.add_argument("--candidates", type=Path, default=Path("data/rejected.json"))
+    check = sub.add_parser(
+        "check",
+        help="grade one endpoint from its own public documents and optionally gate a build; "
+        "publishes nothing and touches no registry, history, or site",
+    )
+    check.add_argument("base_url", metavar="BASE_URL", help="FHIR base URL, https only")
+    check.add_argument(
+        "--name",
+        default="",
+        help="display name for the report; defaults to the host, because a check has no "
+        "verification record and must not put a name behind an address on a guess",
+    )
+    check.add_argument("--kind", choices=sorted(KINDS), default="reference")
+    check.add_argument("--expects", choices=EXPECTS, default="r4")
+    check.add_argument(
+        "--min-grade",
+        choices=GRADE_ORDER,
+        default="",
+        help="fail with exit 1 when the measured grade is below this letter. Omit it and the "
+        "check is informational: it reports what it saw and exits 0",
+    )
+    check.add_argument(
+        "--json-out",
+        type=Path,
+        default=None,
+        help="write the complete result, with its disclaimer, before the threshold is applied",
+    )
+    check.add_argument(
+        "--vantage",
+        default="unspecified",
+        help="label for where this run measured from; one run is one network path, and a "
+        "latency or reachability difference must not be read as a server change",
+    )
+    check.add_argument("--timeout", type=float, default=TIMEOUT_S)
     return parser
 
 
@@ -313,16 +431,30 @@ def _flag_conflict(args: argparse.Namespace) -> str | None:
     return None
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = _build_parser().parse_args(argv)
+def _run_standalone(args: argparse.Namespace) -> int | None:
+    """Run the commands that need no registry, cohorts, or history, or return None.
 
+    ``grade`` is the only command that opens the curated data; keeping the others out of its
+    setup path is what lets ``check`` be genuinely registry-free rather than registry-free by
+    remembering to skip a step.
+    """
     if args.command == "recheck":
         return _recheck(args.candidates)
-
+    if args.command == "check":
+        return _cmd_check(args)
     if args.command == "mcp":
         from fhir_scorecard.mcp import serve
 
         return serve(args.site)
+    return None
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _build_parser().parse_args(argv)
+
+    standalone = _run_standalone(args)
+    if standalone is not None:
+        return standalone
 
     conflict = _flag_conflict(args)
     if conflict is not None:

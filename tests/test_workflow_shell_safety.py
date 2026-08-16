@@ -18,7 +18,16 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-WORKFLOWS = Path(__file__).resolve().parent.parent / ".github" / "workflows"
+ROOT = Path(__file__).resolve().parent.parent
+WORKFLOWS = ROOT / ".github" / "workflows"
+# The composite action's shell block runs on a consumer's runner rather than on ours, which is
+# the one place where a missing `pipefail` would fail quietly in somebody else's build.
+ACTION = ROOT / "action.yml"
+
+
+def _scanned() -> list[Path]:
+    return [*sorted(WORKFLOWS.glob("*.yml")), *([ACTION] if ACTION.is_file() else [])]
+
 
 _RUN_BLOCK = re.compile(r"^(?P<indent>\s*)run: \|\s*$")
 
@@ -59,13 +68,16 @@ def _step_declares_bash(text: str, run_line: int) -> bool:
 
 def test_there_are_workflows_to_check() -> None:
     """A scan over nothing passes trivially, which is the failure mode being guarded."""
-    files = sorted(WORKFLOWS.glob("*.yml"))
-    assert len(files) >= 4, f"expected the workflow set, found {[f.name for f in files]}"
-    assert sum(len(_blocks(f.read_text(encoding="utf-8"))) for f in files) >= 5
+    files = _scanned()
+    assert len(files) >= 5, (
+        f"expected the workflow set and action.yml, found {[f.name for f in files]}"
+    )
+    assert ACTION in files, "action.yml ships a shell block to consumers and must be scanned"
+    assert sum(len(_blocks(f.read_text(encoding="utf-8"))) for f in files) >= 6
 
 
 def test_every_multiline_run_block_fails_on_the_first_failed_command() -> None:
-    for path in sorted(WORKFLOWS.glob("*.yml")):
+    for path in _scanned():
         text = path.read_text(encoding="utf-8")
         for run_line, body in _blocks(text):
             where = f"{path.name}:{run_line}"

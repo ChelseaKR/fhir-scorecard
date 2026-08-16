@@ -4,3 +4,17 @@
 # rebase conflict every time. Union-merge keeps both sides rather than failing the rebase; CI
 # rewrites the file wholesale on its next run regardless.
 data/history.json merge=union
+
+# GitHub Actions downloads a source archive for every `uses:` invocation. Keep that archive to
+# the Action runtime instead of shipping the curated registry, the cohort files, the captured
+# fixtures, and the test suite to every consumer. The published dataset lives on the site; a
+# consumer gating their own endpoint has no use for a copy of it.
+/* export-ignore
+/action -export-ignore
+/action.yml -export-ignore
+/CODE_OF_CONDUCT.md -export-ignore
+/LICENSE -export-ignore
+/pyproject.toml -export-ignore
+/README.md -export-ignore
+/SECURITY.md -export-ignore
+/src -export-ignore

@@ -1,0 +1,106 @@
+name: "FHIR endpoint check"
+description: "Grade one public FHIR endpoint's own discovery documents and fail the build when it falls below a grade you set."
+author: "fhir-scorecard"
+branding:
+  icon: "activity"
+  color: "blue"
+
+# Intended for the operator of the endpoint being checked: point it at your own FHIR base URL
+# in your own CI and catch a CapabilityStatement regression before it ships. It publishes
+# nothing, writes to no shared record, and reads only the two public discovery documents this
+# project already reads. See docs/ci-action.md.
+
+outputs:
+  grade:
+    description: "A, B, C, D, F, or the string 'not observed' when nothing was retrieved. Never compare 'not observed' against a letter."
+    value: ${{ steps.gate.outputs.grade }}
+  observed:
+    description: "true when the run retrieved the endpoint's documents and produced a letter."
+    value: ${{ steps.gate.outputs.observed }}
+  reachable:
+    description: "true when the endpoint answered this run's request for /metadata."
+    value: ${{ steps.gate.outputs.reachable }}
+  passed:
+    description: "true when the check ran and every threshold the caller set was met."
+    value: ${{ steps.gate.outputs.passed }}
+  result-json:
+    description: "Path to the complete result artifact, written before the threshold is applied."
+    value: ${{ steps.gate.outputs.result-json }}
+
+inputs:
+  base-url:
+    description: "FHIR base URL to check. HTTPS only; /metadata and /.well-known/smart-configuration are appended."
+    required: true
+  min-grade:
+    description: "Fail if the measured grade is below this letter (A, B, C, D, or F). Leave blank for an informational check that always passes. An endpoint no vantage reached fails a set threshold because the threshold cannot be evaluated, and is reported as 'not observed', never as F."
+    required: false
+    default: ""
+  name:
+    description: "Display name for the report (default: the host in base-url)."
+    required: false
+    default: ""
+  kind:
+    description: "Endpoint category, which selects the interop expectations: reference, payer, payer_provider_directory, ehr, or provider. Grades are comparable within a kind only."
+    required: false
+    default: "reference"
+  expects:
+    description: "Declared-intent FHIR release the CapabilityStatement should carry: stu3, r4, or r5."
+    required: false
+    default: "r4"
+  json:
+    description: "Path for the complete result JSON. Defaults to a runner temporary file."
+    required: false
+    default: ""
+  summary:
+    description: "Write a plain-language result to the GitHub job summary (true or false)."
+    required: false
+    default: "true"
+  python-version:
+    description: "Python used to run the bundled checker."
+    required: false
+    default: "3.12"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Run the FHIR endpoint check
+      id: gate
+      shell: bash
+      env:
+        BASE_URL: ${{ inputs.base-url }}
+        MIN_GRADE: ${{ inputs.min-grade }}
+        ENDPOINT_NAME: ${{ inputs.name }}
+        ENDPOINT_KIND: ${{ inputs.kind }}
+        ENDPOINT_EXPECTS: ${{ inputs.expects }}
+        JSON_OUT: ${{ inputs.json }}
+        WRITE_SUMMARY: ${{ inputs.summary }}
+        # Keep the downloaded Action tree immutable: the virtualenv and every scratch file
+        # live under the runner's temporary directory.
+        VENV_DIR: ${{ runner.temp }}/fhir-scorecard-venv
+      run: |
+        set -euo pipefail
+        python -m venv "$VENV_DIR"
+        if [ -x "$VENV_DIR/bin/python" ]; then py="$VENV_DIR/bin/python"; else py="$VENV_DIR/Scripts/python.exe"; fi
+        # The distribution has no runtime dependencies, so there is nothing to resolve and
+        # nothing to lock: the checker that runs is the one bundled with this Action release.
+        "$py" -m pip install --quiet --disable-pip-version-check "${GITHUB_ACTION_PATH}"
+        result_json="${JSON_OUT:-${RUNNER_TEMP}/fhir-scorecard-result.json}"
+        args=("$BASE_URL" --kind "$ENDPOINT_KIND" --expects "$ENDPOINT_EXPECTS")
+        args+=(--vantage "github-actions/${RUNNER_OS}")
+        if [ -n "$ENDPOINT_NAME" ]; then args+=(--name "$ENDPOINT_NAME"); fi
+        if [ -n "$MIN_GRADE" ]; then args+=(--min-grade "$MIN_GRADE"); fi
+        args+=(--json-out "$result_json")
+        set +e
+        "$py" -m fhir_scorecard.cli check "${args[@]}"
+        gate_rc=$?
+        set -e
+        "$py" "${GITHUB_ACTION_PATH}/action/render_result.py" \
+          --json "$result_json" \
+          --gate-rc "$gate_rc" \
+          --min-grade "$MIN_GRADE" \
+          --write-summary "$WRITE_SUMMARY"
+        exit "$gate_rc"

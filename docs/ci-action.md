@@ -34,7 +34,7 @@ jobs:
   fhir:
     runs-on: ubuntu-latest
     steps:
-      - uses: ChelseaKR/fhir-scorecard@<commit-sha>
+      - uses: ChelseaKR/fhir-scorecard@v0.1.0
         with:
           base-url: https://fhir.example.org/r4
           name: Example Health
@@ -42,8 +42,15 @@ jobs:
           min-grade: B
 ```
 
-Reference the action by **commit SHA**. This project is pre-release: there is no release tag
-yet, and pointing at one that does not exist is exactly the kind of claim it tries not to make.
+Pin a **release tag**, never `@main`. `v0.1.0` is the first release: a signed, annotated tag on
+a commit that is an ancestor of `main`, built and attested by
+[`.github/workflows/release.yml`](../.github/workflows/release.yml), with the matching
+[CHANGELOG](../CHANGELOG.md) section as its notes.
+
+Pinning the tag's **commit SHA** is stricter still, and it is what this project asks of its own
+dependencies: a tag can be moved, a SHA cannot. `uses: ChelseaKR/fhir-scorecard@<sha> # v0.1.0`
+keeps the version readable while pinning the tree. Either way you are pinning a version that
+exists; that was not true before 2026-08-16, and this page used to say so.
 
 ## Inputs
 
@@ -100,7 +107,7 @@ reports what happened.
 
 ```yaml
       - id: fhir
-        uses: ChelseaKR/fhir-scorecard@<commit-sha>
+        uses: ChelseaKR/fhir-scorecard@v0.1.0
         with:
           base-url: https://fhir.example.org/r4
           min-grade: B

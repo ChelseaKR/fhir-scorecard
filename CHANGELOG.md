@@ -1,14 +1,36 @@
 # Changelog
 
 All notable changes to this project are documented in this file. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Because the shipped artifact is a
-continuously rebuilt site and dataset (see `docs/adr/0001-release-versioning-na.md`), entries
-here are dated records of change, not version-tagged release notes.
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html). The site and dataset at
+<https://chelseakr.github.io/fhir-scorecard/> are still republished daily from `main` and are
+not versioned by these entries; what a version names is the composite GitHub Action and the
+distribution behind it, which consumers pin by tag
+(see `docs/adr/0002-release-versioning-applies-action-export.md`).
 
-## [Unreleased]
+## [0.1.0] - 2026-08-16
+
+First release. The previously-untagged `[0.1.0]` section dated 2026-08-05 and everything
+since have been folded together here: the milestone tag of that date was local, was never
+pushed, and produced no artifact, so `0.1.0` had never named anything a consumer could
+obtain. This is the first tag that does.
 
 ### Added
 
+- Deterministic grading of public FHIR discovery surfaces (`/metadata` and
+  `/.well-known/smart-configuration`) with letter grades, spec-cited findings, and fail-closed
+  handling of unreachable endpoints.
+- Curated, live-verified endpoint registry spanning payers, providers, EHR vendors, and
+  reference servers, with a rejected-candidates log and a quarterly recheck workflow.
+- Indexable site pages per endpoint, organization, and category, plus a methodology page,
+  sitemap, and structured data.
+- Dataset exports (`dataset.csv`, `dataset.schema.json`), a static JSON API, and a complete
+  `scorecards.json` payload.
+- Read-only MCP server over the published dataset files.
+- Multi-vantage probing with cross-vantage reconciliation, capability drift tracking, and
+  daily availability history.
+- CI verify gate (ruff with security rules, mypy strict, pytest with a branch-coverage floor)
+  and daily grade-and-publish workflow to GitHub Pages.
 - **A single-endpoint check and the composite GitHub Action that packages it** (`fhir-scorecard
   check`, `gate.py`, `action.yml`, `action/render_result.py`,
   [docs/ci-action.md](docs/ci-action.md)). It grades one FHIR base URL from its own two public
@@ -102,6 +124,17 @@ here are dated records of change, not version-tagged release notes.
   pre-commit configuration, CODEOWNERS, ADR log (`docs/adr/`), i18n declaration
   (`docs/I18N.md`), responsible-tech audit record (`docs/RESPONSIBLE-TECH-AUDITS.md`), this
   CHANGELOG, and a Standards Conformance section in the README.
+- **A hardened release pipeline, because exporting the Action made this repository a
+  dependency** (`.github/workflows/release.yml`, `.github/allowed_signers`). It is
+  `workflow_dispatch` against an already-existing tag, never a trigger on tag push: pushing a
+  tag is not a review. The shared `ChelseaKR/.github` authorize workflow verifies the tag is
+  annotated, stable SemVer, SSH-signed by a principal listed in-tree, and on a commit that is an
+  ancestor of `main`; `make verify` and the full-history gitleaks scan then re-run at that
+  commit rather than the pull request's earlier checkmark being taken as evidence; the build is
+  cache-free, carries a SLSA provenance attestation, and is attached to a GitHub Release whose
+  notes are this file's matching section. Tag, `pyproject.toml` and `CHANGELOG.md` versions must
+  agree or the release fails, and three tests now catch that disagreement on the pull request
+  instead of on the release run.
 
 ### Fixed
 
@@ -266,6 +299,15 @@ here are dated records of change, not version-tagged release notes.
 
 ### Changed
 
+- **Release & Versioning went from N/A to applies, and ADR 0001 is superseded by
+  [ADR 0002](docs/adr/0002-release-versioning-applies-action-export.md).** ADR 0001 declared the
+  standard N/A on the stated ground that, among other things, "no reusable action is exported."
+  Merging the composite Action made that clause false the same day, and ADR 0001's own
+  "Revisit if" section had already named the consequence. A consumer's `uses:
+  ChelseaKR/fhir-scorecard@<ref>` downloads this repository's tree and `pip install`s it into
+  their build, which is a version-pinned dependency by construction. ADR 0001 is marked
+  superseded rather than edited: it was correct on the facts it had. The README's Standards
+  Conformance row and `docs/ci-action.md`, which told consumers no release tag existed, follow.
 - A first probe of Kern Family Health Care's endpoints failed at TLS and was nearly logged as an
   endpoint fault, which is the Capital Blue Cross error of 2026-08-05 in a new costume. It was this
   vantage: the Python trust store here lacks the Sectigo root that server chains to. Re-probed with
@@ -273,24 +315,3 @@ here are dated records of change, not version-tagged release notes.
   and `rejected.json` record. The 404 is the endpoint's; the TLS failure was ours.
 - Raised dev tooling floors: `ruff>=0.15` (was `>=0.6`) and `mypy>=1.18` (was `>=1.11`). The
   `make verify` gate passes unchanged under ruff 0.16.2 and mypy 2.3.0.
-
-## [0.1.0] - 2026-08-05
-
-Milestone tag `v0.1.0` (local history marker; no published release artifact).
-
-### Added
-
-- Deterministic grading of public FHIR discovery surfaces (`/metadata` and
-  `/.well-known/smart-configuration`) with letter grades, spec-cited findings, and fail-closed
-  handling of unreachable endpoints.
-- Curated, live-verified endpoint registry spanning payers, providers, EHR vendors, and
-  reference servers, with a rejected-candidates log and a quarterly recheck workflow.
-- Indexable site pages per endpoint, organization, and category, plus a methodology page,
-  sitemap, and structured data.
-- Dataset exports (`dataset.csv`, `dataset.schema.json`), a static JSON API, and a complete
-  `scorecards.json` payload.
-- Read-only MCP server over the published dataset files.
-- Multi-vantage probing with cross-vantage reconciliation, capability drift tracking, and
-  daily availability history.
-- CI verify gate (ruff with security rules, mypy strict, pytest with a branch-coverage floor)
-  and daily grade-and-publish workflow to GitHub Pages.

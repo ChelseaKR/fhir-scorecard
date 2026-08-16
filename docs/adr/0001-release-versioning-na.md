@@ -4,6 +4,10 @@
 
 Accepted - 2026-08-07
 
+Superseded by [0002](0002-release-versioning-applies-action-export.md) - 2026-08-16. A composite
+GitHub Action was merged to `main`, so the Context clause "no reusable action is exported" no
+longer holds and the "Revisit if" trigger below fired. The record here stands as written.
+
 ## Context
 
 RELEASE-AND-VERSIONING-STANDARD requires every repo to either produce releases (tags driving a

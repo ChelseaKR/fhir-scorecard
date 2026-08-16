@@ -1,0 +1,190 @@
+name: release
+
+# Trusted-main release (RELEASE-AND-VERSIONING-STANDARD, per docs/adr/0002-release-versioning-
+# applies-action-export.md). This repository exports a composite Action: a consumer writes
+# `uses: ChelseaKR/fhir-scorecard@vX.Y.Z` and GitHub runs the tree at that ref inside their
+# build. The tag is therefore a shipped interface, and this workflow is what stands behind it.
+#
+# Dispatch it with an existing signed vX.Y.Z tag. It never fires on tag push: pushing a tag is
+# not a review, and a workflow that publishes on push publishes whatever was pushed. The shared
+# authorize workflow verifies the tag signature against .github/allowed_signers and verifies
+# that the tagged commit is an ancestor of main before anything is built.
+#
+# Tag the next one the same way:
+# `git tag -s v0.2.0 -m v0.2.0 && git push origin v0.2.0`, then dispatch this workflow with it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing signed stable SemVer tag (vX.Y.Z)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# A release attaches artifacts to a GitHub Release: never race two tags, but never silently
+# drop a re-run either.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    uses: ChelseaKR/.github/.github/workflows/release-authorize.yml@315a513ff3b4e7c5c0628428909052d947f4f1ab
+    permissions:
+      contents: read
+    with:
+      tag: ${{ inputs.tag }}
+
+  # Never publish untested code: re-run the merge-blocking gate of record at the tagged commit
+  # rather than trusting the pull request's prior checkmark. `make sync` then `make verify` is
+  # exactly what .github/workflows/verify.yml runs on every push and pull request (lockfile
+  # check, ruff lint and format, mypy strict, pytest against the coverage floor, pip-audit over
+  # the locked set).
+  release-tests:
+    needs: authorize
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.authorize.outputs.release-commit }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          check-latest: false
+      # No cross-run cache anywhere on the release path: a poisoned cache entry is an
+      # unverified input into an artifact about to be attested and shipped. verify.yml keeps
+      # its cache, because a mutable-branch run carries materially lower risk.
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.1"
+          enable-cache: false
+      - name: Install the locked toolchain at the tagged commit
+        run: make sync
+      - name: Run the verification gate at the tagged commit
+        run: make verify
+
+  # The other merge-blocking control that is not inside `make verify`. Same pinned,
+  # checksum-verified binary and same full-depth walk as .github/workflows/security.yml, so the
+  # release path and the merge path cannot disagree about what was scanned. CodeQL is
+  # deliberately not re-run here: it analyzes and reports against a branch, it already ran on
+  # this commit when it reached main, and re-running it would need `security-events: write` on
+  # the release path for no added assurance about the tagged tree.
+  release-secret-scan:
+    needs: authorize
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.authorize.outputs.release-commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Secret scan (gitleaks, full history)
+        shell: bash
+        run: |
+          set -euo pipefail
+          GL=8.30.1
+          BASE="https://github.com/gitleaks/gitleaks/releases/download/v${GL}"
+          ARCHIVE="gitleaks_${GL}_linux_x64.tar.gz"
+          curl -sSfL -o "/tmp/${ARCHIVE}" "${BASE}/${ARCHIVE}"
+          curl -sSfL -o /tmp/gitleaks_checksums.txt "${BASE}/gitleaks_${GL}_checksums.txt"
+          (cd /tmp && grep "  ${ARCHIVE}$" gitleaks_checksums.txt | sha256sum --check --strict)
+          tar -xzf "/tmp/${ARCHIVE}" -C /tmp gitleaks
+          /tmp/gitleaks git . --no-banner --redact --exit-code 1
+
+  build:
+    needs: [authorize, release-tests, release-secret-scan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # SLSA build-provenance attestation (keyless/OIDC via Sigstore)
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.authorize.outputs.release-commit }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          check-latest: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.1"
+          enable-cache: false
+      - name: Build sdist and wheel
+        # The distribution the Action installs on a consumer's runner. Attaching it to the
+        # Release makes what `pip install "${GITHUB_ACTION_PATH}"` produces downloadable and
+        # attested, rather than something only reproducible by re-running the Action.
+        run: uv build
+      - name: Require tag, package, and changelog versions to match
+        # The tag names a version; pyproject.toml and CHANGELOG.md must already agree with it.
+        # A release whose three version statements disagree is a release nobody can cite.
+        shell: bash
+        env:
+          TAG: ${{ needs.authorize.outputs.release-tag }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          PACKAGE_VERSION="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          test "${VERSION}" = "${PACKAGE_VERSION}"
+          awk -v ver="${VERSION}" '
+            index($0, "## [" ver "]") == 1 { found=1; print; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+      - name: Attest build provenance (SLSA, keyless/OIDC via Sigstore)
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: "dist/*.whl,dist/*.tar.gz"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+
+  # Create the GitHub Release: attach the build and use the matching CHANGELOG section as the
+  # notes. Deliberately checkout-free; the only inputs are the verified artifacts and the live
+  # tag object, re-checked against the object the authorize job verified, so a tag moved
+  # between authorization and publication cannot be released.
+  github-release:
+    needs: [authorize, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+      - name: Download release notes
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-notes
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.authorize.outputs.release-tag }}
+          TAG_OBJECT_SHA: ${{ needs.authorize.outputs.tag-object-sha }}
+        run: |
+          set -euo pipefail
+          LIVE_TAG_OBJECT="$(gh api "repos/${GH_REPO}/git/ref/tags/${TAG}" --jq .object.sha)"
+          test "${LIVE_TAG_OBJECT}" = "${TAG_OBJECT_SHA}"
+          gh release create "${TAG}" dist/* \
+            --title "${TAG}" --notes-file release-notes.md

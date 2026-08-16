@@ -53,11 +53,15 @@ class SmartFacts:
 #: Facts for a document no vantage retrieved. Distinct from ``parse_capability(b"")``, which
 #: describes a server that answered with nothing; these describe a run that heard nothing.
 NO_CAPABILITY_RETRIEVED = CapabilityFacts(
-    parsed=False, observed=False,
-    parse_error="no CapabilityStatement was retrieved from any vantage on this run")
+    parsed=False,
+    observed=False,
+    parse_error="no CapabilityStatement was retrieved from any vantage on this run",
+)
 NO_SMART_RETRIEVED = SmartFacts(
-    parsed=False, observed=False,
-    parse_error="no SMART discovery document was retrieved from any vantage on this run")
+    parsed=False,
+    observed=False,
+    parse_error="no SMART discovery document was retrieved from any vantage on this run",
+)
 
 
 def _as_dict(value: object) -> dict[str, object]:
@@ -105,8 +109,9 @@ def _canonical(value: object) -> str | None:
     return None
 
 
-def _conformance_profiles(doc: dict[str, object],
-                          resources: list[dict[str, object]]) -> list[tuple[str, str]]:
+def _conformance_profiles(
+    doc: dict[str, object], resources: list[dict[str, object]]
+) -> list[tuple[str, str]]:
     """Every profile canonical the document declares, tagged with the element it came from.
 
     R4 gives a server several honest places to declare conformance. Reading one of them and
@@ -114,9 +119,11 @@ def _conformance_profiles(doc: dict[str, object],
     of them.
     """
     found: list[tuple[str, str]] = []
-    for element, raw in (("CapabilityStatement.instantiates", doc.get("instantiates")),
-                         ("CapabilityStatement.imports", doc.get("imports")),
-                         ("meta.profile", _as_dict(doc.get("meta")).get("profile"))):
+    for element, raw in (
+        ("CapabilityStatement.instantiates", doc.get("instantiates")),
+        ("CapabilityStatement.imports", doc.get("imports")),
+        ("meta.profile", _as_dict(doc.get("meta")).get("profile")),
+    ):
         for value in _as_list(raw):
             canonical = _canonical(value)
             if canonical:
@@ -141,8 +148,11 @@ def parse_capability(body: bytes) -> CapabilityFacts:
     if not doc:
         return CapabilityFacts(parsed=False, parse_error="JSON body is not an object")
     if doc.get("resourceType") != "CapabilityStatement":
-        return CapabilityFacts(parsed=True, resource_type_ok=False,
-                               parse_error=f"resourceType is {doc.get('resourceType')!r}")
+        return CapabilityFacts(
+            parsed=True,
+            resource_type_ok=False,
+            parse_error=f"resourceType is {doc.get('resourceType')!r}",
+        )
 
     software = _as_dict(doc.get("software"))
     implementation = _as_dict(doc.get("implementation"))

@@ -42,16 +42,18 @@ def test_shipped_registry_is_valid() -> None:
     assert all(e.base_url.startswith("https://") for e in eps)
 
 
-@pytest.mark.parametrize("mutation, message", [
-    ({"base_url": "http://insecure.test"}, "https"),
-    ({"id": "Bad Slug!"}, "slug"),
-    ({"kind": "vendor"}, "kind"),
-    ({"verification": None}, "verification"),
-    ({"verification": {"method": "x", "date": "August 4"}}, "YYYY-MM-DD"),
-    ({"enabled": "yes"}, "boolean"),
-])
-def test_invalid_entries_refused(tmp_path: Path, mutation: dict[str, Any],
-                                 message: str) -> None:
+@pytest.mark.parametrize(
+    "mutation, message",
+    [
+        ({"base_url": "http://insecure.test"}, "https"),
+        ({"id": "Bad Slug!"}, "slug"),
+        ({"kind": "vendor"}, "kind"),
+        ({"verification": None}, "verification"),
+        ({"verification": {"method": "x", "date": "August 4"}}, "YYYY-MM-DD"),
+        ({"enabled": "yes"}, "boolean"),
+    ],
+)
+def test_invalid_entries_refused(tmp_path: Path, mutation: dict[str, Any], message: str) -> None:
     with pytest.raises(ValueError, match=message):
         load_registry(_write(tmp_path, [_entry(**mutation)]))
 
@@ -84,8 +86,9 @@ class _FakeResponse:
 
 
 class _FakeOpener(urllib.request.OpenerDirector):
-    def __init__(self, status: int = 200, body: bytes = b"{}",
-                 raises: Exception | None = None) -> None:
+    def __init__(
+        self, status: int = 200, body: bytes = b"{}", raises: Exception | None = None
+    ) -> None:
         super().__init__()
         self._status, self._body, self._raises = status, body, raises
 
@@ -113,6 +116,7 @@ def test_fetch_network_error_fails_closed() -> None:
 def test_expects_defaults_to_r4_and_validates(tmp_path: Path) -> None:
     """Endpoints are graded against the FHIR release they intend to serve."""
     from fhir_scorecard.registry import version_prefix
+
     assert load_registry(_write(tmp_path, [_entry()]))[0].expects == "r4"
     assert load_registry(_write(tmp_path, [_entry(expects="r5")]))[0].expects == "r5"
     with pytest.raises(ValueError, match="expects"):
@@ -153,7 +157,8 @@ def test_fetch_surfaces_tls_interception(monkeypatch) -> None:
     cert = ssl.SSLCertVerificationError("bad chain")
     cert.verify_message = "self-signed certificate in certificate chain"
 
-    result = fetch_json("https://x.test/metadata",
-                        opener=_FakeOpener(raises=urllib.error.URLError(cert)))
+    result = fetch_json(
+        "https://x.test/metadata", opener=_FakeOpener(raises=urllib.error.URLError(cert))
+    )
     assert not result.ok
     assert result.error is not None and "vantage-local" in result.error

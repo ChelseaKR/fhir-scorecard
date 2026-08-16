@@ -39,16 +39,24 @@ _KIND_SLUGS = {
     "reference": "reference-servers",
 }
 _KIND_BLURBS = {
-    "payer": ("Patient Access APIs let a member pull their own claims and coverage data into an "
-              "app they choose. These grades describe what each endpoint publicly declares."),
-    "payer_provider_directory": ("Provider Directory APIs are required to be reachable without "
-                                 "authentication, so they are not graded on an authorization "
-                                 "surface they must not have."),
+    "payer": (
+        "Patient Access APIs let a member pull their own claims and coverage data into an "
+        "app they choose. These grades describe what each endpoint publicly declares."
+    ),
+    "payer_provider_directory": (
+        "Provider Directory APIs are required to be reachable without "
+        "authentication, so they are not graded on an authorization "
+        "surface they must not have."
+    ),
     "provider": "APIs published by health systems and provider organizations.",
-    "ehr": ("Sandboxes published by EHR vendors for developers evaluating their platforms. "
-            "Graded separately from payer APIs, which answer to different expectations."),
-    "reference": ("Open test servers used by the FHIR community. Included as a baseline, not as "
-                  "a judgement about anyone's production systems."),
+    "ehr": (
+        "Sandboxes published by EHR vendors for developers evaluating their platforms. "
+        "Graded separately from payer APIs, which answer to different expectations."
+    ),
+    "reference": (
+        "Open test servers used by the FHIR community. Included as a baseline, not as "
+        "a judgement about anyone's production systems."
+    ),
 }
 
 _GRADE_WORDS = {
@@ -87,15 +95,19 @@ def _status_words(card: Scorecard) -> str:
     if card.grade != NOT_OBSERVED:
         return _GRADE_WORDS.get(card.grade, "")
     if card.reachable:
-        return ("answered on this run, but no vantage retrieved its public documents, so nothing "
-                "here describes what it declares")
-    return ("could not be reached from any vantage on this run, so nothing about what it "
-            "publishes was observed")
+        return (
+            "answered on this run, but no vantage retrieved its public documents, so nothing "
+            "here describes what it declares"
+        )
+    return (
+        "could not be reached from any vantage on this run, so nothing about what it "
+        "publishes was observed"
+    )
 
 
 @dataclass(frozen=True)
 class Page:
-    path: str          # site-relative directory, e.g. "endpoint/humana"
+    path: str  # site-relative directory, e.g. "endpoint/humana"
     title: str
     description: str
     body: str
@@ -106,8 +118,12 @@ class Page:
 def org_slug(name: str) -> str:
     """Stable slug for an organization name, used for /org/<slug>/ pages."""
     cleaned = re.sub(r"\(.*?\)", " ", name.lower())
-    cleaned = re.sub(r"\b(api|apis|patient access|provider directory|public|sandbox|preview|"
-                     r"production|open|test server|server|inc|llc)\b", " ", cleaned)
+    cleaned = re.sub(
+        r"\b(api|apis|patient access|provider directory|public|sandbox|preview|"
+        r"production|open|test server|server|inc|llc)\b",
+        " ",
+        cleaned,
+    )
     return re.sub(r"[^a-z0-9]+", "-", cleaned).strip("-") or "unknown"
 
 
@@ -152,9 +168,11 @@ def _json_ld(payload: dict[str, object]) -> str:
 def _grade_badge(grade: str) -> str:
     word = _GRADE_WORDS.get(grade, "grade unavailable")
     noun = "Status" if grade == NOT_OBSERVED else "Grade"
-    return (f'<span class="grade grade-{_grade_slug(grade)}" '
-            f'aria-label="{noun} {html.escape(grade)}: {html.escape(word)}">'
-            f"{html.escape(grade)}</span>")
+    return (
+        f'<span class="grade grade-{_grade_slug(grade)}" '
+        f'aria-label="{noun} {html.escape(grade)}: {html.escape(word)}">'
+        f"{html.escape(grade)}</span>"
+    )
 
 
 def _grade_counts(cards: Sequence[Scorecard]) -> str:
@@ -168,13 +186,13 @@ def _grade_counts(cards: Sequence[Scorecard]) -> str:
     return "".join(
         f'<span class="grade-count grade-count-{_grade_slug(grade)}">'
         f"<strong>{count}</strong><span>{html.escape(grade)}</span></span>"
-        for grade, count in counts.items() if count
+        for grade, count in counts.items()
+        if count
     )
 
 
 def _signal_status(card: Scorecard) -> str:
-    return ("not observed on this run" if card.grade == NOT_OBSERVED
-            else f"grade {card.grade}")
+    return "not observed on this run" if card.grade == NOT_OBSERVED else f"grade {card.grade}"
 
 
 def _signal_map(cards: Sequence[Scorecard]) -> str:
@@ -195,7 +213,7 @@ def _signal_map(cards: Sequence[Scorecard]) -> str:
         rows.append(
             '<div class="signal-row">'
             f'<a class="signal-label" href="/fhir-scorecard/{_KIND_SLUGS[kind]}/">'
-            f'{html.escape(_KIND_LABELS[kind])}</a>'
+            f"{html.escape(_KIND_LABELS[kind])}</a>"
             f'<span class="signal-count">{len(group):02d}</span>'
             f'<div class="signal-track">{signals}</div></div>'
         )
@@ -211,13 +229,13 @@ def _dimension_meter(title: str, score: int | None) -> str:
     if score is None:
         return (
             '<div class="dimension-meter dimension-meter-unscored">'
-            f'<div><span>{html.escape(title)}</span><strong>not observed</strong></div>'
+            f"<div><span>{html.escape(title)}</span><strong>not observed</strong></div>"
             f'<span class="meter meter-unscored" '
             f'aria-label="{html.escape(title)}: not observed on this run"></span></div>'
         )
     return (
         '<div class="dimension-meter">'
-        f'<div><span>{html.escape(title)}</span><strong>{score}</strong></div>'
+        f"<div><span>{html.escape(title)}</span><strong>{score}</strong></div>"
         f'<span class="meter" aria-label="{html.escape(title)}: {score} out of 100">'
         f'<span style="--score:{score}%"></span></span></div>'
     )
@@ -249,14 +267,14 @@ def _findings_html(card: Scorecard) -> str:
                 f'<span class="mark" aria-hidden="true">{glyph}</span>'
                 '<span class="finding-copy">'
                 f'<span class="sr-only">{prefix}: </span>'
-                f'{html.escape(f.message)}</span>'
+                f"{html.escape(f.message)}</span>"
                 '<span class="finding-links">'
                 f'<a href="/fhir-scorecard/how-we-grade/#{html.escape(f.code)}">{f.code}</a>'
                 f'<a href="{html.escape(f.citation)}" rel="nofollow">Spec ↗</a></span></li>'
             )
         out.append(
             '<section class="finding-group">'
-            f'{_dimension_meter(dim.title, dim.score)}'
+            f"{_dimension_meter(dim.title, dim.score)}"
             f'<ul class="findings">{items}</ul></section>'
         )
     return "".join(out)
@@ -272,8 +290,10 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
         events = "".join(f"<li>{html.escape(e)}</li>" for e in card.drift_events)
         drift = f"<h3>Declared capability changes</h3><ul>{events}</ul>"
     elif card.observed_since:
-        drift = (f"<p>Observed since {html.escape(card.observed_since)}; no changes to declared "
-                 "capability recorded.</p>")
+        drift = (
+            f"<p>Observed since {html.escape(card.observed_since)}; no changes to declared "
+            "capability recorded.</p>"
+        )
 
     jsonld = {
         "@context": "https://schema.org",
@@ -305,8 +325,11 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
   <dt>Base URL</dt><dd><code>{html.escape(base_url)}</code></dd>
   <dt>Category</dt><dd>{html.escape(kind_label)}</dd>
   <dt>Availability</dt><dd>{html.escape(card.availability or "not yet recorded")}</dd>
-  {f'<dt>Vantage agreement</dt><dd>{html.escape(card.vantage_note)}</dd>'
-   if card.vantage_note else ''}
+  {
+        f"<dt>Vantage agreement</dt><dd>{html.escape(card.vantage_note)}</dd>"
+        if card.vantage_note
+        else ""
+    }
 </dl>
 </section>
 <section class="evidence-card evidence-card-accent">
@@ -328,7 +351,8 @@ patient data, authenticated behavior, or clinical quality.</p>
 <summary>Share this endpoint's {"status" if unobserved else "grade"}</summary>
 <div><img src="/fhir-scorecard/badge/{html.escape(card.endpoint_id)}.svg"
 alt="FHIR Scorecard: {html.escape(card.name)} {html.escape(_badge_alt(card))}" width="{
-    _badge_width(card.grade)}" height="28">
+        _badge_width(card.grade)
+    }" height="28">
 <p>Link the badge back to this evidence page so readers can inspect the current findings.</p>
 <code>&lt;a href="{html.escape(origin)}/endpoint/{html.escape(card.endpoint_id)}/"&gt;
 &lt;img src="{html.escape(origin)}/badge/{html.escape(card.endpoint_id)}.svg"
@@ -341,11 +365,20 @@ See <a href="/fhir-scorecard/how-we-grade/">how we grade</a>.</p>
 """
     return Page(
         path=f"endpoint/{card.endpoint_id}",
-        title=(f"{card.name}: FHIR endpoint not observed" if unobserved
-               else f"{card.name}: FHIR API grade {card.grade}"),
-        description=(f"{card.name} {summary}."
-                     + ("" if unobserved else " Public FHIR CapabilityStatement graded on "
-                        "reachability, transparency, and interoperability readiness.")),
+        title=(
+            f"{card.name}: FHIR endpoint not observed"
+            if unobserved
+            else f"{card.name}: FHIR API grade {card.grade}"
+        ),
+        description=(
+            f"{card.name} {summary}."
+            + (
+                ""
+                if unobserved
+                else " Public FHIR CapabilityStatement graded on "
+                "reachability, transparency, and interoperability readiness."
+            )
+        ),
         body=body,
         priority="0.8",
     )
@@ -355,9 +388,9 @@ def org_page(name: str, cards: list[Scorecard], origin: str) -> Page:
     rows = "".join(
         '<li class="surface-card">'
         f'<div>{_grade_badge(c.grade)}<span class="eyebrow">'
-        f'{html.escape(_KIND_LABELS.get(c.kind, c.kind))}</span></div>'
+        f"{html.escape(_KIND_LABELS.get(c.kind, c.kind))}</span></div>"
         f'<a href="/fhir-scorecard/endpoint/{c.endpoint_id}/">{html.escape(c.name)}</a>'
-        f'<p>{html.escape(_status_words(c))}.</p></li>'
+        f"<p>{html.escape(_status_words(c))}.</p></li>"
         for c in sorted(cards, key=lambda c: c.name)
     )
     body = f"""
@@ -409,7 +442,7 @@ against each other.</p>
         path=_KIND_SLUGS.get(kind, kind),
         title=f"{label}: public FHIR endpoint grades",
         description=f"{len(cards)} {label.lower()} graded on reachability, capability "
-                    "transparency, and interoperability readiness.",
+        "transparency, and interoperability readiness.",
         body=body,
         priority="0.9",
     )
@@ -427,7 +460,7 @@ def _cohort_included_rows(cohort: Cohort, cards: dict[str, Scorecard]) -> str:
     a base URL this project could verify.
     """
     rows = "".join(
-        f'<tr><td>{html.escape(member.name)}</td>'
+        f"<tr><td>{html.escape(member.name)}</td>"
         f"<td>{html.escape(_programs_text(member))}</td>"
         f'<td><a href="/fhir-scorecard/endpoint/{card.endpoint_id}/">'
         f"{html.escape(card.name)}</a></td>"
@@ -437,8 +470,10 @@ def _cohort_included_rows(cohort: Cohort, cards: dict[str, Scorecard]) -> str:
         for card in (cards[eid] for eid in member.endpoint_ids if eid in cards)
     )
     if not rows:
-        return ('<tr><td colspan="5">No member of this cohort currently publishes a base URL '
-                "this project could verify. That gap is the finding.</td></tr>")
+        return (
+            '<tr><td colspan="5">No member of this cohort currently publishes a base URL '
+            "this project could verify. That gap is the finding.</td></tr>"
+        )
     return rows
 
 
@@ -483,8 +518,7 @@ def cohort_page(cohort: Cohort, cards: dict[str, Scorecard], origin: str) -> Pag
         f"(retrieved {html.escape(s.date)})</li>"
         for s in cohort.sources
     )
-    sources_html = (f"<h2>Membership sources</h2><ul class=\"cards\">{sources}</ul>"
-                    if sources else "")
+    sources_html = f'<h2>Membership sources</h2><ul class="cards">{sources}</ul>' if sources else ""
     excluded_rows = _cohort_excluded_rows(cohort)
     excluded_html = ""
     if excluded_rows:
@@ -536,10 +570,12 @@ is not violating anything; it is only not independently checkable from outside.<
     return Page(
         path=cohort.cohort_id,
         title=f"{cohort.name}: public FHIR endpoint grades",
-        description=(f"{cohort.description} {len(cohort.included)} of {len(cohort.members)} "
-                     f"member organizations publish a verifiable public FHIR endpoint; "
-                     f"{answered} of {included_endpoints} listed endpoints answered on the "
-                     "latest run."),
+        description=(
+            f"{cohort.description} {len(cohort.included)} of {len(cohort.members)} "
+            f"member organizations publish a verifiable public FHIR endpoint; "
+            f"{answered} of {included_endpoints} listed endpoints answered on the "
+            "latest run."
+        ),
         body=body,
         priority="0.9",
     )
@@ -552,9 +588,11 @@ def sitemap(pages: list[Page], origin: str) -> str:
         f"<priority>{p.priority}</priority></url>"
         for p in pages
     )
-    return ('<?xml version="1.0" encoding="UTF-8"?>'
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-            f"{entries}</urlset>")
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        f"{entries}</urlset>"
+    )
 
 
 def robots(origin: str) -> str:
@@ -562,8 +600,7 @@ def robots(origin: str) -> str:
 
 
 def _badge_alt(card: Scorecard) -> str:
-    return ("not observed on the latest run" if card.grade == NOT_OBSERVED
-            else f"grade {card.grade}")
+    return "not observed on the latest run" if card.grade == NOT_OBSERVED else f"grade {card.grade}"
 
 
 _BADGE_LEFT = 98
@@ -587,8 +624,11 @@ def status_badge(card: Scorecard) -> str:
     color = _GRADE_COLORS.get(card.grade, "#435c68")
     left_label = "FHIR endpoint" if unobserved else "FHIR grade"
     title = f"{card.name}: {left_label} {value}"
-    desc = ("This endpoint was not observed on the latest run" if unobserved
-            else "Current observational grade for this endpoint")
+    desc = (
+        "This endpoint was not observed on the latest run"
+        if unobserved
+        else "Current observational grade for this endpoint"
+    )
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="28"
 role="img" aria-labelledby="title desc">
 <title id="title">{html.escape(title)}</title>
@@ -597,7 +637,8 @@ role="img" aria-labelledby="title desc">
 <rect x="{_BADGE_LEFT}" width="{right}" height="28" rx="3" fill="{color}"/>
 <path fill="{color}" d="M{_BADGE_LEFT} 0h3v28h-3z"/>
 <text x="10" y="18" fill="#fff" font-family="Arial,sans-serif" font-size="11">{
-    html.escape(left_label)}</text>
+        html.escape(left_label)
+    }</text>
 <text x="{_BADGE_LEFT + right // 2}" y="19" fill="#fff" text-anchor="middle"
 font-family="Arial,sans-serif" font-size="{11 if unobserved else 14}"
 font-weight="700">{html.escape(value)}</text>
@@ -611,7 +652,8 @@ def write_page(out_dir: Path, page: Page, origin: str, generated_at: str) -> Non
     canonical = f"{origin}/{page.path + '/' if page.path else ''}"
     (target / "index.html").write_text(
         _shell(page, canonical=canonical, origin=origin, generated_at=generated_at),
-        encoding="utf-8")
+        encoding="utf-8",
+    )
 
 
 _STYLE = """
@@ -1263,8 +1305,7 @@ documents are read; no patient data is ever accessed.</p></div>
 """
 
 
-def home_page(cards: list[Scorecard], origin: str,
-              cohorts: tuple[Cohort, ...] = ()) -> Page:
+def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] = ()) -> Page:
     """Landing page: what this is, what it found, where to go next.
 
     ``cohorts`` is empty when no cohort curation was loaded, and the section is then omitted
@@ -1278,19 +1319,22 @@ def home_page(cards: list[Scorecard], origin: str,
         f'<div class="category-card-top"><span class="eyebrow">{len(v)} endpoints</span>'
         f'<span class="category-arrow" aria-hidden="true">↗</span></div>'
         f'<a href="/fhir-scorecard/{_KIND_SLUGS.get(k, k)}/">'
-        f'{html.escape(_KIND_LABELS.get(k, k))}</a>'
-        f'<p>{html.escape(_KIND_BLURBS.get(k, "Publicly observable FHIR surfaces."))}</p>'
+        f"{html.escape(_KIND_LABELS.get(k, k))}</a>"
+        f"<p>{html.escape(_KIND_BLURBS.get(k, 'Publicly observable FHIR surfaces.'))}</p>"
         f'<div class="grade-distribution" aria-label="Grade distribution">'
-        f'{_grade_counts(v)}</div></li>'
-        for k, v in sorted(by_kind.items(), key=lambda kv: list(_KIND_SLUGS).index(kv[0])
-                           if kv[0] in _KIND_SLUGS else 99)
+        f"{_grade_counts(v)}</div></li>"
+        for k, v in sorted(
+            by_kind.items(),
+            key=lambda kv: list(_KIND_SLUGS).index(kv[0]) if kv[0] in _KIND_SLUGS else 99,
+        )
     )
     reachable = sum(card.reachable for card in cards)
     orgs = len({org_slug(card.name) for card in cards})
     # The legend only claims a state the snapshot actually contains.
     unobserved = sum(card.grade == NOT_OBSERVED for card in cards)
-    unobserved_legend = ('<span><i class="signal-not-observed"></i>not observed</span>'
-                         if unobserved else "")
+    unobserved_legend = (
+        '<span><i class="signal-not-observed"></i>not observed</span>' if unobserved else ""
+    )
     # Both numbers above are said out loud, because one is a count of rows in the registry and
     # the other is a count of endpoints that answered a probe, and a reader takes the headline
     # away without reading the method page.
@@ -1298,23 +1342,34 @@ def home_page(cards: list[Scorecard], origin: str,
         f"{len(cards)} is how many endpoints the registry lists and this run graded; "
         f"{reachable} is how many answered /metadata during the run that generated this page, "
         "from at least one vantage."
-        + (f" {unobserved} " + ("was" if unobserved == 1 else "were")
-           + " not observed on this run and " + ("is" if unobserved == 1 else "are")
-           + " not counted as answering." if unobserved else ""))
+        + (
+            f" {unobserved} "
+            + ("was" if unobserved == 1 else "were")
+            + " not observed on this run and "
+            + ("is" if unobserved == 1 else "are")
+            + " not counted as answering."
+            if unobserved
+            else ""
+        )
+    )
     jsonld = {
         "@context": "https://schema.org",
         "@type": "Dataset",
         "name": "FHIR Scorecard",
-        "description": ("Grades for publicly observable FHIR endpoint discovery surfaces across "
-                        "payers, providers, EHR vendors, and reference servers."),
+        "description": (
+            "Grades for publicly observable FHIR endpoint discovery surfaces across "
+            "payers, providers, EHR vendors, and reference servers."
+        ),
         "url": f"{origin}/",
         "license": "https://www.apache.org/licenses/LICENSE-2.0",
         "creator": {"@type": "Person", "name": "Chelsea Kelly-Reif"},
-        "distribution": [{
-            "@type": "DataDownload",
-            "encodingFormat": "application/json",
-            "contentUrl": f"{origin}/scorecards.json",
-        }],
+        "distribution": [
+            {
+                "@type": "DataDownload",
+                "encodingFormat": "application/json",
+                "contentUrl": f"{origin}/scorecards.json",
+            }
+        ],
         "isAccessibleForFree": True,
     }
     cohort_section = ""
@@ -1400,64 +1455,113 @@ the research note and its corrections →</a></div>
 quality, not statements about anyone's regulatory compliance.</p>
 {_json_ld(jsonld)}
 """
-    return Page(path="", title="Public FHIR API grades for payers, providers, and EHR vendors",
-                description=("Independent grades for publicly observable FHIR endpoints. "
-                             "Reachability, capability transparency, and interoperability "
-                             "readiness, with spec citations and daily availability tracking."),
-                body=body, priority="1.0")
+    return Page(
+        path="",
+        title="Public FHIR API grades for payers, providers, and EHR vendors",
+        description=(
+            "Independent grades for publicly observable FHIR endpoints. "
+            "Reachability, capability transparency, and interoperability "
+            "readiness, with spec citations and daily availability tracking."
+        ),
+        body=body,
+        priority="1.0",
+    )
 
 
 _FINDING_DOCS = [
-    ("R1", "Reachability", "Does /metadata answer with HTTP 2xx over HTTPS?",
-     "An endpoint that cannot be reached is published with the reason stated, rather than "
-     "dropping out of the dataset, and it is not graded. Causes are distinguished: DNS "
-     "non-resolution, TLS failure, timeout, and refusal are different facts, and only some of "
-     "them are about the endpoint. Reaching an endpoint from any vantage settles that it is up; "
-     "failing from every vantage we have is reported as not reached from those vantages, which "
-     "is a weaker statement than down."),
-    ("NR", "Not observed", "What happens to the checks that could not run?",
-     "When no vantage retrieved a document, the checks that read it do not run, score nothing, "
-     "and publish nothing about the endpoint. The dimension shows no number, because zero is a "
-     "measurement and this is the absence of one. An unreachable endpoint used to publish four "
-     "findings describing what the payer had not declared, each with a spec citation, from a "
-     "run that had received no document at all; the project's own history file disproved every "
-     "one of them for the endpoint it happened to."),
-    ("R2", "Response time", "How long did /metadata take?",
-     "The median across the vantages that answered, which today share one network, so bands are "
-     "deliberately coarse: full credit under 3s, partial under 8s. The raw milliseconds and the "
-     "vantages are always shown. A network path difference must never flip a grade."),
-    ("T1", "FHIR version", "Does the server declare the release it intends to serve?",
-     "Checked against the endpoint's registered intent, not against R4 unconditionally. An R5 "
-     "server declaring 5.0.0 is correct. R4 is the default because the CMS interoperability "
-     "rules require it of payer APIs."),
-    ("T2", "Software identity", "Are software name and version declared?",
-     "Knowing what is running is part of what a CapabilityStatement is for."),
-    ("T3", "Declared breadth", "How many resource types are declared?",
-     "Five or more earns full credit, and so does narrow-but-complete: two to four resource "
-     "types with every one documenting its interactions. CMS Blue Button 2.0 is deliberately "
-     "scoped to three, which is a design decision, not a deficiency."),
-    ("T4", "Interaction coverage", "Do declared resources document their interactions?",
-     "A resource listed with no interactions tells a client nothing it can act on."),
-    ("I1", "Interoperability profiles",
-     "Are US Core, CARIN, or Da Vinci canonical URLs declared in any conformance element?",
-     "Declared profiles are how a client knows which implementation guide the server follows. "
-     "Five elements are read before anything is concluded: rest.resource.supportedProfile, "
-     "rest.resource.profile, instantiates, imports, and meta.profile. The finding names the "
-     "element the declaration was found in, or names all five when none carries one, because "
-     "\"no recognized interoperability profiles declared\" used to be asserted after reading "
-     "exactly one of them."),
-    ("I4", "Named in prose only", "Does the document name a guide it does not declare?",
-     "Worth zero points in either direction, and shown only when I1 found no declaration. Prose "
-     "is not a conformance claim: a title reading \"CARIN PatientAccess Implementation\" tells a "
-     "client nothing it can act on, which is exactly what supportedProfile is for. But a flat "
-     "denial next to a document that says CARIN three times invites a reader to conclude "
-     "something the document contradicts, so the note says what is actually the case and which "
-     "element would fix it."),
-    ("I2", "SMART discovery", "Is .well-known/smart-configuration present and complete?",
-     "Not applicable to Provider Directory APIs, which are required to be reachable without "
-     "authentication and are not scored on an authorization surface they must not have."),
-    ("I3", "Declared security", "Does the CapabilityStatement declare an OAuth/SMART service?",
-     "Not applicable to Provider Directory APIs, for the same reason as I2."),
+    (
+        "R1",
+        "Reachability",
+        "Does /metadata answer with HTTP 2xx over HTTPS?",
+        "An endpoint that cannot be reached is published with the reason stated, rather than "
+        "dropping out of the dataset, and it is not graded. Causes are distinguished: DNS "
+        "non-resolution, TLS failure, timeout, and refusal are different facts, and only some of "
+        "them are about the endpoint. Reaching an endpoint from any vantage settles that it is up; "
+        "failing from every vantage we have is reported as not reached from those vantages, which "
+        "is a weaker statement than down.",
+    ),
+    (
+        "NR",
+        "Not observed",
+        "What happens to the checks that could not run?",
+        "When no vantage retrieved a document, the checks that read it do not run, score nothing, "
+        "and publish nothing about the endpoint. The dimension shows no number, because zero is a "
+        "measurement and this is the absence of one. An unreachable endpoint used to publish four "
+        "findings describing what the payer had not declared, each with a spec citation, from a "
+        "run that had received no document at all; the project's own history file disproved every "
+        "one of them for the endpoint it happened to.",
+    ),
+    (
+        "R2",
+        "Response time",
+        "How long did /metadata take?",
+        "The median across the vantages that answered, which today share one network, so bands are "
+        "deliberately coarse: full credit under 3s, partial under 8s. The raw milliseconds and the "
+        "vantages are always shown. A network path difference must never flip a grade.",
+    ),
+    (
+        "T1",
+        "FHIR version",
+        "Does the server declare the release it intends to serve?",
+        "Checked against the endpoint's registered intent, not against R4 unconditionally. An R5 "
+        "server declaring 5.0.0 is correct. R4 is the default because the CMS interoperability "
+        "rules require it of payer APIs.",
+    ),
+    (
+        "T2",
+        "Software identity",
+        "Are software name and version declared?",
+        "Knowing what is running is part of what a CapabilityStatement is for.",
+    ),
+    (
+        "T3",
+        "Declared breadth",
+        "How many resource types are declared?",
+        "Five or more earns full credit, and so does narrow-but-complete: two to four resource "
+        "types with every one documenting its interactions. CMS Blue Button 2.0 is deliberately "
+        "scoped to three, which is a design decision, not a deficiency.",
+    ),
+    (
+        "T4",
+        "Interaction coverage",
+        "Do declared resources document their interactions?",
+        "A resource listed with no interactions tells a client nothing it can act on.",
+    ),
+    (
+        "I1",
+        "Interoperability profiles",
+        "Are US Core, CARIN, or Da Vinci canonical URLs declared in any conformance element?",
+        "Declared profiles are how a client knows which implementation guide the server follows. "
+        "Five elements are read before anything is concluded: rest.resource.supportedProfile, "
+        "rest.resource.profile, instantiates, imports, and meta.profile. The finding names the "
+        "element the declaration was found in, or names all five when none carries one, because "
+        '"no recognized interoperability profiles declared" used to be asserted after reading '
+        "exactly one of them.",
+    ),
+    (
+        "I4",
+        "Named in prose only",
+        "Does the document name a guide it does not declare?",
+        "Worth zero points in either direction, and shown only when I1 found no declaration. Prose "
+        'is not a conformance claim: a title reading "CARIN PatientAccess Implementation" tells a '
+        "client nothing it can act on, which is exactly what supportedProfile is for. But a flat "
+        "denial next to a document that says CARIN three times invites a reader to conclude "
+        "something the document contradicts, so the note says what is actually the case and which "
+        "element would fix it.",
+    ),
+    (
+        "I2",
+        "SMART discovery",
+        "Is .well-known/smart-configuration present and complete?",
+        "Not applicable to Provider Directory APIs, which are required to be reachable without "
+        "authentication and are not scored on an authorization surface they must not have.",
+    ),
+    (
+        "I3",
+        "Declared security",
+        "Does the CapabilityStatement declare an OAuth/SMART service?",
+        "Not applicable to Provider Directory APIs, for the same reason as I2.",
+    ),
 ]
 
 
@@ -1507,18 +1611,24 @@ dozens of requests to every endpoint here.</p></section>
 <p class="caveat">Grades describe observable properties of public documents. They are not
 audits, not compliance determinations, and not statements about care quality.</p>
 """
-    return Page(path="claim",
-                title="Add, correct, or remove a FHIR endpoint listing",
-                description=("Submit a public FHIR endpoint, correct a mistake, or ask to be "
-                             "removed. What this project does and does not do to your servers."),
-                body=body, changefreq="monthly", priority="0.6")
+    return Page(
+        path="claim",
+        title="Add, correct, or remove a FHIR endpoint listing",
+        description=(
+            "Submit a public FHIR endpoint, correct a mistake, or ask to be "
+            "removed. What this project does and does not do to your servers."
+        ),
+        body=body,
+        changefreq="monthly",
+        priority="0.6",
+    )
 
 
 def how_we_grade_page(origin: str) -> Page:
     rows = "".join(
         f'<section class="method-card" id="{code}"><span>{code}</span>'
-        f'<div><h3>{html.escape(title)}</h3><p><strong>{html.escape(question)}</strong></p>'
-        f'<p>{html.escape(detail)}</p></div></section>'
+        f"<div><h3>{html.escape(title)}</h3><p><strong>{html.escape(question)}</strong></p>"
+        f"<p>{html.escape(detail)}</p></div></section>"
         for code, title, question, detail in _FINDING_DOCS
     )
     body = f"""
@@ -1569,8 +1679,14 @@ documented in the
 If something here is wrong, please
 <a href="https://github.com/ChelseaKR/fhir-scorecard/issues">open an issue</a>.</p>
 """
-    return Page(path="how-we-grade",
-                title="How the FHIR endpoint grades are calculated",
-                description=("Every finding code, what it checks, the spec clause it cites, and "
-                             "the calibration decisions behind it."),
-                body=body, changefreq="monthly", priority="0.6")
+    return Page(
+        path="how-we-grade",
+        title="How the FHIR endpoint grades are calculated",
+        description=(
+            "Every finding code, what it checks, the spec clause it cites, and "
+            "the calibration decisions behind it."
+        ),
+        body=body,
+        changefreq="monthly",
+        priority="0.6",
+    )

@@ -36,18 +36,29 @@ def good_capability() -> dict[str, object]:
         "fhirVersion": "4.0.1",
         "software": {"name": "SyntheticServer", "version": "9.9.9"},
         "implementation": {"description": "Synthetic test fixture"},
-        "rest": [{
-            "mode": "server",
-            "security": {"service": [{"coding": [{"code": "SMART-on-FHIR"}]}]},
-            "resource": [
-                {"type": t,
-                 "interaction": [{"code": "read"}, {"code": "search-type"}],
-                 "supportedProfile": [
-                     f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-{t.lower()}"]}
-                for t in ["Patient", "Coverage", "ExplanationOfBenefit",
-                          "Practitioner", "Organization", "Observation"]
-            ],
-        }],
+        "rest": [
+            {
+                "mode": "server",
+                "security": {"service": [{"coding": [{"code": "SMART-on-FHIR"}]}]},
+                "resource": [
+                    {
+                        "type": t,
+                        "interaction": [{"code": "read"}, {"code": "search-type"}],
+                        "supportedProfile": [
+                            f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-{t.lower()}"
+                        ],
+                    }
+                    for t in [
+                        "Patient",
+                        "Coverage",
+                        "ExplanationOfBenefit",
+                        "Practitioner",
+                        "Organization",
+                        "Observation",
+                    ]
+                ],
+            }
+        ],
     }
 
 

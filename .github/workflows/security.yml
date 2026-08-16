@@ -1,9 +1,10 @@
 name: security
 
-# SAST and secret scanning, armed with automatic triggers (push/PR/schedule) so the
-# controls actually run rather than existing on paper. The weekly schedule re-analyzes
-# main with newly published query packs and re-scans the full git history even when no
-# code changes.
+# SAST, secret scanning and dependency auditing, armed with automatic triggers
+# (push/PR/schedule) so the controls actually run rather than existing on paper. The weekly
+# schedule matters for all three: it re-analyzes main with newly published query packs,
+# re-scans the full git history, and catches advisories published after the last code change,
+# which is how a dependency set that was clean on merge stops being clean.
 on:
   push:
     branches: [main]
@@ -47,6 +48,30 @@ jobs:
           queries: ${{ matrix.queries }}
       - uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
 
+  dependency-audit:
+    name: Dependency audit (pip-audit over uv.lock)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.1"
+      - name: Audit the locked dependency set
+        # The same target `make verify` runs, so the merge gate and the weekly sweep cannot
+        # disagree about what was audited. It exports the locked set (dropping the local
+        # project, which is not on PyPI) and runs pip-audit --strict over it: an advisory
+        # fails, and so does a dependency that could not be audited at all.
+        shell: bash
+        run: |
+          set -euo pipefail
+          make sync
+          make audit
+
   gitleaks:
     name: full-history secret scan (gitleaks)
     runs-on: ubuntu-latest
@@ -59,7 +84,11 @@ jobs:
         # Run the pinned gitleaks binary directly instead of a third-party action:
         # a checksum-verified, version-pinned binary is a deterministic supply-chain
         # pin. `gitleaks git` with a full-depth checkout walks the entire history.
+        shell: bash
         run: |
+          # pipefail so the checksum pipeline below cannot pass on a grep that matched
+          # nothing. The default shell is `bash -e`, which does not set it.
+          set -euo pipefail
           GL=8.30.1
           BASE="https://github.com/gitleaks/gitleaks/releases/download/v${GL}"
           ARCHIVE="gitleaks_${GL}_linux_x64.tar.gz"

@@ -12,8 +12,8 @@ publish a letter grade with a short, prioritized list of findings and spec citat
 ## Quick start
 
 ```bash
-uv venv .venv && uv pip install -e '.[dev]'
-make verify                       # lint, strict typecheck, tests with coverage floor
+make sync                         # uv sync --locked: exactly the toolchain uv.lock pins
+make verify                       # lock check, lint, format, strict typecheck, tests + coverage floor, audit
 .venv/bin/fhir-scorecard grade --registry data/registry.json --out site/
 ```
 
@@ -186,7 +186,8 @@ rankings of care quality, or statements about any organization's compliance.
 
 Personal open-source project, built on personal time and equipment, unaffiliated with any employer
 or client, past or present. Built with AI assistance (Claude Code); every change passes the
-`make verify` gate (ruff with security rules, mypy strict, pytest with a branch-coverage floor).
+`make verify` gate (ruff lint and format checks with security rules, mypy strict, pytest with a
+branch-coverage floor, and a pip-audit of the locked dependency set).
 
 License: Apache-2.0.
 
@@ -197,8 +198,8 @@ are no blank rows and no silent skips.
 
 | Standard | State |
 |---|---|
-| Code Quality | Applies: `make verify` gates every change (ruff with security rules, mypy strict, pytest with an 85% branch-coverage floor); `uv.lock`, `.python-version`, and `.pre-commit-config.yaml` pin the toolchain |
-| Security & Supply-Chain | Applies: Actions pinned to full commit SHAs, scoped workflow permissions, CodeQL + full-history gitleaks (`.github/workflows/security.yml`), Dependabot for pip and github-actions |
+| Code Quality | Applies: `make verify` gates every change and CI runs that exact target (`ruff check` + `ruff format --check` on the standard's pinned select set, mypy strict, pytest with an 85% branch-coverage floor, `pip-audit --strict` over the locked set). `make verify` opens with `uv lock --check --offline` and `make sync` installs with `uv sync --locked`, so a lockfile drifted from `pyproject.toml` fails the build rather than being installed around (`--frozen`, which the control text names, does not compare the two at all); `.python-version` and `.pre-commit-config.yaml` pin the rest of the toolchain. Dev dependencies are a PEP 735 `[dependency-groups]` group, never an installable extra |
+| Security & Supply-Chain | Applies: Actions pinned to full commit SHAs, scoped workflow permissions, CodeQL + full-history gitleaks + a pip-audit of the locked dependency set, all three on push, PR and a weekly schedule (`.github/workflows/security.yml`), Dependabot for pip and github-actions. No `\|\| true` and nothing muted: the audit blocks |
 | CI/CD | Applies: `verify.yml` runs the same `make verify` gate as local; branch protection on `main` is pending (a live GitHub settings action left for the repo owner) |
 | Observability | Applies (scoped): scheduled batch publisher, not a hosted runtime; run health is visible in Actions, and availability/drift history accrues on the `capability-history` branch, one commit per day on which something changed (the copy on `main` is the seed the first run started from, and is no longer updated) |
 | Accessibility | Applies: static semantic HTML pages; formal assistive-technology review not yet performed (tracked in `docs/RESPONSIBLE-TECH-AUDITS.md` E) |

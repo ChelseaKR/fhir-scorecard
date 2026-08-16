@@ -40,14 +40,27 @@ _CLAIMS_ABOUT_A_DOCUMENT = (
 
 def _unreachable() -> FetchResult:
     return FetchResult(
-        url="https://payer.test/r4/metadata", ok=False, status=None, elapsed_ms=0, body=b"",
-        error=("TLS certificate verification failed (self-signed certificate in certificate "
-               "chain); likely a vantage-local interception, not an endpoint fault"))
+        url="https://payer.test/r4/metadata",
+        ok=False,
+        status=None,
+        elapsed_ms=0,
+        body=b"",
+        error=(
+            "TLS certificate verification failed (self-signed certificate in certificate "
+            "chain); likely a vantage-local interception, not an endpoint fault"
+        ),
+    )
 
 
 def test_unreachable_endpoint_publishes_no_findings_about_the_document() -> None:
-    card = build_scorecard("payer", "Payer Health Plan", _unreachable(),
-                           NO_CAPABILITY_RETRIEVED, NO_SMART_RETRIEVED, kind="payer")
+    card = build_scorecard(
+        "payer",
+        "Payer Health Plan",
+        _unreachable(),
+        NO_CAPABILITY_RETRIEVED,
+        NO_SMART_RETRIEVED,
+        kind="payer",
+    )
     messages = [f.message for dim in card.dimensions for f in dim.findings]
     for claim in _CLAIMS_ABOUT_A_DOCUMENT:
         assert not any(claim in m for m in messages), claim
@@ -72,26 +85,47 @@ def test_unreachable_endpoint_publishes_no_findings_about_the_document() -> None
 def test_a_reachable_failure_is_not_labelled_unreachable() -> None:
     """`data/rejected.json` records exactly this body for Elevance Health TotalView: a 200 that
     is HTML, not a CapabilityStatement. The endpoint's network is fine; its document is not."""
-    answered = FetchResult(url="https://payer.test/r4/metadata", ok=True, status=200,
-                           elapsed_ms=250, body=b"<html><body>Login</body></html>", error=None)
-    card = build_scorecard("elevance-shaped", "Elevance-shaped Endpoint", answered,
-                           parse_capability(b"<html><body>Login</body></html>"),
-                           parse_smart(b""), kind="payer")
+    answered = FetchResult(
+        url="https://payer.test/r4/metadata",
+        ok=True,
+        status=200,
+        elapsed_ms=250,
+        body=b"<html><body>Login</body></html>",
+        error=None,
+    )
+    card = build_scorecard(
+        "elevance-shaped",
+        "Elevance-shaped Endpoint",
+        answered,
+        parse_capability(b"<html><body>Login</body></html>"),
+        parse_smart(b""),
+        kind="payer",
+    )
     assert card.reachable is True
     assert card.grade == "F"
 
-    page = endpoint_page(card, base_url="https://payer.test/r4", verified="live fetch",
-                         origin="https://example.test")
+    page = endpoint_page(
+        card, base_url="https://payer.test/r4", verified="live fetch", origin="https://example.test"
+    )
     assert "could not be reached" not in page.body
     assert "falls short across the graded checks" in page.body
 
 
 def test_the_unreachable_page_says_what_happened_and_claims_nothing_else() -> None:
-    card = build_scorecard("payer", "Payer Health Plan", _unreachable(),
-                           NO_CAPABILITY_RETRIEVED, NO_SMART_RETRIEVED, kind="payer")
-    page = endpoint_page(card, base_url="https://payer.test/r4",
-                         verified="live fetch (recorded 2026-08-05)",
-                         origin="https://example.test")
+    card = build_scorecard(
+        "payer",
+        "Payer Health Plan",
+        _unreachable(),
+        NO_CAPABILITY_RETRIEVED,
+        NO_SMART_RETRIEVED,
+        kind="payer",
+    )
+    page = endpoint_page(
+        card,
+        base_url="https://payer.test/r4",
+        verified="live fetch (recorded 2026-08-05)",
+        origin="https://example.test",
+    )
     assert "could not be reached from any vantage on this run" in page.body
     assert "Current status" in page.body and "Current grade" not in page.body
     for claim in _CLAIMS_ABOUT_A_DOCUMENT:
@@ -109,22 +143,39 @@ def test_reached_but_no_documents_says_that_and_not_that_it_was_unreachable() ->
     its documents was observed; the page has to say both."""
     from fhir_scorecard.vantage import VantageProbe, reconcile
 
-    consensus = reconcile([VantageProbe("local/test", False, 0, "connection timed out"),
-                           VantageProbe("peer/other", True, 400)])
-    card = build_scorecard("payer", "Payer Health Plan", _unreachable(),
-                           NO_CAPABILITY_RETRIEVED, NO_SMART_RETRIEVED, kind="payer",
-                           consensus=consensus)
+    consensus = reconcile(
+        [
+            VantageProbe("local/test", False, 0, "connection timed out"),
+            VantageProbe("peer/other", True, 400),
+        ]
+    )
+    card = build_scorecard(
+        "payer",
+        "Payer Health Plan",
+        _unreachable(),
+        NO_CAPABILITY_RETRIEVED,
+        NO_SMART_RETRIEVED,
+        kind="payer",
+        consensus=consensus,
+    )
     assert card.reachable is True
     assert card.grade == NOT_OBSERVED
-    page = endpoint_page(card, base_url="https://payer.test/r4", verified="live fetch",
-                         origin="https://example.test")
+    page = endpoint_page(
+        card, base_url="https://payer.test/r4", verified="live fetch", origin="https://example.test"
+    )
     assert "no vantage retrieved its public documents" in page.body
     assert "could not be reached from any vantage" not in page.body
 
 
 def test_the_badge_does_not_stamp_an_f_on_an_endpoint_nobody_reached() -> None:
-    card = build_scorecard("payer", "Payer Health Plan", _unreachable(),
-                           NO_CAPABILITY_RETRIEVED, NO_SMART_RETRIEVED, kind="payer")
+    card = build_scorecard(
+        "payer",
+        "Payer Health Plan",
+        _unreachable(),
+        NO_CAPABILITY_RETRIEVED,
+        NO_SMART_RETRIEVED,
+        kind="payer",
+    )
     svg = status_badge(card)
     assert "not observed" in svg
     assert ">F<" not in svg
@@ -144,11 +195,24 @@ def test_a_borrowed_capability_without_its_smart_document_claims_nothing_about_s
 
 
 def test_dataset_leaves_an_unobserved_score_empty_never_zero() -> None:
-    card = build_scorecard("payer", "Payer Health Plan", _unreachable(),
-                           NO_CAPABILITY_RETRIEVED, NO_SMART_RETRIEVED, kind="payer")
-    endpoint = Endpoint(endpoint_id="payer", name="Payer Health Plan", kind="payer",
-                        base_url="https://payer.test/r4", expects="R4", enabled=True,
-                        verified_method="live fetch", verified_date="2026-08-05")
+    card = build_scorecard(
+        "payer",
+        "Payer Health Plan",
+        _unreachable(),
+        NO_CAPABILITY_RETRIEVED,
+        NO_SMART_RETRIEVED,
+        kind="payer",
+    )
+    endpoint = Endpoint(
+        endpoint_id="payer",
+        name="Payer Health Plan",
+        kind="payer",
+        base_url="https://payer.test/r4",
+        expects="R4",
+        enabled=True,
+        verified_method="live fetch",
+        verified_date="2026-08-05",
+    )
     rows = to_csv([card], [endpoint]).splitlines()
     header, row = rows[0].split(","), rows[1].split(",")
     cells = dict(zip(header, row, strict=True))
@@ -161,13 +225,28 @@ def test_end_to_end_an_endpoint_nobody_reached_publishes_one_finding(tmp_path: P
     """The whole path: registry to site. The card used to carry five findings, four of them
     describing documents that were never retrieved."""
     registry = tmp_path / "registry.json"
-    registry.write_text(json.dumps({"endpoints": [
-        {"id": "reached", "name": "Reached Health Plan", "kind": "payer",
-         "base_url": "https://reached.test/r4",
-         "verification": {"method": "fixture", "date": "2026-08-06"}},
-        {"id": "unreached", "name": "Unreached Health Plan", "kind": "payer",
-         "base_url": "https://unreached.test/r4",
-         "verification": {"method": "fixture", "date": "2026-08-06"}}]}))
+    registry.write_text(
+        json.dumps(
+            {
+                "endpoints": [
+                    {
+                        "id": "reached",
+                        "name": "Reached Health Plan",
+                        "kind": "payer",
+                        "base_url": "https://reached.test/r4",
+                        "verification": {"method": "fixture", "date": "2026-08-06"},
+                    },
+                    {
+                        "id": "unreached",
+                        "name": "Unreached Health Plan",
+                        "kind": "payer",
+                        "base_url": "https://unreached.test/r4",
+                        "verification": {"method": "fixture", "date": "2026-08-06"},
+                    },
+                ]
+            }
+        )
+    )
     fixtures = tmp_path / "fixtures" / "reached"
     fixtures.mkdir(parents=True)
     (fixtures / "metadata.json").write_text(json.dumps(good_capability()))
@@ -175,9 +254,25 @@ def test_end_to_end_an_endpoint_nobody_reached_publishes_one_finding(tmp_path: P
 
     out = tmp_path / "site"
     history = tmp_path / "history.json"
-    assert main(["grade", "--registry", str(registry), "--offline",
-                 "--fixtures", str(tmp_path / "fixtures"), "--out", str(out),
-                 "--history", str(history), "--vantage", "local/test"]) == 0
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(registry),
+                "--offline",
+                "--fixtures",
+                str(tmp_path / "fixtures"),
+                "--out",
+                str(out),
+                "--history",
+                str(history),
+                "--vantage",
+                "local/test",
+            ]
+        )
+        == 0
+    )
 
     detail = json.loads((out / "api" / "endpoint" / "unreached.json").read_text())
     findings = [f for d in detail["dimensions"] for f in d["findings"]]

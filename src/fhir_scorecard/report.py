@@ -13,15 +13,16 @@ def _grade_class(grade: str) -> str:
     return "not-observed" if grade == NOT_OBSERVED else grade.lower()
 
 
-def to_json(scorecards: list[Scorecard], *, generated_at: str,
-            vantage: str = "unspecified") -> str:
+def to_json(scorecards: list[Scorecard], *, generated_at: str, vantage: str = "unspecified") -> str:
     payload = {
         "generator": "fhir-scorecard",
         "generated_at": generated_at,
         "vantage": vantage,
-        "disclaimer": ("Observational snapshot of public, unauthenticated FHIR discovery "
-                       "surfaces. Not an audit, a ranking of care quality, or a statement "
-                       "about any organization's regulatory compliance."),
+        "disclaimer": (
+            "Observational snapshot of public, unauthenticated FHIR discovery "
+            "surfaces. Not an audit, a ranking of care quality, or a statement "
+            "about any organization's regulatory compliance."
+        ),
         "scorecards": [asdict(s) for s in scorecards],
     }
     return json.dumps(payload, indent=2, sort_keys=True)
@@ -36,27 +37,40 @@ def _card(s: Scorecard) -> str:
             f'<a href="{html.escape(f.citation)}">spec</a></li>'
             for f in d.findings
         )
-        heading = (f"{html.escape(d.title)}: not observed on this run" if d.score is None
-                   else f"{html.escape(d.title)}: {d.score}/100")
+        heading = (
+            f"{html.escape(d.title)}: not observed on this run"
+            if d.score is None
+            else f"{html.escape(d.title)}: {d.score}/100"
+        )
         rows.append(f"<h3>{heading}</h3><ul>{items}</ul>")
-    availability_html = (f"<p class=\"avail\">Availability: {html.escape(s.availability)}</p>"
-                         if s.availability else "")
+    availability_html = (
+        f'<p class="avail">Availability: {html.escape(s.availability)}</p>'
+        if s.availability
+        else ""
+    )
     drift_html = ""
     if s.observed_since is not None:
         if s.drift_events:
             events = "".join(f"<li>{html.escape(e)}</li>" for e in s.drift_events)
-            drift_html = (f"<h3>Capability changes (informational, not scored)</h3>"
-                          f"<p>Observed since {html.escape(s.observed_since)}.</p>"
-                          f"<ul>{events}</ul>")
+            drift_html = (
+                f"<h3>Capability changes (informational, not scored)</h3>"
+                f"<p>Observed since {html.escape(s.observed_since)}.</p>"
+                f"<ul>{events}</ul>"
+            )
         else:
-            drift_html = (f"<p>Observed since {html.escape(s.observed_since)}; "
-                          "no capability changes recorded.</p>")
+            drift_html = (
+                f"<p>Observed since {html.escape(s.observed_since)}; "
+                "no capability changes recorded.</p>"
+            )
     return (
         f'<section aria-labelledby="h-{html.escape(s.endpoint_id)}">'
         f'<h2 id="h-{html.escape(s.endpoint_id)}">{html.escape(s.name)} '
-        f"<span class=\"grade grade-{_grade_class(s.grade)}\">"
+        f'<span class="grade grade-{_grade_class(s.grade)}">'
         f"{html.escape(s.grade)}</span></h2>"
-        + availability_html + "".join(rows) + drift_html + "</section>"
+        + availability_html
+        + "".join(rows)
+        + drift_html
+        + "</section>"
     )
 
 
@@ -94,8 +108,9 @@ def _summary_table(scorecards: list[Scorecard]) -> str:
     return "".join(tables)
 
 
-def render_html(scorecards: list[Scorecard], *, generated_at: str,
-                vantage: str = "unspecified") -> str:
+def render_html(
+    scorecards: list[Scorecard], *, generated_at: str, vantage: str = "unspecified"
+) -> str:
     body = _summary_table(scorecards) + "".join(_card(s) for s in scorecards)
     return f"""<!DOCTYPE html>
 <html lang="en">

@@ -20,8 +20,13 @@ documents from a FHIR endpoint and grades what it finds:
 - `[base]/.well-known/smart-configuration`, the SMART on FHIR discovery document
 
 Nothing authenticated. No patient data. One request per document per run. The grading is
-deterministic, every finding cites the spec clause it rests on, and an unreachable endpoint
-scores F with a stated reason rather than dropping out of the dataset.
+deterministic, every finding cites the spec clause it rests on, and an unreachable endpoint is
+published with a stated reason rather than dropping out of the dataset.
+
+> *Corrected 2026-08-16.* As written in August 2026 this paragraph said an unreachable endpoint
+> scores F. It no longer does, and the change is the point of the correction: `F` was carrying
+> two opposite meanings, one of them a claim about a named payer that no measurement supported.
+> Such an endpoint is now published as `not observed`, with empty dimension scores.
 
 Then I went looking for endpoints to point it at.
 

@@ -155,6 +155,27 @@ class TestTheGateCanFail:
 
 
 class TestTheGateFailsHonestly:
+    def test_no_document_still_says_an_unreachable_endpoint_gets_an_f(self) -> None:
+        """The prose has to follow the code, or the Action's whole not-observed rule is undercut.
+
+        ``letter`` stopped returning ``F`` for an endpoint nobody reached, and two documents kept
+        saying it did: the ethics audit, whose findings are supposed to summarize what the code
+        enforces, and a dated write-up that was true when it was written. Both now carry the
+        correction. This scan is what stops the third one.
+        """
+        stale = re.compile(r"\b(receives? an F|scores F|graded F|an F with)\b")
+        docs = [ROOT / "README.md", *sorted((ROOT / "docs").rglob("*.md"))]
+        assert len(docs) > 3, "the doc scan found almost nothing; it would pass over nothing"
+        for path in docs:
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if "unreachable" not in line.casefold():
+                    continue
+                assert not stale.search(line), (
+                    f"{path.relative_to(ROOT)}:{number} says an unreachable endpoint gets an F; "
+                    "grading.letter publishes 'not observed' for one, and the difference is a "
+                    "claim about a named organization"
+                )
+
     def test_an_endpoint_nobody_reached_is_not_reported_as_f(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:

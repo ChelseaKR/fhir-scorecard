@@ -54,8 +54,12 @@ is the bias surface. Mitigations in place:
   identically to every registry entry; there are no per-organization adjustments.
 - Provider Directory endpoints are graded on their own terms rather than penalized against
   Patient Access expectations (registry `kind` taxonomy).
-- Unreachable endpoints receive an F with a stated reason instead of being dropped, so the
-  dataset does not survivor-bias toward healthy endpoints.
+- Unreachable endpoints are published with a stated reason instead of being dropped, so the
+  dataset does not survivor-bias toward healthy endpoints. They are graded `not observed`, never
+  `F`: a run that retrieved no document has nothing to say about what a named organization
+  publishes, and `F` was carrying that meaning and "answered and scored badly" at the same time
+  (`grading.py`, `letter`). *Corrected 2026-08-16; this line previously said an unreachable
+  endpoint receives an F, which the code stopped doing and this file did not follow.*
 - Selection bias is documented rather than hidden: `data/CANDIDATES.md` and
   `data/rejected.json` record what was tried and why entries were rejected, and
   `docs/payer-verifiability.md` writes up the asymmetry in who can be observed at all.

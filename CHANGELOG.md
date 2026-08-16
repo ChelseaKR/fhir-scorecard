@@ -51,6 +51,25 @@ here are dated records of change, not version-tagged release notes.
   Partnership HealthPlan's two production URLs (404 and 401), Kern Family Health Care's two (404),
   and Health Plan of San Joaquin's (401). These are publisher-documented addresses that do not
   work, which is a different finding from publishing nothing.
+- **`docs/findings/`, and the first two write-ups in it.**
+  `2026-08-15-california-payer-cohort.md` publishes what the California curation review of
+  2026-08-07 found: 8 of 27 organizations listed, 19 not, and the 19 split four ways rather
+  than counted as one number, because "publishes nothing" and "publishes a URL that returns
+  404" are different results. `2026-08-15-anthem-multi-tenant-attribution.md` writes up the
+  three-brands-one-URL observation on its own, as a limit on what any outside observer can
+  establish about a multi-tenant payer platform. Both refuse a compliance reading explicitly.
+- **The outcome classification the write-up counts from**
+  (`docs/findings/2026-08-15-california-payer-cohort.json`). The cohort file records how far a
+  review went (`basis`) and what it found (`reason`, free text), and free text cannot be
+  counted; `ROADMAP.md` phase 5 requires the "documented but unreachable" and "no public URL
+  found" populations to be counted separately and never merged. Each record carries the
+  verbatim clause of the committed reason that decided its outcome. Assigned by reading what
+  was already committed: no endpoint was probed and no review record was changed.
+- **`tests/test_findings_evidence.py`**, which recomputes every published figure from
+  `data/cohorts/california.json`, `data/registry.json` and the classification, so a number in a
+  findings document cannot drift from its evidence. It also fails the build if a write-up names
+  an organization that is not on the roster, if it claims more probing independence than three
+  runners on one provider's network support, or if it uses a regulator's word.
 - Portfolio standards conformance pass: security scanning workflow (CodeQL SAST plus a
   full-history gitleaks secret scan), Dependabot configuration, `uv.lock`, `.python-version`,
   pre-commit configuration, CODEOWNERS, ADR log (`docs/adr/`), i18n declaration

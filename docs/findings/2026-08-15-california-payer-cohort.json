@@ -1,0 +1,173 @@
+{
+  "about": "Outcome classification for the excluded members of data/cohorts/california.json. The cohort file records how far each review went (`basis`) and what it found (`reason`, free text). ROADMAP.md phase 5 requires the 'documented but unreachable' and 'no public URL found' populations to be counted separately and never merged, and free text cannot be counted. This file assigns one outcome per excluded member so the write-up beside it can be recomputed rather than typed.",
+  "method": "Assigned on 2026-08-15 by reading the `reason` already committed for each member. No endpoint was probed, no page was retrieved, and no review record was changed. Each record carries the verbatim clause of the committed reason that decided its outcome, and tests/test_findings_evidence.py fails if that clause stops appearing in the cohort file.",
+  "cohort": "data/cohorts/california.json",
+  "registry": "data/registry.json",
+  "classified_on": "2026-08-15",
+  "outcomes": {
+    "no_public_base_url": "The review reached the plan's own documentation, or could not locate any, and no FHIR base URL was readable by a visitor without an account.",
+    "documented_unreachable": "The plan published a production base URL and it did not answer: the host did not resolve, or the endpoint returned an HTTP error.",
+    "sandbox_only": "The plan published a sandbox base URL only, and the production entry in its own documentation is an unfilled placeholder.",
+    "answered_unattributable": "The plan published a base URL, it answered, and the CapabilityStatement it returned could not be attributed to this plan."
+  },
+  "excluded": [
+    {
+      "member_id": "alameda-alliance-for-health",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "no base URL is rendered to an unregistered visitor"
+    },
+    {
+      "member_id": "anthem-blue-cross",
+      "outcome": "answered_unattributable",
+      "reason_excerpt": "the documented brand endpoint answers, but its CapabilityStatement cannot be attributed to the California brand"
+    },
+    {
+      "member_id": "blue-shield-of-california",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "developer portal requires an account"
+    },
+    {
+      "member_id": "caloptima-health",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "no base URL is rendered to an unregistered visitor"
+    },
+    {
+      "member_id": "calviva-health",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "publishes no base URL to an unregistered visitor"
+    },
+    {
+      "member_id": "cencal-health",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "no base URL is rendered to an unregistered visitor"
+    },
+    {
+      "member_id": "chinese-community-health-plan",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "the list itself is missing from the page"
+    },
+    {
+      "member_id": "community-health-plan-of-imperial-valley",
+      "outcome": "documented_unreachable",
+      "reason_excerpt": "publishes production base URLs in its own hosted API documentation and the host does not resolve in public DNS"
+    },
+    {
+      "member_id": "contra-costa-health-plan",
+      "outcome": "documented_unreachable",
+      "reason_excerpt": "documents a Patient Access host that does not resolve"
+    },
+    {
+      "member_id": "gold-coast-health-plan",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "no base URL is rendered to an unregistered visitor"
+    },
+    {
+      "member_id": "health-net",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "publishes no base URL to an unregistered visitor"
+    },
+    {
+      "member_id": "health-plan-of-san-joaquin",
+      "outcome": "sandbox_only",
+      "reason_excerpt": "only a sandbox base URL is published and it returns 401"
+    },
+    {
+      "member_id": "kern-family-health-care",
+      "outcome": "documented_unreachable",
+      "reason_excerpt": "both return HTTP 404"
+    },
+    {
+      "member_id": "molina-healthcare-of-california",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "no production base URL is printed"
+    },
+    {
+      "member_id": "mountain-valley-health-plan",
+      "outcome": "sandbox_only",
+      "reason_excerpt": "sandbox only, and it returns 401"
+    },
+    {
+      "member_id": "partnership-healthplan",
+      "outcome": "documented_unreachable",
+      "reason_excerpt": "neither answers: the Provider Directory returns 404 and the Patient Access endpoint returns 401"
+    },
+    {
+      "member_id": "san-francisco-health-plan",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "no base URL is rendered to an unregistered visitor"
+    },
+    {
+      "member_id": "valley-health-plan",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "no interoperability or developer documentation could be located"
+    },
+    {
+      "member_id": "western-health-advantage",
+      "outcome": "no_public_base_url",
+      "reason_excerpt": "no interoperability or developer documentation could be located"
+    }
+  ],
+  "attributions": {
+    "publisher_names_the_plan": "The CapabilityStatement's own `publisher` field names the plan the entry is attributed to.",
+    "only_the_implementation_description_names_the_plan": "`publisher` is empty, and the plan is named only in `implementation.description`.",
+    "names_the_vendor_not_the_plan": "`publisher` names the platform vendor that operates the server, not the plan.",
+    "names_no_deployment": "The document names no deployment at all: `publisher` is empty or carries the implementation guide's own authoring body."
+  },
+  "listed_endpoints": [
+    {
+      "endpoint_id": "ccah-provider-directory",
+      "attribution": "names_no_deployment",
+      "method_excerpt": "Publisher reads 'Not provided' and software is a generic 'HAPI FHIR Server' (5.4.1.13_edfx) on an Edifecs-controlled host, so the document names nobody"
+    },
+    {
+      "endpoint_id": "chg-provider-directory",
+      "attribution": "names_no_deployment",
+      "method_excerpt": "The document identifies no deployment"
+    },
+    {
+      "endpoint_id": "hpsm-patient-access",
+      "attribution": "names_the_vendor_not_the_plan",
+      "method_excerpt": "The CapabilityStatement names the vendor, not the plan: publisher '1upHealth'"
+    },
+    {
+      "endpoint_id": "iehp-patient-access",
+      "attribution": "publisher_names_the_plan",
+      "method_excerpt": "publisher field reads 'IEHP'"
+    },
+    {
+      "endpoint_id": "iehp-provider-directory",
+      "attribution": "publisher_names_the_plan",
+      "method_excerpt": "publisher field reads 'IEHP'"
+    },
+    {
+      "endpoint_id": "kaiser-permanente-health-plan",
+      "attribution": "publisher_names_the_plan",
+      "method_excerpt": "publisher field reads 'Kaiser Permanente'"
+    },
+    {
+      "endpoint_id": "la-care-provider-directory",
+      "attribution": "names_no_deployment",
+      "method_excerpt": "The document names no organization at all: publisher reads 'Not provided'"
+    },
+    {
+      "endpoint_id": "scfhp-patient-access",
+      "attribution": "only_the_implementation_description_names_the_plan",
+      "method_excerpt": "the publisher field reads 'Not provided', so identity rests on implementation description 'FHIR Endpoint powered by SCFHP'"
+    },
+    {
+      "endpoint_id": "scfhp-provider-directory",
+      "attribution": "only_the_implementation_description_names_the_plan",
+      "method_excerpt": "publisher 'Not provided', implementation description 'FHIR Endpoint powered by SCFHP'"
+    },
+    {
+      "endpoint_id": "sharp-health-plan-patient-access",
+      "attribution": "publisher_names_the_plan",
+      "method_excerpt": "publisher field reads 'Sharp Health Plan'"
+    },
+    {
+      "endpoint_id": "sharp-health-plan-provider-directory",
+      "attribution": "publisher_names_the_plan",
+      "method_excerpt": "publisher field reads 'Sharp Health Plan'"
+    }
+  ]
+}

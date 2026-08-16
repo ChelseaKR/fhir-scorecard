@@ -126,6 +126,23 @@ visitor can read it; California's Data Exchange Framework runs through the DSA a
 requires none of these surfaces; and CMS-0057-F's additional APIs are not in force until 2027 and
 are not graded.
 
+## Findings
+
+`docs/findings/` holds dated write-ups of what pointing this tool at real endpoints produced,
+with the evidence beside each one and every published figure recomputed from that evidence by
+`tests/test_findings_evidence.py` rather than typed.
+
+- [What 27 California health plans publish about their FHIR endpoints](docs/findings/2026-08-15-california-payer-cohort.md)
+  (curation review of 2026-08-07): 8 of 27 organizations on a public roster publish a base URL
+  this project could verify. The other 19 are split four ways rather than counted as one
+  number, because a plan publishing nothing and a plan publishing a URL that returns 404 are
+  different results.
+- [One URL, three brands](docs/findings/2026-08-15-anthem-multi-tenant-attribution.md): three
+  consecutive requests to one payer's documented base URL returned CapabilityStatements naming
+  three different brands, and what that means for anyone building a payer endpoint registry.
+
+Neither is a compliance determination, and both say so.
+
 ## The site
 
 Every endpoint, organization, category, and cohort gets its own indexable page with a canonical URL,

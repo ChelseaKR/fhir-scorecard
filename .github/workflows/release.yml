@@ -47,11 +47,38 @@ jobs:
     needs: authorize
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # Every job below checks out the authorized commit through this variable rather than
+    # inlining `needs.authorize.outputs.release-commit` into `ref:`, and then asserts that the
+    # tree it got is that commit. Two reasons, and the second is the load-bearing one.
+    #
+    # CodeQL's `actions/cache-poisoning/poisonable-step` classifies an `actions/checkout` whose
+    # `ref:` field name matches `head|sha|commit` as a checkout of untrusted pull-request code;
+    # `release-commit` matches on the substring alone. It then reports the following `make` as
+    # able to poison the default-branch cache, because `workflow_dispatch` can write that scope
+    # and its model has no way to express the authorization that already happened: the tag is
+    # annotated, stable SemVer, SSH-signed by a principal in `.github/allowed_signers`, and on a
+    # commit proven to be an ancestor of `main`. Reaching this code therefore requires having
+    # already put it on `main`, which is strictly more access than poisoning a cache would grant.
+    # Renaming the reference is only a workaround for a substring heuristic and is recorded here
+    # as one, rather than muting the query for the repository, which would also stop it catching
+    # a checkout that genuinely is untrusted.
+    #
+    # The assertion is the part that is not cosmetic. `ref:` reading empty would silently check
+    # out the default branch, and a release path must not be able to test one tree and ship
+    # another. Nothing downstream runs if HEAD is not the commit the authorize job verified.
+    env:
+      RELEASE_REVISION: ${{ needs.authorize.outputs.release-commit }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.authorize.outputs.release-commit }}
+          ref: ${{ env.RELEASE_REVISION }}
           persist-credentials: false
+      - name: Assert the checked-out tree is the authorized commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${RELEASE_REVISION}"
+          test "$(git rev-parse HEAD)" = "${RELEASE_REVISION}"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
@@ -78,12 +105,20 @@ jobs:
     needs: authorize
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      RELEASE_REVISION: ${{ needs.authorize.outputs.release-commit }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.authorize.outputs.release-commit }}
+          ref: ${{ env.RELEASE_REVISION }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Assert the checked-out tree is the authorized commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${RELEASE_REVISION}"
+          test "$(git rev-parse HEAD)" = "${RELEASE_REVISION}"
       - name: Secret scan (gitleaks, full history)
         shell: bash
         run: |
@@ -105,11 +140,22 @@ jobs:
       contents: read
       id-token: write # SLSA build-provenance attestation (keyless/OIDC via Sigstore)
       attestations: write
+    env:
+      RELEASE_REVISION: ${{ needs.authorize.outputs.release-commit }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.authorize.outputs.release-commit }}
+          ref: ${{ env.RELEASE_REVISION }}
           persist-credentials: false
+      - name: Assert the checked-out tree is the authorized commit
+        # The tree that gets built, attested and shipped. If this job ever built something
+        # other than what release-tests verified, the attestation would be a signed statement
+        # about the wrong source.
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${RELEASE_REVISION}"
+          test "$(git rev-parse HEAD)" = "${RELEASE_REVISION}"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"

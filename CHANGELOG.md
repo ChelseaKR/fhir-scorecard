@@ -130,7 +130,9 @@ obtain. This is the first tag that does.
   tag is not a review. The shared `ChelseaKR/.github` authorize workflow verifies the tag is
   annotated, stable SemVer, SSH-signed by a principal listed in-tree, and on a commit that is an
   ancestor of `main`; `make verify` and the full-history gitleaks scan then re-run at that
-  commit rather than the pull request's earlier checkmark being taken as evidence; the build is
+  commit rather than the pull request's earlier checkmark being taken as evidence; every job
+  asserts that the tree it checked out is that commit before it does anything with it, so the
+  release path cannot test one tree and ship another; the build is
   cache-free, carries a SLSA provenance attestation, and is attached to a GitHub Release whose
   notes are this file's matching section. Tag, `pyproject.toml` and `CHANGELOG.md` versions must
   agree or the release fails, and three tests now catch that disagreement on the pull request

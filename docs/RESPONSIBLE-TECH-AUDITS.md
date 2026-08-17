@@ -30,7 +30,11 @@ the probing pattern. Both are constrained in code and policy:
 - Only public, unauthenticated discovery documents are fetched (`/metadata` and
   `/.well-known/smart-configuration`); the fetcher sends an identifying User-Agent with a
   contact address, uses HTTPS only, and makes one request per resource per run
-  (`src/fhir_scorecard/fetch.py`).
+  (`src/fhir_scorecard/fetch.py`). Scope and scheme are enforced on redirects too: a stock
+  `urllib` opener follows a `Location` anywhere, including an `https` to `http` downgrade, so a
+  server could have redirected `/metadata` to a patient search and had the request made.
+  `DiscoveryRedirectHandler` refuses both, and `tests/test_probe_contract.py` proves it against
+  a loopback server that records which requests actually arrived.
 - A false "endpoint is dead" claim is treated as a defect: probing runs from three vantages and
   results are reconciled, because a single host is an unreliable narrator
   (`.github/workflows/pages.yml`, `src/fhir_scorecard/vantage.py`). Those three vantages are
@@ -69,7 +73,12 @@ is the bias surface. Mitigations in place:
 **Findings:** no personal data is collected, stored, or processed, by design.
 
 - Inputs are server metadata documents from unauthenticated public URLs. The project never
-  authenticates and never touches patient data (enforced by having no code path that does).
+  authenticates and never touches patient data. This used to read "enforced by having no code
+  path that does", which was the wrong kind of assurance and was not even accurate: the code
+  path was `urllib`'s default redirect handler, which follows a server's `Location` wherever it
+  points. It is now enforced by an allowlist on redirect scheme and path
+  (`DiscoveryRedirectHandler`) and covered by tests that fail if a request is made to anything
+  but the two discovery documents.
 - The published dataset contains organization names, base URLs, grades, findings, and
   timestamps only.
 - The site is static GitHub Pages output; this repository adds no analytics or tracking of its

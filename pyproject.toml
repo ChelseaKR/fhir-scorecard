@@ -34,7 +34,10 @@ packages = ["src/fhir_scorecard"]
 [tool.mypy]
 strict = true
 python_version = "3.12"
-files = ["src"]
+# `action` ships to a consumer's runner inside the composite Action, so it is source, not
+# scaffolding. It was outside this list and outside `make lint`, which is why both gates could
+# report success over it. See the comment on `lint` in the Makefile.
+files = ["src", "action"]
 
 [tool.ruff]
 line-length = 100

@@ -54,7 +54,12 @@ Everything graded here is **public, unauthenticated surface**:
 
 This project **never accesses patient data, never authenticates, and never probes beyond the
 public discovery surface**. One request per resource per probing run, an identifying User-Agent
-with a contact address, HTTPS only, and conservative timeouts. The site is rebuilt on a schedule
+with a contact address, HTTPS only, and conservative timeouts. HTTPS and the two-path scope hold
+on every hop: a redirect pointing anywhere else is refused rather than followed, because a stock
+`urllib` opener would happily have taken `/metadata` to a patient search or onto a plaintext
+connection. That is a tested property, not a claim: `tests/test_probe_contract.py` runs the real
+fetcher against a loopback server and fails if the second request is ever made. The site is
+rebuilt on a schedule
 and on demand, never on a commit, so a scheduled day costs an endpoint at most six requests: two
 documents from each of three probing runs, and none from the run that publishes.
 

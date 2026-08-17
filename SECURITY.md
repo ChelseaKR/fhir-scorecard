@@ -7,7 +7,12 @@ It issues at most two unauthenticated GET requests per endpoint per probing run:
 expected to expose. Requests carry an identifying User-Agent with a contact address.
 
 It never authenticates, never registers for API access, never requests patient data, and never
-probes beyond those two paths. Rate is one probing run per day per vantage, from three vantages,
+probes beyond those two paths. That last part holds on every hop, including a redirect: a
+`Location` pointing anywhere other than one of those two paths over HTTPS is refused rather than
+followed, the run records that it retrieved nothing, and the endpoint is published as *not
+observed* rather than graded on whatever the redirect pointed at
+(`DiscoveryRedirectHandler` in `src/fhir_scorecard/fetch.py`,
+`tests/test_probe_contract.py`). Rate is one probing run per day per vantage, from three vantages,
 so at most six requests per endpoint per scheduled day; the run that publishes the site makes no
 requests of its own. Publishing is triggered on a schedule and by hand, not by commits.
 

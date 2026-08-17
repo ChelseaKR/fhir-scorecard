@@ -25,6 +25,7 @@ from fhir_scorecard.cohort import Cohort, CohortMember, CohortSource
 from fhir_scorecard.fetch import FetchResult
 from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.site import cohort_page, home_page, kind_page
+from fhir_scorecard.vantage import VantageProbe, reconcile
 
 
 def _answering(eid: str, kind: str = "payer") -> Scorecard:
@@ -72,6 +73,58 @@ def test_home_headline_counts_endpoints_that_answered_not_registry_rows() -> Non
     assert "3 is how many endpoints the registry lists and this run graded" in body
     assert "2 is how many answered /metadata during the run that generated this page" in body
     assert "1 was not observed on this run and is not counted as answering" in body
+
+
+def _answered_nothing_to_grade(eid: str) -> Scorecard:
+    """Reachable, and ungradable. A vantage reached /metadata and came away with no document.
+
+    HTTP 200 with an empty body is the everyday cause, and the `--from-probes` publishing run
+    reproduces it whenever a peer artifact reports `reachable` without carrying the capability
+    text. The card is genuinely in both states, so a sentence that treats "not observed" and
+    "did not answer" as one set says something false about it.
+    """
+    probes = [VantageProbe(vantage="github-actions/ubuntu-latest", reachable=True, elapsed_ms=210)]
+    consensus = reconcile(probes)
+    return build_scorecard(
+        eid,
+        eid.replace("-", " ").title(),
+        FetchResult(
+            url=f"https://{eid}.test/metadata",
+            ok=True,
+            status=200,
+            elapsed_ms=210,
+            body=b"",
+            error=None,
+        ),
+        NO_CAPABILITY_RETRIEVED,
+        NO_SMART_RETRIEVED,
+        kind="payer",
+        consensus=consensus,
+    )
+
+
+def test_an_endpoint_that_answered_with_nothing_is_in_both_states_and_the_page_says_so() -> None:
+    card = _answered_nothing_to_grade("hollow")
+    assert card.reachable and card.grade == "not observed", (
+        "the premise is gone: this card is supposed to be reachable and ungraded at once"
+    )
+
+    body = home_page([_answering("alpha"), card], "https://example.test").body
+    assert "<strong>2</strong> answered on this run" in body
+    assert "1 answered but returned nothing this run could grade" in body
+    assert "counted as answering and still carries no grade" in body
+    # The old sentence counted it as ungraded and then denied it had answered, in the same breath.
+    assert "1 was not observed on this run and is not counted as answering" not in body
+
+
+def test_the_two_ungraded_reasons_are_reported_separately() -> None:
+    body = home_page(
+        [_answering("alpha"), _silent("gamma"), _answered_nothing_to_grade("hollow")],
+        "https://example.test",
+    ).body
+    assert "<strong>2</strong> answered on this run" in body
+    assert "1 was not observed on this run and is not counted as answering" in body
+    assert "1 answered but returned nothing this run could grade" in body
 
 
 def test_category_page_counts_answers_not_rows() -> None:

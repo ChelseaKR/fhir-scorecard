@@ -33,6 +33,35 @@ Merged changes land here until the next tag.
   nothing published today changes; the registry grows one payer developer portal at a time, and
   the shape is ordinary enough that it would have arrived.
 
+
+- **The probe contract is now enforced on redirects, not only on the first request.** `README.md`,
+  `SECURITY.md`, `docs/RESPONSIBLE-TECH-AUDITS.md` and the site's own "what we do to your servers"
+  panel all promise that this project never authenticates, never requests patient data, and never
+  probes beyond `/metadata` and `/.well-known/smart-configuration`. Nothing enforced that.
+  `fetch_json` built a stock `urllib.request.build_opener()`, whose `HTTPRedirectHandler` follows
+  a server's `Location` wherever it points: a graded endpoint answering `/metadata` with
+  `302 Location: /Patient?_count=50` would have had that request issued, its body read and parsed
+  as a CapabilityStatement, fingerprinted into the availability history, and uploaded as a probe
+  artifact. The same handler follows an `https` to `http` downgrade and copies every request
+  header onto the plaintext hop, so "HTTPS is enforced before any connection is attempted (fail
+  closed)" covered the first hop only. `DiscoveryRedirectHandler` now refuses any redirect target
+  that is not one of the two discovery paths over HTTPS, and caps the hop budget at 3 rather than
+  urllib's 10. A refusal is reported as a retrieval error with its reason, so the endpoint is
+  published as `not observed` rather than graded on a document nobody should have fetched.
+- **The landing page no longer contradicts itself about an endpoint that answered with nothing.**
+  "Not observed" and "did not answer" are nearly the same set and are not the same set: an
+  endpoint that answers `/metadata` with an empty body, or that a peer vantage reached without
+  retrieving the document, is reachable and still has nothing to grade. The headline counted all
+  ungraded endpoints as non-answering, so a single such endpoint produced the sentence "1 is how
+  many answered /metadata ... 1 was not observed on this run and is not counted as answering",
+  about itself, in one breath. The two reasons are now reported separately and the second says
+  what actually happened.
+- **`make lint`, `make format` and `make typecheck` now cover the code that ships.**
+  `action/render_result.py` runs on a consumer's runner on every
+  `uses: ChelseaKR/fhir-scorecard@<tag>`, and all three targets were scoped to `src` and `tests`,
+  so they printed "All checks passed!" and "Success: no issues found" without opening it. Nothing
+  was wrong with the file; the gates could not have said so either way.
+
 ### Added
 
 - **T0 and I0 are defined on the methodology page.** Every finding code renders as a link to
@@ -41,6 +70,14 @@ Merged changes land here until the next tag.
   that reaches every branch and asserts that the set of codes the grader can emit is exactly the
   set the page defines — in both directions, so an undocumented code and a documented check that
   no longer runs each fail the build.
+
+- `tests/test_probe_contract.py`: the never-authenticate, never-touch-patient-data,
+  never-leave-the-two-paths promise as tests that can fail. Two of them run the real fetcher
+  against a loopback HTTP server that records which requests actually arrived, because an
+  assertion about a request that was *not* made is worth little unless something was listening.
+  One test pins the stock-opener behaviour that was replaced, so the delta stays documented.
+- `tests/test_shipped_code_is_gated.py`: reads the Makefile, `pyproject.toml` and the pre-commit
+  config and fails if any Python file in the archive a consumer downloads falls outside them.
 
 ## [0.1.0] - 2026-08-16
 

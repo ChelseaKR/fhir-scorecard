@@ -6,6 +6,14 @@ document has nothing to say about what the document declares, and saying it anyw
 of evidence into a finding against a named organization. Dimensions that were never observed
 carry no score, no points, and no findings that read as absence.
 
+The same rule holds one step in, where it is easier to miss: a document that *did* arrive and is
+not a CapabilityStatement — an OperationOutcome under HTTP 200, a sign-in page, a search Bundle —
+leaves every check that reads a CapabilityStatement with nothing to read. Those checks report
+that (T0, I0) rather than reporting the dataclass defaults they would otherwise find, because
+"no profile canonical declared in [five elements]" is a claim about a document, and there is no
+document to make it about. Both findings carry the full weight the checks they replace would
+have carried, so honesty here costs an endpoint nothing and earns it nothing.
+
 No model, no heuristics that cannot be explained in one sentence next to a citation.
 """
 
@@ -46,6 +54,13 @@ _PROFILE_ELEMENTS = (
 NOT_OBSERVED = "not observed"
 
 _NOT_RETRIEVED_CODE = "NR"
+
+# What I1 is worth when it runs, and what I3 is worth when it applies. Named because I0 has to
+# carry exactly their sum when neither can run, or the dimension's denominator would move and a
+# document nobody could read would change the letter.
+_PROFILES_POINTS = 40
+_OAUTH_POINTS = 25
+_SMART_POINTS = 35
 
 
 @dataclass(frozen=True)
@@ -326,10 +341,60 @@ def _profiles_finding(facts: CapabilityFacts) -> Finding:
     return Finding(
         code="I1",
         ok=bool(matched),
-        points=40 if matched else 0,
-        max_points=40,
+        points=_PROFILES_POINTS if matched else 0,
+        max_points=_PROFILES_POINTS,
         message=message,
         citation=_US_CORE,
+    )
+
+
+def _unreadable_capability(facts: CapabilityFacts, *, max_points: int) -> Finding:
+    """I0: a document arrived and is not a CapabilityStatement, so no conformance check ran.
+
+    I1 and I3 both read a CapabilityStatement and nothing else. When one was retrieved and turned
+    out to be an OperationOutcome, a sign-in page, or a JSON object of some other resourceType,
+    those two checks used to run anyway, against a ``CapabilityFacts`` whose fields were dataclass
+    defaults, and publish "no profile canonical declared in rest.resource.supportedProfile,
+    rest.resource.profile, instantiates, imports, or meta.profile" and "no OAuth security service
+    declared". Both read as findings about what a named organization published; neither was
+    measured. I1's message names five elements as checked, and there was no document to check them
+    in. Real payer servers answer ``/metadata`` with an OperationOutcome under HTTP 200, so this is
+    an ordinary response shape, not a hypothetical one.
+
+    ``grade_transparency`` has always handled the same input with one honest finding (T0) carrying
+    the dimension's whole weight, and this is that treatment for interop. It carries exactly the
+    points I1 and I3 would have carried, so the dimension score and the letter are unchanged: the
+    endpoint is not newly credited or newly penalized, and what changes is only that the page
+    states what happened instead of asserting two things nobody checked. The SMART document is a
+    separate retrieval and keeps being graded on its own evidence (I2).
+    """
+    return Finding(
+        code="I0",
+        ok=False,
+        points=0,
+        max_points=max_points,
+        message=(
+            f"CapabilityStatement unreadable ({facts.parse_error}), so no conformance "
+            "declaration and no declared security service could be read from it"
+        ),
+        citation=_US_CORE,
+    )
+
+
+def _oauth_finding(facts: CapabilityFacts) -> Finding:
+    """I3, read from the CapabilityStatement. Only called when there is one to read."""
+    declared = facts.declares_oauth_security
+    return Finding(
+        code="I3",
+        ok=declared,
+        points=_OAUTH_POINTS if declared else 0,
+        max_points=_OAUTH_POINTS,
+        message=(
+            "OAuth/SMART security service declared in CapabilityStatement"
+            if declared
+            else "no OAuth security service declared"
+        ),
+        citation=_SMART_DISCOVERY,
     )
 
 
@@ -383,17 +448,33 @@ def grade_interop(
             facts.parse_error or "no CapabilityStatement was retrieved on this run",
             _US_CORE,
         )
-    profiles = _profiles_finding(facts)
-    findings.append(profiles)
-    prose_note = _prose_only_note(facts, declared=profiles.ok)
-    if prose_note is not None:
-        findings.append(prose_note)
 
     # Provider Directory APIs are required to be reachable without authentication, so absence of
     # SMART/OAuth is the correct design there, not a deficiency (calibration 2026-08-05). Scoring
     # them on an authorization surface they must not have would penalize compliant behavior, so
     # those findings are reported as not applicable and carry no points either way.
     public_by_design = kind == "payer_provider_directory"
+
+    # Something arrived, but everything I1 and I3 read lives inside a CapabilityStatement. If it
+    # is not one, those checks did not run, and running them anyway published two claims about a
+    # named organization that came from dataclass defaults rather than from a document.
+    readable = facts.parsed and facts.resource_type_ok
+    if readable:
+        profiles = _profiles_finding(facts)
+        findings.append(profiles)
+        prose_note = _prose_only_note(facts, declared=profiles.ok)
+        if prose_note is not None:
+            findings.append(prose_note)
+    else:
+        findings.append(
+            _unreadable_capability(
+                facts,
+                # Exactly what I1 and the applicable I3 would have been worth, so the denominator
+                # does not move and an unreadable document cannot change a letter.
+                max_points=_PROFILES_POINTS + (0 if public_by_design else _OAUTH_POINTS),
+            )
+        )
+
     if public_by_design:
         findings.append(
             Finding(
@@ -415,7 +496,14 @@ def grade_interop(
                 citation=_SMART_DISCOVERY,
             )
         )
-    elif not smart.observed:
+        return DimensionScore(
+            key="interop",
+            title="Interop readiness",
+            score=_score(findings),
+            findings=tuple(findings),
+        )
+
+    if not smart.observed:
         # The CapabilityStatement came from a vantage that did not carry the SMART document, so
         # this run never asked for it. "Absent" would be a claim about the endpoint.
         findings.append(
@@ -432,28 +520,14 @@ def grade_interop(
                 citation=_SMART_DISCOVERY,
             )
         )
-        findings.append(
-            Finding(
-                code="I3",
-                ok=facts.declares_oauth_security,
-                points=25 if facts.declares_oauth_security else 0,
-                max_points=25,
-                message=(
-                    "OAuth/SMART security service declared in CapabilityStatement"
-                    if facts.declares_oauth_security
-                    else "no OAuth security service declared"
-                ),
-                citation=_SMART_DISCOVERY,
-            )
-        )
     else:
         smart_ok = smart.parsed and smart.has_authorization_endpoint and smart.has_token_endpoint
         findings.append(
             Finding(
                 code="I2",
                 ok=smart_ok,
-                points=35 if smart_ok else 0,
-                max_points=35,
+                points=_SMART_POINTS if smart_ok else 0,
+                max_points=_SMART_POINTS,
                 message=(
                     "SMART discovery document present and complete"
                     if smart_ok
@@ -462,20 +536,8 @@ def grade_interop(
                 citation=_SMART_DISCOVERY,
             )
         )
-        findings.append(
-            Finding(
-                code="I3",
-                ok=facts.declares_oauth_security,
-                points=25 if facts.declares_oauth_security else 0,
-                max_points=25,
-                message=(
-                    "OAuth/SMART security service declared in CapabilityStatement"
-                    if facts.declares_oauth_security
-                    else "no OAuth security service declared"
-                ),
-                citation=_SMART_DISCOVERY,
-            )
-        )
+    if readable:
+        findings.append(_oauth_finding(facts))
     return DimensionScore(
         key="interop", title="Interop readiness", score=_score(findings), findings=tuple(findings)
     )

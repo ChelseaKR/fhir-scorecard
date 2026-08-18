@@ -84,7 +84,7 @@ genuinely independent vantage — a residential or other-provider runner posting
 
 | Dimension | What it asks |
 |---|---|
-| **Reachability** | Does `/metadata` answer, over HTTPS, with FHIR JSON, in reasonable time? |
+| **Reachability** | Does `/metadata` answer, over HTTPS, with HTTP 2xx, in reasonable time? Whether what came back is a CapabilityStatement is a separate question, asked under transparency |
 | **Capability transparency** | Does the CapabilityStatement say what the server runs (FHIR version, software, resources, interactions), or is it boilerplate? |
 | **Interop readiness** | Are US Core / CARIN / Da Vinci canonicals declared in any of the five conformance elements R4 defines (`rest.resource.supportedProfile`, `rest.resource.profile`, `instantiates`, `imports`, `meta.profile`)? Is SMART discovery present? Is OAuth security declared? |
 
@@ -97,6 +97,14 @@ that read a CapabilityStatement do not run. It never drops out of the dataset, a
 acquires findings about what its publisher did not publish. `F` means the opposite and only the
 opposite: the endpoint answered, and what it declares falls short across the checks. The two used
 to share a letter, and the site rendered both with one sentence about a network.
+
+Between them sits a third case that real servers produce often: `/metadata` answers with HTTP 200
+and the body is not a CapabilityStatement — an `OperationOutcome`, a sign-in page from an
+authenticating gateway, a search `Bundle`. That endpoint is reachable and it is graded, because
+answering that path with that document is a fact about it. But the checks that read *fields inside*
+a CapabilityStatement have nothing to read, so they report the parse failure once (`T0`, `I0`) and
+carry the weight they always carried, rather than reporting the parser's empty defaults as things
+the publisher declined to declare. Same score, no invented claim.
 
 ## How this relates to Inferno and Lantern
 

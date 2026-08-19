@@ -101,6 +101,11 @@ class Scorecard:
     # Drift is informational, not scored (a capability change is often a legitimate upgrade).
     observed_since: str | None = None
     drift_events: tuple[str, ...] = ()
+    # Declarations this endpoint has returned to rather than advanced past. Reported separately
+    # from drift_events on purpose: one address in front of two backends is a different fact
+    # about the endpoint from a publisher shipping a release, and repeating the second every
+    # time the probe lands on the other backend crowds out the releases that are real.
+    drift_alternations: tuple[str, ...] = ()
     # Rolling reachability across recorded runs. Informational until enough observations exist;
     # a percentage off two data points would be noise dressed as a metric.
     availability: str = ""
@@ -580,6 +585,7 @@ def build_scorecard(
     consensus: Consensus | None = None,
     observed_since: str | None = None,
     drift_events: tuple[str, ...] = (),
+    drift_alternations: tuple[str, ...] = (),
     availability: str = "",
 ) -> Scorecard:
     dimensions = (
@@ -601,5 +607,6 @@ def build_scorecard(
         vantage_note=consensus.detail if consensus is not None and consensus.vantages > 1 else "",
         observed_since=observed_since,
         drift_events=drift_events,
+        drift_alternations=drift_alternations,
         availability=availability,
     )

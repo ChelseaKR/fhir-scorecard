@@ -294,6 +294,17 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
             f"<p>Observed since {html.escape(card.observed_since)}; no changes to declared "
             "capability recorded.</p>"
         )
+    if card.drift_alternations:
+        returns = "".join(f"<li>{html.escape(a)}</li>" for a in card.drift_alternations)
+        drift += (
+            "<h3>Declarations this endpoint returns to</h3>"
+            "<p>This address has served a declaration, moved away from it, and served it again. "
+            "That usually means one hostname in front of more than one backend rather than a "
+            "publisher changing anything, so each return is counted here once instead of being "
+            "reported as a fresh capability change every time a probe lands on the other "
+            "backend.</p>"
+            f"<ul>{returns}</ul>"
+        )
 
     jsonld = {
         "@context": "https://schema.org",

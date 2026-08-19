@@ -62,6 +62,11 @@ def _card(s: Scorecard) -> str:
                 f"<p>Observed since {html.escape(s.observed_since)}; "
                 "no capability changes recorded.</p>"
             )
+    if s.drift_alternations:
+        returns = "".join(f"<li>{html.escape(a)}</li>" for a in s.drift_alternations)
+        drift_html += (
+            f"<h3>Declarations returned to (counted once, not scored)</h3><ul>{returns}</ul>"
+        )
     return (
         f'<section aria-labelledby="h-{html.escape(s.endpoint_id)}">'
         f'<h2 id="h-{html.escape(s.endpoint_id)}">{html.escape(s.name)} '

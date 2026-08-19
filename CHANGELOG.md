@@ -34,6 +34,28 @@ Merged changes land here until the next tag.
   the shape is ordinary enough that it would have arrived.
 
 
+- **One flapping endpoint no longer eats the drift log.** Measured on the published history at
+  2026-08-19: 27 capability-change events across 30 endpoints, of which
+  `la-care-provider-directory` held 8 - `software_version` moving between `5.4.1.13_edfx` and
+  `5.4.1.11_edfx` and back, on 08-08 (twice), 08-11, 08-12, 08-13, 08-14, 08-15 and 08-16. That is
+  one hostname in front of two backends, the same phenomenon as the "one URL, three brands"
+  finding, and every event after the first carried no information while publishing "L.A. Care
+  changed its declared capability" every other day. The event window holds 20, so roughly twelve
+  more alternations would have evicted every genuine capability change this endpoint ever makes.
+  Drift now distinguishes *advancing* to a declaration never served before, which is an event,
+  from *returning* to one already on record, which is counted and dated once as an alternation and
+  never appended again. `medplum`'s 13 real forward releases (5.1.27 through 5.1.30) are untouched,
+  which is the test that matters: the distinction is returning versus advancing, not "changes a
+  lot" versus "changes a little". A log written before the rule is rebuilt under it on its first
+  run, by re-deriving the earlier fingerprints from the event lines themselves - each carries both
+  sides of its transition - so la-care's 8 events become 1 event plus 7 counted returns without
+  anything being invented. An event whose earlier state cannot be re-derived stops the walk and is
+  left exactly as recorded.
+- **A two-week-old registry check no longer reads as a fresh one.** `verification.date` was the
+  only date an entry carried, so an endpoint curated once and never looked at again was
+  indistinguishable on the page from one re-checked that morning. Re-checks are now their own
+  dated record (`verification.reverified`), the curation date is preserved, and an entry with no
+  re-check block says so in words on its page rather than by omission.
 - **The probe contract is now enforced on redirects, not only on the first request.** `README.md`,
   `SECURITY.md`, `docs/RESPONSIBLE-TECH-AUDITS.md` and the site's own "what we do to your servers"
   panel all promise that this project never authenticates, never requests patient data, and never
@@ -71,6 +93,30 @@ Merged changes land here until the next tag.
   set the page defines — in both directions, so an undocumented code and a documented check that
   no longer runs each fail the build.
 
+- **`docs/SAMPLING-FRAME.md`**: the rule that decides which organizations this project goes
+  looking for, written down before the looking. Every cohort's membership comes from a public
+  roster published by somebody else, retrieved on a stated date, and fixed before any base URL is
+  probed; members that publish nothing are carried as exclusions; members that publish an address
+  that does not work are a different finding from members that publish nothing. It also records
+  what was considered and rejected as a roster, including the guessed-hostname method that
+  produced 0 verified endpoints out of 18 probes and a hit rate that meant nothing.
+- **A registry entry may now be listed on the organization's own publication of a base URL that
+  did not answer.** `verification.basis` is `live_capability` (a conformance document was
+  retrieved) or `publisher_documented` (the organization publishes this base URL in its own
+  materials and the document was not retrievable on that date). The second requires `source` and
+  `observed` - where the address was published and what the probe actually saw - and the loader
+  refuses it without them. Such an endpoint is graded every day like any other and publishes as
+  `not observed` rather than `F`. Listing it is the point: a registry that drops the endpoints
+  that fail publishes a cohort pruned of exactly the failures this project exists to detect, and
+  an entry that stays listed keeps being probed from every vantage and can be corrected, which an
+  entry that was dropped cannot.
+- `drift_alternations` on the endpoint API payload and the endpoint page, kept out of
+  `drift_events` so a consumer counting capability changes counts changes. Dataset
+  `schema_version` moves to 2, which also adds the `verification_basis` and `reverified_date`
+  columns to `dataset.csv`.
+- `tests/test_alternation.py`: the la-care and medplum event logs reproduced verbatim from the
+  published history, because the rule has to tell them apart and the only convincing evidence that
+  it does is the data that motivated it.
 - `tests/test_probe_contract.py`: the never-authenticate, never-touch-patient-data,
   never-leave-the-two-paths promise as tests that can fail. Two of them run the real fetcher
   against a loopback HTTP server that records which requests actually arrived, because an

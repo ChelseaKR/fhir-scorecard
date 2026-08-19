@@ -22,14 +22,14 @@ repos:
     rev: 7c55798a78262d14b2074abf623d8a992ebb70d4 # v0.16.2 -- keep in step with pyproject.toml's `ruff>=0.15` floor
     hooks:
       - id: ruff-check
-        # Scoped to src/tests, mirroring `make lint` (ruff check src tests). No
-        # --fix: a local pass must mean the same thing as a CI pass.
-        files: ^(src|tests)/
+        # Scoped to src/tests/action, mirroring `make lint`. `action/` is included
+        # because it ships inside the composite Action. No --fix: a local pass must
+        # mean the same thing as a CI pass.
+        files: ^(src|tests|action)/
       - id: ruff-format
-        # Mirrors `make format` (ruff format --check src tests). The CI gate is the
-        # --check form; this hook writes the formatting so the commit that reaches
-        # CI is already the formatted one.
-        files: ^(src|tests)/
+        # Mirrors `make format`. The CI gate is the --check form; this hook writes
+        # the formatting so the commit that reaches CI is already the formatted one.
+        files: ^(src|tests|action)/
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e # v8.30.1 -- same version the security workflow pins

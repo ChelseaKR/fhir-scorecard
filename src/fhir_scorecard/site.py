@@ -1335,6 +1335,13 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
     unobserved_legend = (
         '<span><i class="signal-not-observed"></i>not observed</span>' if unobserved else ""
     )
+    # "Not observed" and "did not answer" are nearly the same set and are not the same set. An
+    # endpoint that answers /metadata with an empty body, or one another vantage reached without
+    # retrieving the document, is reachable and still has nothing to grade. Counting all of the
+    # ungraded as non-answering made the page assert, of that endpoint, both that it answered and
+    # that it was "not counted as answering", in one sentence.
+    silent = sum(1 for card in cards if card.grade == NOT_OBSERVED and not card.reachable)
+    answered_ungraded = sum(1 for card in cards if card.grade == NOT_OBSERVED and card.reachable)
     # Both numbers above are said out loud, because one is a count of rows in the registry and
     # the other is a count of endpoints that answered a probe, and a reader takes the headline
     # away without reading the method page.
@@ -1343,12 +1350,21 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
         f"{reachable} is how many answered /metadata during the run that generated this page, "
         "from at least one vantage."
         + (
-            f" {unobserved} "
-            + ("was" if unobserved == 1 else "were")
+            f" {silent} "
+            + ("was" if silent == 1 else "were")
             + " not observed on this run and "
-            + ("is" if unobserved == 1 else "are")
+            + ("is" if silent == 1 else "are")
             + " not counted as answering."
-            if unobserved
+            if silent
+            else ""
+        )
+        + (
+            f" {answered_ungraded} answered but returned nothing this run could grade, so "
+            + ("it is" if answered_ungraded == 1 else "they are")
+            + " counted as answering and still carr"
+            + ("ies" if answered_ungraded == 1 else "y")
+            + " no grade."
+            if answered_ungraded
             else ""
         )
     )
@@ -1629,6 +1645,9 @@ image, so a scheduled day is at most six requests to any one endpoint. The run t
 this site adds none: it grades the documents those runs already retrieved.</p>
 <p>Requests carry an identifying User-Agent with a contact address. We never authenticate, never
 register for API access, never request patient data, and never probe beyond those two paths.
+If your server redirects one of them somewhere else, we do not follow: the redirect is refused,
+the run records that it retrieved nothing, and your endpoint is published as <strong>not
+observed</strong> rather than graded on a document we were pointed at.
 Publishing is triggered on a schedule and by hand, not by commits, because a commit says nothing
 about your endpoint and a commit-triggered rebuild once turned an ordinary working day into
 dozens of requests to every endpoint here.</p></section>

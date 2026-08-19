@@ -28,11 +28,17 @@ sync:
 verify: lock-check lint format typecheck test audit
 	@echo "make verify: all gates passed."
 
+# `action` is in scope because `action/render_result.py` ships: `git archive` puts it in the tree
+# a consumer downloads on every `uses: ChelseaKR/fhir-scorecard@<tag>`, and it runs on their
+# runner. It was outside all three of these targets, so `make lint` printed "All checks passed!"
+# and `make typecheck` printed "Success" over a file neither had opened. Nothing was wrong with
+# the file; the gates simply could not have said so.
+# `tests/test_shipped_code_is_gated.py` fails if this list stops covering everything that ships.
 lint:
-	$(PYTHON) -m ruff check src tests
+	$(PYTHON) -m ruff check src tests action
 
 format:
-	$(PYTHON) -m ruff format --check src tests
+	$(PYTHON) -m ruff format --check src tests action
 
 typecheck:
 	$(PYTHON) -m mypy

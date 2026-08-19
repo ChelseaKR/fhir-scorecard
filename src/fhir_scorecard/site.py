@@ -22,6 +22,7 @@ DEFAULT_ORIGIN = "https://chelseakr.github.io/fhir-scorecard"
 _PROGRAM_LABELS = {
     "medi-cal": "Medi-Cal managed care",
     "covered-ca": "Covered California",
+    "tx-marketplace": "Texas individual marketplace (HealthCare.gov)",
 }
 
 _KIND_LABELS = {
@@ -1720,6 +1721,16 @@ network.</p>
 <p>Each vantage counts once. The publishing run makes no probe of its own; it grades the
 documents the probing runs retrieved, which is also why a scheduled day costs an endpoint at
 most six requests.</p>
+<h2>Capability changes, and what is not one</h2>
+<p>Each endpoint's declared capability is fingerprinted every run, and a difference is recorded
+and shown but never scored: an upgrade is not a defect. One kind of difference is deliberately
+not called a change. Where a single hostname sits in front of more than one backend, a daily
+probe lands on whichever answers, and the declaration appears to move back and forth between two
+values that were both already on record. Returning to a declaration this endpoint has served
+before is counted and dated once as an alternation; only advancing to one never served before is
+published as a capability change. Without that rule one such address produced eight "changed its
+declared capability" entries in nine days and would have pushed every genuine change out of the
+log it shares.</p>
 <h2>What a grade is not</h2>
 <p>It is not an audit, a compliance determination, or a statement about care quality. It
 describes what a public document declared on a given day, from a handful of hosts on one

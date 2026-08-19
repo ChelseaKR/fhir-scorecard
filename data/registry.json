@@ -449,6 +449,84 @@
         }
       },
       "enabled": true
+    },
+    {
+      "id": "unitedhealthcare-provider-directory",
+      "name": "UnitedHealthcare Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://flex.optum.com/fhirpublic/R4",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 9 resource types); implementation.url matches the requested base exactly. The document names the platform operator, not the brand: publisher 'Optum', software 'optum-flex-server-default' 4.4.2.4. Attribution to UnitedHealthcare rests on UnitedHealthcare publishing this server's capability-statement URL on its own site, under the heading 'Authorization NOT Required Endpoints', at https://www.uhc.com/legal/interoperability-apis/patient-access-api. The two strings that page labels 'Base request URL' answer 403 (https://flex.optum.com/fhirpublic) and 502 (https://flex.optum.com/fhirpublic2025); the metadata URL printed beside them is the one that works, and this entry is its base",
+        "date": "2026-08-19",
+        "basis": "live_capability"
+      },
+      "enabled": true
+    },
+    {
+      "id": "wellpoint-patient-access",
+      "name": "Wellpoint Patient Access API",
+      "kind": "payer",
+      "base_url": "https://totalview.healthos.elevancehealth.com/resources/registered/Wellpoint/api/v1/fhir",
+      "verification": {
+        "method": "base URL printed verbatim in Wellpoint's own Interoperability API Endpoint Support Document (Doc ID IO105, version 15.0, effective 2025-11-18), in the table 'FHIR Endpoints (Production Base URL)', in the row labelled Wellpoint. Thirteen Elevance brands each carry their own row and their own path segment on this host",
+        "date": "2026-08-19",
+        "basis": "publisher_documented",
+        "source": "https://www.wellpoint.com/content/dam/digital/developers-portal/Anthem-IOProviderDirectoryAndFormulary-API-Documentation.pdf",
+        "observed": "HTTP 401 to an unauthenticated GET of /metadata. A Patient Access API is permitted to require authentication for member data, so this is not a defect claim; what it records is narrower and is the whole subject of this project, that the conformance document is not retrievable, so nothing this endpoint declares can be checked from outside. The AnthemBlueCross path on the same host, which answered three times on 2026-08-07 and produced the 'one URL, three brands' finding, also answers 401 today"
+      },
+      "enabled": true
+    },
+    {
+      "id": "elevance-shared-provider-directory",
+      "name": "Elevance Health shared Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://totalview.healthos.elevancehealth.com/resources/unregistered/api/v1/fhir/cms_mandate/mcd",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 7 Plan-Net resource types); publisher reads 'Elevance Health, Inc' and implementation.url matches the requested base exactly, on all three of three consecutive fetches. Named for Elevance rather than for a brand deliberately: Wellpoint's own support document prints this single Provider Directory base URL for all thirteen Elevance brands, without the per-brand path segment its Patient Access table carries, so the address serves the parent and cannot be attributed to any one brand. Sourced from https://www.wellpoint.com/developers",
+        "date": "2026-08-19",
+        "basis": "live_capability"
+      },
+      "enabled": true
+    },
+    {
+      "id": "imperial-provider-directory",
+      "name": "Imperial Health Plan Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://members.imperialhealthplan.com/api/fhir",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 146 resource types). The document names the platform vendor, not the plan: publisher 'Microsoft', software 'Azure Healthcare APIs' 5.0.23, and it carries no implementation block at all. Attribution to Imperial rests on the plan printing four resource URLs under this base on its own interoperability page at https://exchange.imperialhealthplan.com/interoperability/, describing them as resources that 'do not require any authentication to retrieve data', on an Imperial-controlled domain. The same page prints https://ihh-public.azurehealthcareapis.com/metadata, which answers identically and is the vendor-controlled name for what appears to be the same service; the issuer-controlled host is listed",
+        "date": "2026-08-19",
+        "basis": "live_capability"
+      },
+      "enabled": true
+    },
+    {
+      "id": "imperial-patient-access",
+      "name": "Imperial Health Plan Patient Access API",
+      "kind": "payer",
+      "base_url": "https://api.imperialhealthplan.com/fhir",
+      "verification": {
+        "method": "base URL printed verbatim in Imperial Health Plan's own API Endpoint Technical Documentation PDF, linked as 'Download API Endpoint Support Document' from its public interoperability page, as 'Base API URL: https://api.imperialhealthplan.com' with 'Base Endpoint: https://api.imperialhealthplan.com/fhir/Patient' for the Patient Access API. This host disagrees with the one the same issuer's HTML interoperability page uses for the directory resources (members.imperialhealthplan.com), which is recorded rather than reconciled",
+        "date": "2026-08-19",
+        "basis": "publisher_documented",
+        "source": "https://exchange.imperialhealthplan.com/wp-content/uploads/2025/07/api-endpoint-documentation.pdf",
+        "observed": "TLS handshake refused by the server (SSLV3_ALERT_HANDSHAKE_FAILURE). The host resolves and accepts the TCP connection, and the failure reproduces with certificate verification disabled, which rules out this vantage's trust store and the TLS interception that made Capital Blue Cross look dead on 2026-08-05. The server is declining the handshake"
+      },
+      "enabled": true
+    },
+    {
+      "id": "hcsc-provider-directory",
+      "name": "Health Care Service Corporation Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api.hcsc.net",
+      "verification": {
+        "method": "base URL printed verbatim on Health Care Service Corporation's own interoperability site, on the Provider Directory API page, as 'API endpoint base url: https://api.hcsc.net', with the instruction to substitute it for {environmentBaseUrl} in the paths the downloadable API spec gives. The page covers the Blue Cross and Blue Shield plans HCSC operates in Illinois, Montana, New Mexico, Oklahoma and Texas, so the entry is named for the corporation rather than for the Texas brand: one address serves five state plans and nothing in it distinguishes them. Blue Cross and Blue Shield of Texas's own domain publishes no interoperability or developer page at all; its 583-URL sitemap contains none",
+        "date": "2026-08-19",
+        "basis": "publisher_documented",
+        "source": "https://interoperability.hcsc.com/s/provider-directory-api",
+        "observed": "HTTP 500 to a GET of /metadata. TLS is clean from this vantage with and without certificate verification, so the host is live and the server is erroring at the conformance path FHIR R4 requires every server to publish. The page prints this string as a base URL to substitute into spec paths rather than as a FHIR base, which is recorded here rather than repaired: no other address for this surface is printed, and constructing one would be a guess"
+      },
+      "enabled": true
     }
   ]
 }

@@ -97,3 +97,40 @@ project:
 - If this reading is wrong, or has been fixed, the
   [claim flow](https://chelseakr.github.io/fhir-scorecard/claim/) exists to correct it and the
   correction will be recorded with the same provenance as the original observation.
+
+## Re-checked 2026-08-19: the surface this was observed on no longer answers
+
+The last limit above said Elevance's servers can change without notice. Twelve days later they
+had, and the change is recorded here rather than folded into the text above, because the
+observation of 2026-08-07 stands as what was seen on 2026-08-07.
+
+Two requests, one each, from the same residential vantage:
+
+| URL | 2026-08-07 | 2026-08-19 |
+|---|---|---|
+| `…/resources/registered/AnthemBlueCross/api/v1/fhir` | CapabilityStatement, three times, three brands | **HTTP 401** |
+| `…/resources/registered/Wellpoint/api/v1/fhir` | not probed | **HTTP 401** |
+
+So the per-brand production paths in Elevance's endpoint document are now authenticated, and the
+rotating `implementation.url` is no longer observable from outside at all. Nothing here says that
+happened *because* of this write-up, and no issue or ticket was filed with Elevance at any point;
+a payer moving a Patient Access API behind authentication is ordinary and is permitted.
+
+What did stay open is the other surface in the same document, and it is the more interesting one:
+
+```
+https://totalview.healthos.elevancehealth.com/resources/unregistered/api/v1/fhir/cms_mandate/mcd
+```
+
+That is the Provider Directory base URL the document prints, and it prints **one** of them, for
+all thirteen brands, with none of the per-brand path segment the Patient Access table carries.
+Fetched three times in a row on 2026-08-19, it returned `publisher: Elevance Health, Inc` and an
+`implementation.url` equal to the requested base, identically each time. It is now listed as
+`elevance-shared-provider-directory` and is deliberately named for the operator rather than for a
+brand, which is the only attribution the evidence supports.
+
+That sharpens the original finding rather than overturning it. The thing an outsider cannot
+establish is not *which server* a brand uses - the document says, and for the directory the answer
+is "the same one as the other twelve" - but *which brand a given response describes*. On the
+directory surface that question has an honest answer available: none of them individually, all of
+them together. On the Patient Access surface it had a misleading one, and now it has none.

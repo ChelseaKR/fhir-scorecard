@@ -1,0 +1,240 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the issuer's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the issuer publishes a base URL that returns 404' and 'the issuer publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "texas-marketplace",
+    "name": "Texas marketplace issuer cohort",
+    "description": "The Patient Access and Provider Directory APIs of every issuer selling an individual-market qualified health plan on HealthCare.gov in Texas for 2026, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Membership is CMS's own file, not a list assembled here. The QHP Landscape PY2026 Individual Medical dataset published by the Center for Consumer Information and Insurance Oversight lists every plan sold on HealthCare.gov; filtered to Texas it carries 13,013 plan-county rows, 18 HIOS issuer IDs, and 15 issuer names. The unit of analysis is the issuer organization CMS names, so the denominator is 15: three names carry two HIOS IDs each, and counting IDs would count one organization twice for having two product lines.",
+    "Texas is a federally-facilitated exchange state, which is why this cohort exists alongside the California one. CMS-9115-F reaches qualified health plan issuers on the federal exchanges at 45 CFR 156.221, so every organization on this roster is an impacted payer through this line of business alone, without reference to any Medicaid or Medicare Advantage contract it may also hold. California's exchange is state-based, so the California cohort's federal hook is the Medicaid managed care prong instead.",
+    "The rule requires the API. It does not require an issuer to print its base URL where an unregistered visitor can read it, and nothing on this page treats an issuer that does not as being out of compliance with anything. What a missing base URL costs is narrower and worth naming exactly: conformance stops being checkable by anyone who has not already entered a business relationship with the issuer.",
+    "CMS-0057-F adds Provider Access, Payer-to-Payer, and Prior Authorization APIs with compliance dates in January 2027. None of that is required yet and none of it is graded here. It is noted because these same endpoints are where it will land, which makes today's grades a baseline worth having before the deadline rather than after it.",
+    "This roster is individual medical only. CMS's file excludes stand-alone dental plans, small-group and SHOP products, and everything sold off-exchange, so an issuer selling only off-exchange in Texas is out of frame rather than missing from it.",
+    "The roster was frozen on 2026-08-19 and does not move when the market does.",
+    "Three of the listed endpoints are corporate rather than brand-level, and are named for the corporation on purpose. Health Care Service Corporation publishes one Provider Directory base URL for the Blue Cross and Blue Shield plans it runs in five states; Elevance Health publishes one for all thirteen of its brands, with none of the per-brand path segment its Patient Access table carries; Cigna's two endpoints are corporate as well. A reader looking at a Texas row and seeing another organization's name in the endpoint column is seeing the real shape of the surface, not a curation error: for those issuers there is no Texas-specific address to grade.",
+    "Cigna's two endpoints entered the registry in earlier curation waves and were re-fetched on 2026-08-19; this wave did not re-review Cigna's own developer documentation, so the documentation record behind them is the one those waves made."
+  ],
+  "sources": [
+    {
+      "label": "CMS / CCIIO: QHP Landscape PY2026 Individual Medical (individual_market_medical.zip, issued 2026-08-04, modified 2026-08-10)",
+      "url": "https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45",
+      "date": "2026-08-19"
+    }
+  ],
+  "members": [
+    {
+      "id": "ambetter-superior-healthplan",
+      "name": "Ambetter from Superior HealthPlan (Centene)",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's own interoperability page describes both APIs and prints no base URL for either, sending developers to Centene's partner portal instead; that portal returns a 1,128-byte shell with no API listing to an unregistered visitor, so reading either base URL requires a Centene account",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's CMS interoperability page (reached by 301 from ambetter.superiorhealthplan.com) and read it in full; it answers 'how do I access and use the Patient Access API' and the same question for the Provider Directory API by directing the reader to the Partner Portal, which was also retrieved and contains no endpoint content unauthenticated. Superior's Medicaid-side equivalent path returns 404",
+          "date": "2026-08-19",
+          "source": "https://www.ambetterhealth.com/en/tx/resources/interoperability-and-patient-access/"
+        }
+      }
+    },
+    {
+      "id": "baylor-scott-and-white-health-plan",
+      "name": "Baylor Scott & White Health Plan",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's interoperability page prints no base URL and hands off to its vendor's developer portal on a third-party domain; the page does not mention a Provider Directory API at all",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's own Interoperability APIs page and read it in full. Its only outbound technical links are two Inovalon developer-portal addresses on the vendor's domain, neither of which is a FHIR base URL, and the string 'provider directory' does not appear on the page. The path search results give, /Pages/Interoperability-apis.aspx, 301s to /interoperability-apis, which returns 404; the live page was found through the issuer's sitemap",
+          "date": "2026-08-19",
+          "source": "https://www.bswhealthplan.com/api"
+        }
+      }
+    },
+    {
+      "id": "blue-cross-blue-shield-of-texas",
+      "name": "Blue Cross and Blue Shield of Texas (HCSC)",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "endpoints": [
+        "hcsc-provider-directory"
+      ]
+    },
+    {
+      "id": "christus-health-plan",
+      "name": "CHRISTUS Health Plan",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's interoperability page names a different vendor for each API and prints no base URL for either, stating that it 'does not support developer-specific questions' and directing developers to the vendors",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's own interoperability page and read it in full; it describes a Patient Access API run by one vendor to CARIN and Da Vinci standards and a Provider Directory API run by another to Da Vinci PDex Plan-Net, and for both it offers a vendor documentation link rather than an endpoint",
+          "date": "2026-08-19",
+          "source": "https://www.christushealthplan.org/interoperability"
+        }
+      }
+    },
+    {
+      "id": "cigna-healthcare",
+      "name": "Cigna Healthcare",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "endpoints": [
+        "cigna-patientaccess",
+        "cigna-provider-directory"
+      ]
+    },
+    {
+      "id": "community-first",
+      "name": "Community First Health Plans (University Health)",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's interoperability page names its vendor and the implementation guides it conforms to, and prints no base URL; the only technical link it offers is the vendor's own developer documentation on the vendor's domain",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's own interoperability APIs page and read it in full, enumerating every outbound link: one vendor developer-documentation URL and seven HL7 and OpenID specification URLs. No https endpoint of the issuer's own is printed",
+          "date": "2026-08-19",
+          "source": "https://communityfirsthealthplans.com/community-first-interoperability-apis/"
+        }
+      }
+    },
+    {
+      "id": "community-health-choice",
+      "name": "Community Health Choice (Harris Health System)",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's interoperability page describes both APIs and prints only a link to its own developer portal; the portal's landing page prints no base URL and offers an unregistered visitor nothing but Sign in and Sign up, while calling the Provider Directory API a 'publicly available standards-based API set'",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's interoperability page and its own Azure API Management developer portal landing page, and read both in full; the /apis route of that portal is client-rendered and returned only the portal shell to a non-JavaScript fetch, so whether the catalogue behind it prints a base URL anonymously is not established either way. No page that could be read prints one",
+          "date": "2026-08-19",
+          "source": "https://developers.communityhealthchoice.org/"
+        }
+      }
+    },
+    {
+      "id": "harbor-health",
+      "name": "Harbor Health",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "excluded": {
+        "reason": "no interoperability, API, FHIR, or developer documentation of any kind exists on the issuer's site",
+        "basis": "not_located",
+        "reviewed": {
+          "method": "enumerated the issuer's complete sitemap and found no URL containing api, fhir, interop, developer, transparency or machine-readable; retrieved the home page, plans page and member support page and found no mention of any of those; /interoperability and /developers both return 404. Note for a later reviewer: 'Harbor Health Systems' (a California workers' compensation network) and 'Harbor Health Plan' of Detroit are different organizations and their pages are not evidence about this issuer",
+          "date": "2026-08-19",
+          "source": "https://harborhealth.com/sitemap.xml"
+        }
+      }
+    },
+    {
+      "id": "imperial-insurance-companies",
+      "name": "Imperial Insurance Companies, Inc.",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "endpoints": [
+        "imperial-provider-directory",
+        "imperial-patient-access"
+      ]
+    },
+    {
+      "id": "moda-health-plan",
+      "name": "Moda Health Plan, Inc.",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's interoperability page prints one address and it is its vendor's developer portal on a third-party domain, not a FHIR base URL",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's own interoperability page and read it in full; the only address it prints is an Edifecs Federal Cloud developer-portal link. Its 1,012-URL sitemap contains exactly one interoperability page and no /developers, /api or /fhir page. Whether the vendor portal prints a base URL anonymously was not established, and it is not the issuer's own publication either way",
+          "date": "2026-08-19",
+          "source": "https://www.modahealth.com/privacy-center/interoperability"
+        }
+      }
+    },
+    {
+      "id": "molina-healthcare",
+      "name": "Molina Healthcare",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer runs its own developer portal on its own domain and that portal prints no hostname anywhere: the API list it serves an unregistered visitor carries four sandbox APIs with relative paths and no service URL, and no production API at all",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's data-sharing page, its own developer portal landing page and API list, and the two public PDFs the portal links; extracted the full text of both PDFs and enumerated every URL in them. Every absolute URL is an HL7, terminology, or vendor documentation address, or HL7's own Da Vinci Plan-Net reference implementation, which is a demo server and not this issuer's endpoint. The issuer's own documentation states that applications must be registered and approved before reaching live data",
+          "date": "2026-08-19",
+          "source": "https://developer.interop.molinahealthcare.com/"
+        }
+      }
+    },
+    {
+      "id": "oscar-insurance-company",
+      "name": "Oscar Insurance Company",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer delegates its Patient Access API to a vendor platform and prints no endpoint; obtaining one requires a third-party developer account. There is no Provider Directory API page on the issuer's site at all",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved both of the issuer's interoperability pages and read them in full; every outbound link is to a standards body, a federal agency, or its vendor's documentation, and the stated path forward is creating a developer account with the vendor. Swept all eleven of the issuer's sitemaps and found only those two interoperability pages; /interoperability and /cms_provider_directory_api both return 404",
+          "date": "2026-08-19",
+          "source": "https://www.hioscar.com/cms_patient_access_developer_page"
+        }
+      }
+    },
+    {
+      "id": "sendero-health-plans",
+      "name": "Sendero Health Plans (Central Health)",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's interoperability section names FHIR, OAuth 2.0 and the provider and pharmacy directories as public non-PHI data, and prints no endpoint; its 'learn more about API' link goes to a vendor QA host that answers 403, and its developer path issues credentials by email after a compliance review",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's interoperability page and three related pages and extracted every http string from the interoperability block; the only URLs present are theme assets. Enumerated all 45 pages in the issuer's sitemap and found no developer portal, no FHIR page and no Provider Directory API page. The vendor Swagger link the page offers returned 403 and its hostname names a QA environment",
+          "date": "2026-08-19",
+          "source": "https://senderohealth.com/transparency_in_coverage/"
+        }
+      }
+    },
+    {
+      "id": "unitedhealthcare",
+      "name": "UnitedHealthcare",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "endpoints": [
+        "unitedhealthcare-provider-directory"
+      ]
+    },
+    {
+      "id": "wellpoint",
+      "name": "Wellpoint (Elevance Health)",
+      "programs": [
+        "tx-marketplace"
+      ],
+      "endpoints": [
+        "wellpoint-patient-access",
+        "elevance-shared-provider-directory"
+      ]
+    }
+  ]
+}

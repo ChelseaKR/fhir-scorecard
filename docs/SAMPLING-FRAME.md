@@ -87,16 +87,77 @@ unreachability is frequently a property of the *vantage* rather than the endpoin
 Blue Cross incident in `docs/findings/` - so an entry that stays listed keeps getting probed from
 every vantage, and can be corrected. An entry that was dropped cannot.
 
+**One entry per organization per surface.** Issuers routinely print several addresses for the same
+API: a "base request URL" beside a metadata URL that disagrees with it, a production host beside a
+vendor host, an old year's path beside this year's. The registry lists one endpoint per
+(organization, surface) pair, and the choice between competing published addresses is made on one
+rule and recorded in the entry: **if any published address for that surface answers, the entry is
+the one that answers, and the others go to the candidate log.** That is not dropping a failure -
+the surface is observable, so the surface is graded - and it keeps the endpoint count from
+inflating with an organization's documentation errors. Only when *no* published address for a
+surface answers does the surface get a `publisher_documented` entry, and then it names the address
+the organization's own documentation leads with.
+
+**A TLS failure is a question, not an answer**, and the question has to be asked before the entry
+is written. Re-attempt with certificate verification disabled: a handshake that still fails is the
+server refusing, which is a fact about the endpoint; a handshake that succeeds once verification is
+off is this vantage's trust store or a middlebox, which is a fact about the prober and must not be
+recorded against the endpoint. Both outcomes occurred on 2026-08-19 and are distinguished in
+`data/CANDIDATES.md`.
+
 Re-checks are their own dated record (`verification.reverified`), never an overwrite of the
 curation date. An entry with no re-check block has not been re-checked, and its page says so in
 words. A stale date must not be able to read as a fresh one.
+
+**Known inconsistency, stated rather than tidied away.** The California cohort was curated before
+the second basis existed, so its four "documented, unreachable" members - Imperial Valley,
+Partnership HealthPlan, Kern Family Health Care, Health Plan of San Joaquin - are carried as
+exclusions with that outcome in their `reason`, not as `publisher_documented` registry entries.
+They are published either way, which is why this is an inconsistency in form rather than a
+suppressed result, but the two cohorts do not treat the same situation the same way. Promoting them
+would rewrite a dated published finding and the evidence tests that recompute it, so it is left for
+a pass that can do that properly.
 
 ## Frames used so far
 
 | Frame | Roster | Retrieved | Status |
 |---|---|---|---|
-| California payer cohort | DHCS Medi-Cal managed care plan roster + Covered California issuer list, deduplicated | 2026-08-07 | Published at `/california/` |
+| California payer cohort | DHCS Medi-Cal managed care plan roster + Covered California issuer list, deduplicated to 27 organizations | 2026-08-07 | Published at `/california/` |
+| Texas marketplace cohort | CMS/CCIIO **QHP Landscape PY2026 Individual Medical**, filtered to `State Code = TX`: 15 issuer organizations, 18 HIOS issuer IDs, 13,013 plan-county rows | 2026-08-19 | Published at `/texas-marketplace/` |
 | National and reference surfaces | Not a frame. EHR vendor sandboxes, reference servers, and one federal API are listed individually for calibration, are graded only within their own kind, and are never counted in a cohort rate | - | `data/registry.json` |
 
 A cohort is added by writing its roster and sources into `data/cohorts/`, not by adding endpoints
 and describing them afterwards.
+
+### Why the Texas frame is drawn the way it is
+
+The California frame is a state's own roster of a state program plus a **state-based** exchange's
+issuer list. Its federal hook is therefore the Medicaid managed care prong of CMS-9115-F, because
+the QHP prong (45 CFR 156.221) reaches issuers on the **federally-facilitated** exchanges and
+Covered California is not one.
+
+Texas is. So the second frame is the other prong, drawn from the regulator's own file rather than
+from any state page:
+
+> **Every issuer offering an individual-market qualified health plan through HealthCare.gov in
+> Texas for plan year 2026, as enumerated by CMS/CCIIO's QHP Landscape PY2026 Individual Medical
+> dataset** (`https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45`, file
+> `individual_market_medical.zip`, issued 2026-08-04, modified 2026-08-10).
+
+Three choices in that sentence, each of which moves the denominator and so is written down:
+
+- **The unit is the issuer organization CMS names, not the HIOS ID.** Texas has 18 HIOS issuer IDs
+  and 15 issuer names for PY2026; three names carry two IDs each. Counting IDs would count one
+  organization twice for having two product lines. 15 is the denominator; the 18 is recorded here
+  so a reader can recompute the other way.
+- **Individual medical only.** The file excludes stand-alone dental, small group, and every
+  off-exchange product. An issuer selling only off-exchange in Texas is out of frame.
+- **Frozen at retrieval.** The roster was fixed on 2026-08-19 and does not move when the market
+  does.
+
+Texas's Medicaid and CHIP managed care organizations were considered for the same frame and left
+out, on a documentation ground rather than a substantive one: `hhs.texas.gov` returns 403 to
+automated retrieval, and the most current roster document that could be retrieved is a January
+2026 provider-relations contact list whose program tags its own pages contradict. A frame has to
+be reproducible by a reader, and that one is not from here. It is a good candidate for a later
+pass by someone with a browser.

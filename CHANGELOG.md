@@ -93,6 +93,23 @@ Merged changes land here until the next tag.
   set the page defines — in both directions, so an undocumented code and a documented check that
   no longer runs each fail the build.
 
+- **A second cohort, drawn from a federal roster: the Texas marketplace issuers** at
+  `/texas-marketplace/`. California's exchange is state-based, so the California cohort's federal
+  hook is the Medicaid managed care prong of CMS-9115-F; the qualified-health-plan prong at
+  45 CFR 156.221 reaches issuers on the *federally-facilitated* exchanges, and Texas is one. The
+  roster is CMS/CCIIO's own QHP Landscape PY2026 Individual Medical dataset filtered to Texas -
+  13,013 plan-county rows, 18 HIOS issuer IDs, **15 issuer organizations**, frozen 2026-08-19
+  before any URL was probed. Five publish a base URL this project could verify from their own
+  documentation; eight endpoints entered the registry and five of them answer. **Not one of the
+  fifteen publishes a Patient Access API base URL that answers a stranger**, and of the four that
+  publish a Provider Directory base URL - the surface the rule requires to be reachable *without*
+  authentication - two answer, one returns HTTP 500 and one refuses the TLS handshake.
+- **Every registry entry re-verified, and the one that was not says so.** Curation dates ran
+  2026-08-04 to 08-07 while availability was published daily beside them. 29 of 30 answered a
+  re-fetch on 2026-08-19 and carry a dated re-check record; `capital-bluecross` failed TLS
+  certificate verification from this vantage - the same vantage-local interception as 2026-08-05 -
+  and carries no re-check record rather than a borrowed date. The quarterly re-probe of
+  `data/rejected.json` ran the same day: 15 candidates, 0 now answer.
 - **`docs/SAMPLING-FRAME.md`**: the rule that decides which organizations this project goes
   looking for, written down before the looking. Every cohort's membership comes from a public
   roster published by somebody else, retrieved on a stated date, and fixed before any base URL is

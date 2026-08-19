@@ -8,7 +8,11 @@
       "base_url": "https://api.bluebutton.cms.gov/v2/fhir",
       "verification": {
         "method": "live CapabilityStatement fetch; publisher confirmed via implementation description 'gov.cms.bfd:bfd-server-war' and software 'Blue Button API'",
-        "date": "2026-08-04"
+        "date": "2026-08-04",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 3 resource types, publisher 'Centers for Medicare & Medicaid Services', software 'Blue Button API: Direct 2.264.0'"
+        }
       },
       "enabled": true
     },
@@ -19,7 +23,11 @@
       "base_url": "https://fhir.humana.com/api",
       "verification": {
         "method": "live CapabilityStatement fetch; publisher confirmed via software 'HumanaFHIR' on Humana-controlled domain",
-        "date": "2026-08-04"
+        "date": "2026-08-04",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 22 resource types, publisher 'Humana', software 'HumanaFHIR'"
+        }
       },
       "enabled": true
     },
@@ -30,7 +38,11 @@
       "base_url": "https://vteapif1.aetna.com/fhirdemo/v1/patientaccess",
       "verification": {
         "method": "live CapabilityStatement fetch; publisher confirmed via implementation description 'AETNA implementation of FHIR on top of USCORE - CARIN' on Aetna-controlled domain",
-        "date": "2026-08-04"
+        "date": "2026-08-04",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 25 resource types, publisher 'AETNA FHIR Project Team', software 'no software name'"
+        }
       },
       "enabled": true
     },
@@ -41,7 +53,11 @@
       "base_url": "https://fhir.cigna.com/PatientAccess/v1",
       "verification": {
         "method": "live CapabilityStatement fetch; publisher confirmed via implementation description 'PatientAccess API' on Cigna-controlled domain",
-        "date": "2026-08-04"
+        "date": "2026-08-04",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 28 resource types, publisher 'Cigna, Inc.', software 'no software name'"
+        }
       },
       "enabled": true
     },
@@ -52,7 +68,11 @@
       "base_url": "https://preview-api.bluecrossmn.com/fhir",
       "verification": {
         "method": "live CapabilityStatement fetch; publisher confirmed via software 'BCBS MN FHIR Server' and implementation description 'CMS Patient Access API' on a BCBS MN controlled domain; sourced from the plan's public developer portal",
-        "date": "2026-08-05"
+        "date": "2026-08-05",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 26 resource types, publisher 'BlueCross BlueShield of Minnesota', software 'BCBS MN FHIR Server 0.5.0'"
+        }
       },
       "enabled": true
     },
@@ -63,7 +83,11 @@
       "base_url": "https://api-developerportal.healthpartners.com/interop/external/fhir",
       "verification": {
         "method": "live CapabilityStatement fetch on a HealthPartners controlled domain (Azure Healthcare APIs backend); sourced from the plan's public developer portal",
-        "date": "2026-08-05"
+        "date": "2026-08-05",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 146 resource types, publisher 'Microsoft', software 'Azure Healthcare APIs 5.0.23'"
+        }
       },
       "enabled": true
     },
@@ -85,7 +109,11 @@
       "base_url": "https://fhir.iehp.org/fhir-request",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 17 resource types); publisher field reads 'IEHP' and implementation description 'FHIR Endpoint powered by Smile CDR' on an IEHP-controlled domain. Base URL printed as 'FHIR Server Base URL' on IEHP's own Swagger page at https://fhir.iehp.org/fhir-request/swagger-ui/?page=All, reached from the plan's developer portal at https://www.iehp.org/devportal/index.html",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 17 resource types, publisher 'IEHP', software 'no software name'"
+        }
       },
       "enabled": true
     },
@@ -96,7 +124,11 @@
       "base_url": "https://fhir.iehp.org/provider-directory",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 7 resource types); publisher field reads 'IEHP' and implementation description 'IEHP Provider Directory - FHIR Endpoint' on an IEHP-controlled domain. IEHP's developer portal describes it as 'a publicly available standards-based open API', which matches the Provider Directory API requirement to be reachable without authentication",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 7 resource types, publisher 'IEHP', software 'no software name'"
+        }
       },
       "enabled": true
     },
@@ -107,7 +139,11 @@
       "base_url": "https://shp-apis.sharphealthplan.com/patientaccess",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 24 resource types); publisher field reads 'Sharp Health Plan', title 'Patient Access APIs Reference Implementation', software 'SHP Patient APIs' on a Sharp Health Plan controlled domain. Base URL and capability-statement URL published on Sharp's own public Anypoint Exchange portal, linked from https://www.sharphealthplan.com/api-access-for-developers",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 24 resource types, publisher 'Sharp Health Plan', software 'SHP Patient APIs 1.0.0'"
+        }
       },
       "enabled": true
     },
@@ -118,7 +154,11 @@
       "base_url": "https://shp-apis.sharphealthplan.com/shpconformance/api",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 7 Plan-Net resource types); publisher field reads 'Sharp Health Plan', title 'Da Vinci Payer Data exchange Plan Network Reference Implementation'. Sharp's portal documents this base URL and states the directory 'does not require authorization to access the data on the server'. Its implementation.url advertises a different path (/providerdirectory/api) which answers 401, so this entry records the documented base that answers rather than the one the document names",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 7 resource types, publisher 'Sharp Health Plan', software 'https://www.mulesoft.com/exchange/org.mule.examples/hc-accelerator-plannet-providerdirectory-exp-api/'"
+        }
       },
       "enabled": true
     },
@@ -129,7 +169,11 @@
       "base_url": "https://kpx-service-bus.kp.org/service/cdo/siae/healthplankpxv1rc/FHIR/api",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 10 resource types including Coverage and ExplanationOfBenefit); publisher field reads 'Kaiser Permanente' and implementation description 'FHIR Endpoint powered by Smile CDR' on a kp.org domain. Sourced from ONC's Lantern endpoint export, which records the list source as Kaiser's own developer portal at https://developer.kp.org/#/apis/639c015049655aa96ab5b2f1. This is the health-plan surface; the Kaiser endpoints listed under open.epic.com are the care-delivery side and are not this entry",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 10 resource types, publisher 'Kaiser Permanente', software 'no software name'"
+        }
       },
       "enabled": true
     },
@@ -140,7 +184,11 @@
       "base_url": "https://fhir.scfhp.com/baseR4",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 146 resource types); the publisher field reads 'Not provided', so identity rests on implementation description 'FHIR Endpoint powered by SCFHP' plus control of the scfhp.com domain, and on the plan publishing this base URL in its own developer documentation at https://www.scfhp.com/for-developers/documentation/",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 146 resource types, publisher 'Not provided', software 'no software name'"
+        }
       },
       "enabled": true
     },
@@ -151,7 +199,11 @@
       "base_url": "https://fhir.scfhp.com/providerAPI",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 4 resource types); publisher 'Not provided', implementation description 'FHIR Endpoint powered by SCFHP' on the scfhp.com domain, base URL published in the plan's own developer documentation",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 4 resource types, publisher 'Not provided', software 'no software name'"
+        }
       },
       "enabled": true
     },
@@ -162,7 +214,11 @@
       "base_url": "https://api.hpsmfhir.com/r4",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 144 resource types). The CapabilityStatement names the vendor, not the plan: publisher '1upHealth', software '1up FHIR Server'. Attribution to Health Plan of San Mateo rests on the plan printing this base URL on its own site, at https://www.hpsm.org/about-us/data-interoperability/app-developer-resources, under the heading 'Available Patient Access and Provider Directory API Endpoints'. The same base URL appears in ONC's Lantern export via the 1upHealth endpoint directory. One base serves both surfaces per the plan's own heading",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 144 resource types, publisher '1upHealth', software '1up FHIR Server 4.0.1 3.9.0 v1.0.0-rc+202607151200 bc93922'"
+        }
       },
       "enabled": true
     },
@@ -173,7 +229,11 @@
       "base_url": "https://us107.ir4.edifecscloud.com/lac/fhir/pd/R4",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 24 resource types); implementation.url matches the requested base exactly. The document names no organization at all: publisher reads 'Not provided' and software is a generic 'HAPI FHIR Server' with an Edifecs build suffix (5.4.1.11_edfx) on an Edifecs-controlled host. Attribution to L.A. Care rests entirely on the plan publishing this exact string as its 'PROD Base/Endpoint URL' at https://lacare.org/technical-information, never on the 'lac' path segment",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 24 resource types, publisher 'Not provided', software 'HAPI FHIR Server 5.4.1.11_edfx'"
+        }
       },
       "enabled": true
     },
@@ -184,7 +244,11 @@
       "base_url": "https://us120.fhir.edifecsfedcloud.com/ccah/fhir/pd/R4",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 24 resource types); implementation.url matches the requested base exactly, which is what confirms the base. Publisher reads 'Not provided' and software is a generic 'HAPI FHIR Server' (5.4.1.13_edfx) on an Edifecs-controlled host, so the document names nobody. Attribution to the Alliance rests on its own published Provider Directory API documentation PDF, linked from https://thealliance.health/about-the-alliance/developer-resources/, whose worked example requests and response self-links are resource URLs under this base",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 24 resource types, publisher 'Not provided', software 'HAPI FHIR Server 5.4.1.13_edfx'"
+        }
       },
       "enabled": true
     },
@@ -195,7 +259,11 @@
       "base_url": "https://api-chgsd-prd.safhir.io/v1/api/provider-directory",
       "verification": {
         "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 8 Plan-Net resource types). The document identifies no deployment: it is the Da Vinci PDex Plan-Net implementation guide's own CapabilityStatement served verbatim, with publisher 'HL7 Financial Management Working Group' and the canonical hl7.org url. Attribution to Community Health Group rests on the plan publishing this exact capability-statement URL at https://www.chgsd.com/about-us/fhir-developer-api; the host is the Onyx SAFHIR platform",
-        "date": "2026-08-07"
+        "date": "2026-08-07",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 8 resource types, publisher 'HL7 Financial Management Working Group', software 'no software name'"
+        }
       },
       "enabled": true
     },
@@ -203,10 +271,14 @@
       "id": "cigna-provider-directory",
       "name": "Cigna Provider Directory API",
       "kind": "payer_provider_directory",
-      "base_url": "https://p-hi2.digitaledge.cigna.com/ProviderDirectory/v1",
+      "base_url": "https://fhir.cigna.com/ProviderDirectory/v1",
       "verification": {
-        "method": "live CapabilityStatement fetch; implementation description 'ProviderDirectory API' on a Cigna controlled domain; unauthenticated by design per the Provider Directory API requirement",
-        "date": "2026-08-05"
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 8 resource types); publisher 'Cigna, Inc.', implementation description 'ProviderDirectory API', implementation.url matching the requested base, on a Cigna controlled domain; unauthenticated by design per the Provider Directory API requirement, which Cigna's guide states in those words. Corrected 2026-08-19: this entry stood on https://p-hi2.digitaledge.cigna.com/ProviderDirectory/v1 from the 2026-08-05 wave. That address still answers identically, but Cigna's developer portal no longer prints it anywhere; the Provider Directory implementation guide prints the address above instead, and the older host survives only as an unused token-substitution value inside the portal's JavaScript bundle. Both addresses were fetched on 2026-08-19 and both answered. The entry follows what the organization publishes, so it moved; the availability and drift record is keyed on the endpoint id and therefore spans both addresses for this one surface",
+        "date": "2026-08-05",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement fetch of the newly documented address from the davis-ca residential vantage; fhirVersion 4.0.1, 8 resource types, publisher 'Cigna, Inc.'"
+        }
       },
       "enabled": true
     },
@@ -217,7 +289,11 @@
       "base_url": "https://api.va.gov/services/fhir/v0/r4",
       "verification": {
         "method": "live CapabilityStatement fetch on the VA's api.va.gov domain; implementation description 'FHIR R4 Health APIs.'; sourced from developer.va.gov",
-        "date": "2026-08-05"
+        "date": "2026-08-05",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 19 resource types, publisher 'Department of Veterans Affairs', software 'health-api-fhir-r4'"
+        }
       },
       "enabled": true
     },
@@ -228,7 +304,11 @@
       "base_url": "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4",
       "verification": {
         "method": "live CapabilityStatement fetch on fhir.epic.com; software identifies as 'Epic May 2026'",
-        "date": "2026-08-05"
+        "date": "2026-08-05",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 60 resource types, publisher 'no publisher field', software 'Epic August 2026'"
+        }
       },
       "enabled": true
     },
@@ -239,7 +319,11 @@
       "base_url": "https://fhir-open.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d",
       "verification": {
         "method": "live CapabilityStatement fetch; implementation description 'Oracle Health implementation of FHIR on top of Millennium'",
-        "date": "2026-08-05"
+        "date": "2026-08-05",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 42 resource types, publisher 'Oracle Health', software 'no software name'"
+        }
       },
       "enabled": true
     },
@@ -250,7 +334,11 @@
       "base_url": "https://api.medplum.com/fhir/R4",
       "verification": {
         "method": "live CapabilityStatement fetch; software identifies as 'medplum'",
-        "date": "2026-08-05"
+        "date": "2026-08-05",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 146 resource types, publisher 'Medplum', software 'medplum 5.1.30-76fa156'"
+        }
       },
       "enabled": true
     },
@@ -261,7 +349,11 @@
       "base_url": "https://inferno.healthit.gov/reference-server/r4",
       "verification": {
         "method": "live CapabilityStatement fetch; publisher confirmed via implementation description naming Inferno Reference Server on healthit.gov",
-        "date": "2026-08-04"
+        "date": "2026-08-04",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 26 resource types, publisher 'MITRE', software 'no software name'"
+        }
       },
       "enabled": true
     },
@@ -272,7 +364,11 @@
       "base_url": "https://server.fire.ly",
       "verification": {
         "method": "live CapabilityStatement fetch; publisher confirmed via software 'Firely Server'",
-        "date": "2026-08-04"
+        "date": "2026-08-04",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 146 resource types, publisher 'Firely', software 'Firely Server 6.9.1+e4f2e63c5e20f326898f61339c3b3fcd48017201'"
+        }
       },
       "enabled": true
     },
@@ -283,7 +379,11 @@
       "base_url": "https://hapi.fhir.org/baseR4",
       "verification": {
         "method": "live CapabilityStatement fetch; publisher confirmed as HAPI FHIR reference server",
-        "date": "2026-08-04"
+        "date": "2026-08-04",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 146 resource types, publisher 'Not provided', software 'HAPI FHIR Server 8.11.16-SNAPSHOT/7e7129efb5/2026-07-08'"
+        }
       },
       "enabled": true
     },
@@ -294,7 +394,11 @@
       "base_url": "https://r4.smarthealthit.org",
       "verification": {
         "method": "live CapabilityStatement fetch; publisher confirmed as SMART Health IT sandbox",
-        "date": "2026-08-04"
+        "date": "2026-08-04",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.0, 146 resource types, publisher 'Not provided', software 'Smile CDR 2019.08.PRE'"
+        }
       },
       "enabled": true
     },
@@ -306,7 +410,11 @@
       "expects": "r5",
       "verification": {
         "method": "live CapabilityStatement fetch; software 'HAPI FHIR Server', implementation 'HAPI FHIR Test/Demo Server R5 Endpoint'",
-        "date": "2026-08-05"
+        "date": "2026-08-05",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 5.0.0, 158 resource types, publisher 'Not provided', software 'HAPI FHIR Server 8.11.16-SNAPSHOT/7e7129efb5/2026-07-08'"
+        }
       },
       "enabled": true
     },
@@ -318,7 +426,11 @@
       "expects": "r5",
       "verification": {
         "method": "live CapabilityStatement fetch; software 'Firely Server'",
-        "date": "2026-08-05"
+        "date": "2026-08-05",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 5.0.0, 158 resource types, publisher 'Firely', software 'Firely Server 6.9.1+e4f2e63c5e20f326898f61339c3b3fcd48017201'"
+        }
       },
       "enabled": true
     },
@@ -330,7 +442,103 @@
       "expects": "stu3",
       "verification": {
         "method": "live CapabilityStatement fetch; software 'Smile CDR'",
-        "date": "2026-08-05"
+        "date": "2026-08-05",
+        "reverified": {
+          "date": "2026-08-19",
+          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 3.0.1, 117 resource types, publisher 'Not provided', software 'Smile CDR 2019.08.PRE'"
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "unitedhealthcare-provider-directory",
+      "name": "UnitedHealthcare Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://flex.optum.com/fhirpublic/R4",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 9 resource types); implementation.url matches the requested base exactly. The document names the platform operator, not the brand: publisher 'Optum', software 'optum-flex-server-default' 4.4.2.4. Attribution to UnitedHealthcare rests on UnitedHealthcare publishing this server's capability-statement URL on its own site, under the heading 'Authorization NOT Required Endpoints', at https://www.uhc.com/legal/interoperability-apis/patient-access-api. The two strings that page labels 'Base request URL' answer 403 (https://flex.optum.com/fhirpublic) and 502 (https://flex.optum.com/fhirpublic2025); the metadata URL printed beside them is the one that works, and this entry is its base",
+        "date": "2026-08-19",
+        "basis": "live_capability"
+      },
+      "enabled": true
+    },
+    {
+      "id": "wellpoint-patient-access",
+      "name": "Wellpoint Patient Access API",
+      "kind": "payer",
+      "base_url": "https://totalview.healthos.elevancehealth.com/resources/registered/Wellpoint/api/v1/fhir",
+      "verification": {
+        "method": "base URL printed verbatim in Wellpoint's own Interoperability API Endpoint Support Document (Doc ID IO105, version 15.0, effective 2025-11-18), in the table 'FHIR Endpoints (Production Base URL)', in the row labelled Wellpoint. Thirteen Elevance brands each carry their own row and their own path segment on this host",
+        "date": "2026-08-19",
+        "basis": "publisher_documented",
+        "source": "https://www.wellpoint.com/content/dam/digital/developers-portal/Anthem-IOProviderDirectoryAndFormulary-API-Documentation.pdf",
+        "observed": "HTTP 401 to an unauthenticated GET of /metadata. A Patient Access API is permitted to require authentication for member data, so this is not a defect claim; what it records is narrower and is the whole subject of this project, that the conformance document is not retrievable, so nothing this endpoint declares can be checked from outside. The AnthemBlueCross path on the same host, which answered three times on 2026-08-07 and produced the 'one URL, three brands' finding, also answers 401 today"
+      },
+      "enabled": true
+    },
+    {
+      "id": "elevance-shared-provider-directory",
+      "name": "Elevance Health shared Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://totalview.healthos.elevancehealth.com/resources/unregistered/api/v1/fhir/cms_mandate/mcd",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 7 Plan-Net resource types); publisher reads 'Elevance Health, Inc' and implementation.url matches the requested base exactly, on all three of three consecutive fetches. Named for Elevance rather than for a brand deliberately: Wellpoint's own support document prints this single Provider Directory base URL for all thirteen Elevance brands, without the per-brand path segment its Patient Access table carries, so the address serves the parent and cannot be attributed to any one brand. Sourced from https://www.wellpoint.com/developers",
+        "date": "2026-08-19",
+        "basis": "live_capability"
+      },
+      "enabled": true
+    },
+    {
+      "id": "imperial-provider-directory",
+      "name": "Imperial Health Plan Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://members.imperialhealthplan.com/api/fhir",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 146 resource types). The document names the platform vendor, not the plan: publisher 'Microsoft', software 'Azure Healthcare APIs' 5.0.23, and it carries no implementation block at all. Attribution to Imperial rests on the plan printing four resource URLs under this base on its own interoperability page at https://exchange.imperialhealthplan.com/interoperability/, describing them as resources that 'do not require any authentication to retrieve data', on an Imperial-controlled domain. The same page prints https://ihh-public.azurehealthcareapis.com/metadata, which answers identically and is the vendor-controlled name for what appears to be the same service; the issuer-controlled host is listed",
+        "date": "2026-08-19",
+        "basis": "live_capability"
+      },
+      "enabled": true
+    },
+    {
+      "id": "imperial-patient-access",
+      "name": "Imperial Health Plan Patient Access API",
+      "kind": "payer",
+      "base_url": "https://api.imperialhealthplan.com/fhir",
+      "verification": {
+        "method": "base URL printed verbatim in Imperial Health Plan's own API Endpoint Technical Documentation PDF, linked as 'Download API Endpoint Support Document' from its public interoperability page, as 'Base API URL: https://api.imperialhealthplan.com' with 'Base Endpoint: https://api.imperialhealthplan.com/fhir/Patient' for the Patient Access API. This host disagrees with the one the same issuer's HTML interoperability page uses for the directory resources (members.imperialhealthplan.com), which is recorded rather than reconciled",
+        "date": "2026-08-19",
+        "basis": "publisher_documented",
+        "source": "https://exchange.imperialhealthplan.com/wp-content/uploads/2025/07/api-endpoint-documentation.pdf",
+        "observed": "TLS handshake refused by the server (SSLV3_ALERT_HANDSHAKE_FAILURE). The host resolves and accepts the TCP connection, and the failure reproduces with certificate verification disabled, which rules out this vantage's trust store and the TLS interception that made Capital Blue Cross look dead on 2026-08-05. The server is declining the handshake"
+      },
+      "enabled": true
+    },
+    {
+      "id": "hcsc-provider-directory",
+      "name": "Health Care Service Corporation Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api.hcsc.net",
+      "verification": {
+        "method": "base URL printed verbatim on Health Care Service Corporation's own interoperability site, on the Provider Directory API page, as 'API endpoint base url: https://api.hcsc.net', with the instruction to substitute it for {environmentBaseUrl} in the paths the downloadable API spec gives. The page covers the Blue Cross and Blue Shield plans HCSC operates in Illinois, Montana, New Mexico, Oklahoma and Texas, so the entry is named for the corporation rather than for the Texas brand: one address serves five state plans and nothing in it distinguishes them. Blue Cross and Blue Shield of Texas's own domain publishes no interoperability or developer page at all; its 583-URL sitemap contains none",
+        "date": "2026-08-19",
+        "basis": "publisher_documented",
+        "source": "https://interoperability.hcsc.com/s/provider-directory-api",
+        "observed": "HTTP 500 to a GET of /metadata. TLS is clean from this vantage with and without certificate verification, so the host is live and the server is erroring at the conformance path FHIR R4 requires every server to publish. The page prints this string as a base URL to substitute into spec paths rather than as a FHIR base, which is recorded here rather than repaired: no other address for this surface is printed, and constructing one would be a guess"
+      },
+      "enabled": true
+    },
+    {
+      "id": "christus-provider-directory",
+      "name": "CHRISTUS Health Plan Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://christushealthplan.healthsparq.com/api/provider-fhir-service",
+      "verification": {
+        "method": "base URL printed verbatim on CHRISTUS Health Plan's own site, under the literal heading 'Base FHIR Provider Directory URL', on a page the plan's interoperability section links to (page footer: last updated 2026-06-24). The host is the vendor's; attribution to CHRISTUS rests on the plan printing this exact string on its own domain. The plan publishes no Patient Access base URL: that section names a different vendor and links off-site to the vendor's documentation",
+        "date": "2026-08-19",
+        "basis": "publisher_documented",
+        "source": "https://www.christushealthplan.org/privacy-and-patient-rights/interoperability/healthsparq-fhir-api",
+        "observed": "HTTP 404 to a GET of /metadata. The same page describes a 'public token' flow for this directory - POST an insurer code and brand code to a public token URL, then pass the result as a Subject-Token header - so the surface CMS requires to be reachable without authentication is reachable only after a token exchange, and its conformance document is not reachable at all from here"
       },
       "enabled": true
     }

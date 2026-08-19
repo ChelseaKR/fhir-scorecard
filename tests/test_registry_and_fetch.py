@@ -162,3 +162,131 @@ def test_fetch_surfaces_tls_interception(monkeypatch) -> None:
     )
     assert not result.ok
     assert result.error is not None and "vantage-local" in result.error
+
+
+def test_verification_basis_defaults_to_live_capability(tmp_path: Path) -> None:
+    endpoint = load_registry(_write(tmp_path, [_entry()]))[0]
+    assert endpoint.verification_basis == "live_capability"
+    assert endpoint.verification_source == "" and endpoint.verification_observed == ""
+
+
+def _documented(**verification: Any) -> dict[str, Any]:
+    record: dict[str, Any] = {
+        "method": "base URL printed on the plan's own interoperability page",
+        "date": "2026-08-19",
+        "basis": "publisher_documented",
+        "source": "https://plan.test/interoperability",
+        "observed": "DNS did not resolve (nodename nor servname provided)",
+    }
+    record.update(verification)
+    return {"verification": record}
+
+
+def test_a_documented_but_unretrievable_endpoint_is_listed_with_its_receipts(
+    tmp_path: Path,
+) -> None:
+    """The point of the second basis: the endpoint stays in the published set, not out of it."""
+    endpoint = load_registry(_write(tmp_path, [_entry(**_documented())]))[0]
+    assert endpoint.verification_basis == "publisher_documented"
+    assert endpoint.verification_source == "https://plan.test/interoperability"
+    assert "DNS did not resolve" in endpoint.verification_observed
+
+
+@pytest.mark.parametrize(
+    "mutation, message",
+    [
+        ({"basis": "vibes"}, "basis"),
+        ({"source": "   "}, "source is required"),
+        ({"observed": ""}, "observed is required"),
+    ],
+)
+def test_a_documented_entry_without_its_receipts_is_refused(
+    tmp_path: Path, mutation: dict[str, Any], message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        load_registry(_write(tmp_path, [_entry(**_documented(**mutation))]))
+
+
+def test_source_and_observed_must_be_strings(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="must be strings"):
+        load_registry(_write(tmp_path, [_entry(**_documented(source=["a"]))]))
+
+
+def test_a_recheck_is_its_own_dated_record_not_an_overwrite(tmp_path: Path) -> None:
+    """Overwriting the date loses the curation date; leaving it alone lets stale read as fresh."""
+    entry = _entry(
+        verification={
+            "method": "live fetch",
+            "date": "2026-08-04",
+            "reverified": {"date": "2026-08-19", "method": "live re-fetch, publisher unchanged"},
+        }
+    )
+    endpoint = load_registry(_write(tmp_path, [entry]))[0]
+    assert endpoint.verified_date == "2026-08-04"
+    assert endpoint.reverified_date == "2026-08-19"
+    assert endpoint.verified_as_of == "2026-08-19"
+
+
+def test_an_entry_never_re_checked_reports_its_curation_date_as_the_latest(tmp_path: Path) -> None:
+    endpoint = load_registry(_write(tmp_path, [_entry()]))[0]
+    assert endpoint.reverified_date == "" and endpoint.verified_as_of == "2026-08-04"
+
+
+@pytest.mark.parametrize(
+    "reverified, message",
+    [
+        ("2026-08-19", "must be an object"),
+        ({"date": "August 19", "method": "x"}, "reverified.date"),
+        ({"date": "2026-08-19"}, "reverified.method"),
+        ({"date": "2026-08-19", "method": "  "}, "reverified.method"),
+    ],
+)
+def test_a_malformed_recheck_is_refused(tmp_path: Path, reverified: Any, message: str) -> None:
+    entry = _entry(
+        verification={"method": "live fetch", "date": "2026-08-04", "reverified": reverified}
+    )
+    with pytest.raises(ValueError, match=message):
+        load_registry(_write(tmp_path, [entry]))
+
+
+def _endpoint(**overrides: Any) -> Any:
+    from fhir_scorecard.registry import Endpoint
+
+    fields: dict[str, Any] = {
+        "endpoint_id": "x",
+        "name": "X",
+        "kind": "payer",
+        "base_url": "https://x.test/r4",
+        "verified_method": "live CapabilityStatement fetch",
+        "verified_date": "2026-08-04",
+    }
+    fields.update(overrides)
+    return Endpoint(**fields)
+
+
+def test_the_page_says_when_an_entry_was_last_checked_and_when_it_was_not() -> None:
+    """A curation date printed alone reads as a current one. It is not one."""
+    from fhir_scorecard.cli import _verification_sentence
+
+    never = _verification_sentence(_endpoint())
+    assert "recorded 2026-08-04" in never
+    assert "No later re-check is recorded" in never
+    assert "the last time anyone checked this entry" in never
+
+    rechecked = _verification_sentence(
+        _endpoint(reverified_date="2026-08-19", reverified_method="live re-fetch, publisher same")
+    )
+    assert "Re-checked 2026-08-19: live re-fetch, publisher same." in rechecked
+
+    documented = _verification_sentence(
+        _endpoint(
+            verification_basis="publisher_documented",
+            verification_source="https://plan.test/interop",
+            verification_observed="HTTP 404",
+        )
+    )
+    assert "not on a retrieved conformance document" in documented
+    assert "Published at https://plan.test/interop" in documented
+    assert "this probe observed: HTTP 404" in documented
+
+    assert _verification_sentence(None) == "verification record unavailable"

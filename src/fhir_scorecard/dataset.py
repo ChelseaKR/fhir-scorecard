@@ -15,7 +15,7 @@ from pathlib import Path
 from fhir_scorecard.grading import Scorecard
 from fhir_scorecard.registry import Endpoint
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _COLUMNS = [
     ("endpoint_id", "Stable identifier for this endpoint within the registry"),
@@ -50,6 +50,17 @@ _COLUMNS = [
     ("observed_since", "First date this endpoint was observed"),
     ("verified_method", "How the entry was verified before entering the registry"),
     ("verified_date", "Date of that verification"),
+    (
+        "verification_basis",
+        "live_capability when a conformance document was retrieved and the publisher "
+        "established from it; publisher_documented when the organization publishes this "
+        "base URL in its own materials and the document was not retrievable on that date",
+    ),
+    (
+        "reverified_date",
+        "Date this entry was last re-checked against the live endpoint, empty when it "
+        "has not been re-checked since it was curated. Empty is not 'today'",
+    ),
 ]
 
 
@@ -81,6 +92,8 @@ def _row(card: Scorecard, endpoint: Endpoint | None) -> dict[str, object]:
         "observed_since": card.observed_since or "",
         "verified_method": endpoint.verified_method if endpoint else "",
         "verified_date": endpoint.verified_date if endpoint else "",
+        "verification_basis": endpoint.verification_basis if endpoint else "",
+        "reverified_date": endpoint.reverified_date if endpoint else "",
     }
 
 
@@ -177,6 +190,10 @@ def write_dataset(
                 for d in card.dimensions
             ],
             "drift_events": list(card.drift_events),
+            # Kept out of drift_events so a consumer counting capability changes counts changes.
+            # A return to a declaration already on record is a fact about the address, not a
+            # fact about the publisher shipping something.
+            "drift_alternations": list(card.drift_alternations),
         }
         (api_dir / f"{card.endpoint_id}.json").write_text(
             json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"

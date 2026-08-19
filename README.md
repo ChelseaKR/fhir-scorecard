@@ -134,13 +134,31 @@ attribution then rests on the **plan** publishing the base URL on its own site, 
 verification record says outright. Where only a vendor or a path segment connects a server to a
 plan, the endpoint is excluded instead.
 
-## Cohorts
+An entry records **on what basis** it is listed and **when it was last checked**, as two separate
+facts a machine can read:
+
+- `verification.basis` is `live_capability` when a conformance document was retrieved, or
+  `publisher_documented` when the organization publishes this base URL in its own materials and the
+  document was not retrievable on that date. The second requires the `source` that printed the URL
+  and what the probe `observed`, and such an endpoint publishes as `not observed` rather than `F`.
+  It is listed on purpose: **an unreachable endpoint is a finding, not a reason to drop it**, and a
+  registry pruned of its failures hides exactly what this project exists to detect.
+- `verification.reverified` is a later dated re-check, never an overwrite of the curation date. An
+  entry with no re-check block has not been re-checked, and its page says so in words. A stale date
+  must not be able to read as a fresh one.
+
+## Cohorts and the sampling frame
 
 A cohort is a named view over the registry whose membership comes from a **public roster** rather
 than from whatever was easy to find, which is what lets a hit rate mean anything: the denominator is
 fixed before any probing starts. Every member either points at registry endpoints or carries an
 exclusion with a reason, a review record, a date, and a source, so the plans that publish nothing
 discoverable are part of the published result rather than an absence in it.
+
+The rule that decides which organizations get looked for at all is written down in
+[docs/SAMPLING-FRAME.md](docs/SAMPLING-FRAME.md), including what was considered and rejected as a
+roster - among them the guessed-hostname method that produced 0 verified endpoints out of 18
+probes and a hit rate that meant nothing.
 
 The first is the **California payer cohort** at `/california/`: the Medi-Cal managed care plans DHCS
 lists plus the Covered California qualified health plan issuers, deduplicated to 27 organizations.
@@ -153,6 +171,17 @@ claims about them. The rule does not require a plan to print its base URL where 
 visitor can read it; California's Data Exchange Framework runs through the DSA and QHIOs and
 requires none of these surfaces; and CMS-0057-F's additional APIs are not in force until 2027 and
 are not graded.
+
+The second is the **Texas marketplace issuer cohort** at `/texas-marketplace/`, and it exists
+because California's exchange is state-based. CMS-9115-F's qualified-health-plan prong
+(45 CFR 156.221) reaches issuers on the *federally-facilitated* exchanges, so this cohort takes that
+prong from the regulator's own file: every issuer selling an individual-market QHP on HealthCare.gov
+in Texas for 2026, as enumerated by CMS/CCIIO's QHP Landscape PY2026 Individual Medical dataset -
+13,013 plan-county rows, 18 HIOS issuer IDs, **15 issuer organizations**, frozen before any URL was
+probed. Six publish a base URL this project could verify from their own documentation. Three of the
+fifteen publish a Patient Access base URL and one of the three answers a stranger; six publish a
+Provider Directory base URL - the surface the rule requires to be reachable *without*
+authentication - and four of the six answer.
 
 ## Findings
 
@@ -168,6 +197,9 @@ with the evidence beside each one and every published figure recomputed from tha
 - [One URL, three brands](docs/findings/2026-08-15-anthem-multi-tenant-attribution.md): three
   consecutive requests to one payer's documented base URL returned CapabilityStatements naming
   three different brands, and what that means for anyone building a payer endpoint registry.
+  Re-checked 2026-08-19: that URL now answers 401, so the rotation is no longer observable from
+  outside, while the shared Provider Directory address in the same document still answers and is
+  stable. The re-check is a dated section on the write-up, not an edit to what was seen on 08-07.
 
 Neither is a compliance determination, and both say so.
 
@@ -204,9 +236,12 @@ an assistant can be told what the numbers do not mean.
 
 ## Status
 
-v0.1.0-dev. Thirty verified endpoints across payers, payer provider directories, a federal provider
-API, EHR vendor sandboxes, and reference servers, including a curated California payer cohort. Payer
-registry curation continues one developer portal at a time, because payer base URLs are not
+v0.1.0-dev. Thirty-seven endpoints across payers, payer provider directories, a federal provider
+API, EHR vendor sandboxes, and reference servers, in two curated cohorts (California payers, Texas
+marketplace issuers). Thirty-three were verified from a retrieved conformance document; four are
+listed on the organization's own publication of a base URL that does not answer, which is a finding
+about the public record rather than a gap in this one. Registry curation continues one roster at a
+time - see [docs/SAMPLING-FRAME.md](docs/SAMPLING-FRAME.md) - because payer base URLs are not
 predictable from company names. Grades are observational snapshots of public surfaces, not audits,
 rankings of care quality, or statements about any organization's compliance.
 

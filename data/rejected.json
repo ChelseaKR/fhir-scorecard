@@ -105,6 +105,27 @@
       "base_url": "https://us120.fhir.edifecsfedcloud.com/hpsj_fhir",
       "last_outcome": "HTTP 401 (2026-08-07). The plan's own documentation leaves the production endpoint as an unfilled placeholder; this URL comes from the CARIN Alliance directory entry the plan filed",
       "source": "CARIN Alliance FHIR directory registry entry for Health Plan of San Joaquin"
+    },
+    {
+      "id": "uhc-fhirpublic-base",
+      "name": "UnitedHealthcare Provider Directory (the string its page labels 'Base request URL')",
+      "base_url": "https://flex.optum.com/fhirpublic",
+      "last_outcome": "HTTP 403 (2026-08-19). The same page prints a metadata URL one path segment deeper, https://flex.optum.com/fhirpublic/R4/metadata, which answers; that base is listed as unitedhealthcare-provider-directory",
+      "source": "developer portal documentation at https://www.uhc.com/legal/interoperability-apis/patient-access-api"
+    },
+    {
+      "id": "uhc-fhirpublic2025",
+      "name": "UnitedHealthcare Provider Directory (2025 base request URL)",
+      "base_url": "https://flex.optum.com/fhirpublic2025",
+      "last_outcome": "HTTP 502 (2026-08-19)",
+      "source": "developer portal documentation at https://www.uhc.com/legal/interoperability-apis/patient-access-api"
+    },
+    {
+      "id": "elevance-anthembluecross-registered",
+      "name": "Anthem Blue Cross per-brand Patient Access (the URL behind the 'one URL, three brands' finding)",
+      "base_url": "https://totalview.healthos.elevancehealth.com/resources/registered/AnthemBlueCross/api/v1/fhir",
+      "last_outcome": "HTTP 401 (2026-08-19). Answered three times on 2026-08-07 with a rotating implementation.url; the per-brand paths on this host are now authenticated",
+      "source": "developer portal documentation at https://www.wellpoint.com/content/dam/digital/developers-portal/Anthem-IOProviderDirectoryAndFormulary-API-Documentation.pdf"
     }
   ]
 }

@@ -103,6 +103,7 @@ def _grade_from_probes(
         version_prefix=version_prefix(endpoint.expects),
         observed_since=drift.first_seen,
         drift_events=drift.recorded_events,
+        drift_alternations=drift.alternations,
         availability=drift.availability.summary(),
     )
 
@@ -173,6 +174,7 @@ def _grade_endpoint(
         version_prefix=version_prefix(endpoint.expects),
         observed_since=drift.first_seen,
         drift_events=drift.recorded_events,
+        drift_alternations=drift.alternations,
         availability=drift.availability.summary(),
     )
 
@@ -539,6 +541,32 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def _verification_sentence(entry: Endpoint | None) -> str:
+    """What the provenance section says, including how old the newest check actually is.
+
+    The date used to be the curation date and nothing else, so an entry curated once and never
+    looked at again read exactly like one re-checked this morning. Both dates are printed when
+    both exist, and an entry with no re-check says that in words rather than by omission.
+    """
+    if entry is None:
+        return "verification record unavailable"
+    if entry.verification_basis == "publisher_documented":
+        listed = (
+            f"Listed on the organization's own publication of this base URL, not on a retrieved "
+            f"conformance document: {entry.verified_method} "
+            f"(recorded {entry.verified_date}). Published at {entry.verification_source}. "
+            f"On the verification date this probe observed: {entry.verification_observed}."
+        )
+    else:
+        listed = f"{entry.verified_method} (recorded {entry.verified_date})."
+    if entry.reverified_date:
+        return f"{listed} Re-checked {entry.reverified_date}: {entry.reverified_method}."
+    return (
+        f"{listed} No later re-check is recorded, so the date above is the last time anyone "
+        "checked this entry against the live endpoint."
+    )
+
+
 def _write_site(
     scorecards: list[Scorecard],
     endpoints: list[Endpoint],
@@ -560,11 +588,7 @@ def _write_site(
             endpoint_page(
                 card,
                 base_url=entry.base_url if entry else "",
-                verified=(
-                    f"{entry.verified_method} (recorded {entry.verified_date})"
-                    if entry
-                    else "verification record unavailable"
-                ),
+                verified=_verification_sentence(entry),
                 origin=origin,
             )
         )

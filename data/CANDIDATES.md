@@ -226,3 +226,109 @@ like the Capital Blue Cross incident of 2026-08-05 and was nearly logged that wa
 endpoint: this vantage's Python trust store lacks the Sectigo root Kern's server chains to. Re-probed
 with a client that has it, the endpoint returns a plain 404. The lesson from that incident held up
 the second time, in the opposite direction: a TLS error is a question, not an answer.
+
+## 2026-08-19 (ninth wave): a re-verification pass, and a cohort drawn from a federal roster
+
+Two different kinds of work on one date.
+
+### Re-verification of the whole registry
+
+The shipped verification dates ran from 2026-08-04 to 2026-08-07, so curation was two weeks old
+while availability was being re-measured daily and published beside it. Every listed endpoint was
+re-fetched once from the davis-ca residential vantage. **Twenty-nine of thirty answered** and now
+carry a dated `verification.reverified` record naming what the document said today.
+
+**One did not, and carries no re-verification record at all rather than a borrowed date.**
+`capital-bluecross` failed TLS certificate verification from this vantage ("self-signed certificate
+in certificate chain"), which is the same vantage-local interception that made this endpoint look
+dead on 2026-08-05 and is not evidence about the endpoint. Its entry still says 2026-08-05, and its
+page now says in words that it has not been re-checked since.
+
+Two declarations had moved and are recorded rather than smoothed: Epic's sandbox from `Epic May
+2026` to `Epic August 2026` (59 to 60 resource types), and HealthPartners' Azure backend from
+`4.0.817` to `5.0.23`.
+
+The quarterly re-probe of `data/rejected.json` ran the same day: **15 candidates, 0 now answer**,
+every outcome unchanged in character since it was first recorded.
+
+### The Texas marketplace cohort
+
+The rule this wave followed is now written down in [`docs/SAMPLING-FRAME.md`](../docs/SAMPLING-FRAME.md).
+The California cohort's roster is a state's own, and its federal hook is the Medicaid managed care
+prong of CMS-9115-F, because Covered California is a state-based exchange while the
+qualified-health-plan prong at 45 CFR 156.221 reaches issuers on the *federally-facilitated*
+exchanges. Texas is one. So this wave takes the other prong, from the regulator's file rather than
+any state page: **CMS/CCIIO's QHP Landscape PY2026 Individual Medical dataset, filtered to Texas.**
+13,013 plan-county rows, 18 HIOS issuer IDs, **15 issuer organizations**, frozen 2026-08-19 before
+any URL was probed. Texas HHSC's Medicaid managed care roster was considered for the same frame and
+left out on a documentation ground: `hhs.texas.gov` returns 403 to automated retrieval, and a frame
+a reader cannot reproduce is not a frame.
+
+**Six of the 15 publish a base URL this project could verify from their own documentation. Nine
+endpoints entered the registry, five of which answer.**
+
+| Issuer | Outcome |
+|---|---|
+| UnitedHealthcare | **Verified** → registry: `flex.optum.com/fhirpublic/R4`, publisher `Optum`, 9 resource types |
+| Wellpoint (Elevance) | **Listed, documented-unreachable**: the per-brand Patient Access base URL its own support document prints answers 401 |
+| Wellpoint (Elevance) | **Verified** → registry: the shared Provider Directory base URL, publisher `Elevance Health, Inc`, listed under Elevance rather than a brand |
+| Imperial Insurance Companies | **Verified** → registry: `members.imperialhealthplan.com/api/fhir`, and **listed, documented-unreachable**: `api.imperialhealthplan.com/fhir` from its own PDF refuses the TLS handshake |
+| Blue Cross and Blue Shield of Texas (HCSC) | **Listed, documented-unreachable**: `api.hcsc.net`, printed as the Provider Directory "API endpoint base url", answers HTTP 500 at `/metadata` |
+| Cigna Healthcare | Already listed from waves 1 and 5; re-fetched today. **Corrected**: the Provider Directory entry stood on `p-hi2.digitaledge.cigna.com/ProviderDirectory/v1`, which still answers, but Cigna's portal no longer prints it anywhere and its implementation guide prints `fhir.cigna.com/ProviderDirectory/v1` instead. Both were fetched today, both answered, and the entry moved to the address the organization publishes |
+| Ambetter from Superior HealthPlan (Centene) | No base URL: both APIs deferred to a partner portal that shows an unregistered visitor a 1,128-byte shell |
+| Baylor Scott & White Health Plan | No base URL: defers to its vendor's portal, and never mentions a Provider Directory API |
+| CHRISTUS Health Plan | **Listed, documented-unreachable**: `christushealthplan.healthsparq.com/api/provider-fhir-service`, printed under the heading "Base FHIR Provider Directory URL", answers HTTP 404 at `/metadata`. Its Patient Access section names a different vendor and prints no address |
+| Community First Health Plans | No base URL: names its vendor and the IGs, links only to vendor documentation |
+| Community Health Choice | No base URL: its own portal calls the Provider Directory API "publicly available" and offers an unregistered visitor only Sign in and Sign up |
+| Moda Health Plan | No base URL: prints one address, its vendor's developer portal |
+| Molina Healthcare | No base URL: its own portal serves an anonymous visitor four **sandbox** APIs with relative paths, no host, and no production API at all |
+| Oscar Insurance Company | No base URL: delegates to a vendor account; no Provider Directory page exists on its site |
+| Sendero Health Plans | No base URL: its "learn more about API" link goes to a vendor **QA** host that answers 403, and credentials arrive by email after a compliance review |
+| Harbor Health | **No documentation of any kind**: its complete sitemap contains no api, fhir, interop or developer URL; `/interoperability` and `/developers` both 404 |
+
+### What the roster bought this time
+
+**Three of the fifteen publish a Patient Access API base URL, and one of the three answers.**
+Cigna's does; Wellpoint's returns 401 and Imperial's refuses the TLS handshake. The other twelve
+route Patient Access through a registration gate and print no address, which the rule permits: it
+requires the API, not a public address for it.
+
+**The Provider Directory API is the surface where that permission does not apply**, since it is
+required to be reachable *without* authentication. Six issuers publish a directory base URL and
+**four of the six answer** (Cigna, UnitedHealthcare, Elevance, Imperial). Two do not: HCSC returns
+HTTP 500, and CHRISTUS returns 404 behind a "public token" exchange its own page documents. Of the
+nine issuers that publish no address at all, two describe their directory API in their own words as
+public while printing nowhere to reach it.
+
+**The vendor pattern from California repeated at national scale.** Eight of the nine unlisted
+issuers hand developers to a portal - Centene's, Inovalon's twice, Edifecs', Azure API Management
+twice, 1upHealth's and HealthTrio's - and none of those portals prints an endpoint to an
+unregistered visitor. The ninth publishes nothing at all.
+
+**Four of the nine listed endpoints are corporate, not brand- or state-level.** HCSC publishes one
+directory address for five states' Blue Cross plans; Elevance publishes one for thirteen brands;
+Cigna's two are corporate. For those issuers there is no Texas-specific address to grade, which is
+a fact about the surface rather than a gap in this curation.
+
+### A methodological note, in both directions
+
+This vantage's TLS behaviour is host-dependent and was checked rather than assumed, because a TLS
+error is a question and not an answer. `capital-bluecross` and `bcbs.com` fail certificate
+verification here and succeed with verification disabled: that is this network, and nothing about
+those endpoints was recorded from it. `api.imperialhealthplan.com` fails the handshake *with
+verification disabled too*, which is the server declining, and is recorded against the endpoint.
+`api.hcsc.net` negotiates TLS 1.3 cleanly both ways and then returns 500 at `/metadata`.
+
+Also recorded against ourselves: `https://flex.optum.com/fhirpublic`, which UnitedHealthcare's page
+labels "Base request URL", answers 403, and `https://flex.optum.com/fhirpublic2025` answers 502.
+The metadata URL the same page prints, one path segment deeper, is the one that works. Had this
+wave taken the string labelled "base" and reported the 403, it would have published a false
+statement about a live and conformant endpoint.
+
+### A published finding changed under us
+
+The 2026-08-15 "one URL, three brands" write-up rests on three fetches of an Elevance per-brand
+Patient Access URL on 2026-08-07. Re-probed once today, that URL and the Wellpoint one beside it
+both answer **401**: the per-brand paths are now authenticated and the rotating `implementation.url`
+is no longer observable from outside. The write-up carries a dated re-check section saying so; the
+original observation stands as what was seen on the day it was seen.

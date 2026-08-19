@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import pytest
 from conftest import good_capability, good_smart
@@ -453,3 +454,54 @@ def test_cli_fails_loudly_on_invalid_cohort_file(tmp_path: Path) -> None:
         )
         == 2
     )
+
+
+def test_the_texas_frame_still_says_where_its_denominator_came_from() -> None:
+    """The denominator is the claim. It has to keep naming the file it was taken from.
+
+    15 is not a count of what was found; it is CMS's own count of the issuers selling an
+    individual-market QHP on HealthCare.gov in Texas for 2026, fixed before any URL was probed.
+    A member added or dropped without re-deriving it from that file would quietly turn a rate
+    into an anecdote, which is the exact failure `docs/SAMPLING-FRAME.md` exists to prevent.
+    """
+    from fhir_scorecard.registry import load_registry
+
+    repo = Path(__file__).resolve().parent.parent
+    endpoints = load_registry(repo / "data" / "registry.json")
+    cohort = load_cohort(
+        repo / "data" / "cohorts" / "texas-marketplace.json",
+        frozenset(e.endpoint_id for e in endpoints),
+    )
+    assert len(cohort.members) == 15
+    assert all(member.programs == ("tx-marketplace",) for member in cohort.members)
+
+    labels = " ".join(s.label for s in cohort.sources)
+    assert "QHP Landscape PY2026 Individual Medical" in labels
+    # Host compared exactly, not by substring: "data.healthcare.gov" appearing anywhere in a URL
+    # is satisfied by a hostname that merely ends with it, which is not the same claim.
+    assert any(urlsplit(s.url).netloc == "data.healthcare.gov" for s in cohort.sources)
+    assert all(s.date for s in cohort.sources)
+
+    notes = " ".join(cohort.notes)
+    # The two numbers that would otherwise be confused: issuer organizations and HIOS IDs.
+    assert "15" in notes and "18 HIOS issuer IDs" in notes
+    assert "45 CFR 156.221" in notes, "the obligation this cohort claims must stay named"
+
+
+def test_a_cohort_member_may_point_at_an_endpoint_that_did_not_answer() -> None:
+    """An unreachable endpoint is a finding, not a reason to drop the member from the roster."""
+    from fhir_scorecard.registry import load_registry
+
+    repo = Path(__file__).resolve().parent.parent
+    endpoints = {e.endpoint_id: e for e in load_registry(repo / "data" / "registry.json")}
+    cohort = load_cohort(repo / "data" / "cohorts" / "texas-marketplace.json", frozenset(endpoints))
+    listed = [endpoints[eid] for m in cohort.included for eid in m.endpoint_ids]
+    documented_only = [e for e in listed if e.verification_basis == "publisher_documented"]
+    assert documented_only, (
+        "this cohort is supposed to carry endpoints its issuers publish and that do not answer; "
+        "if none is left, check whether one was quietly dropped rather than fixed"
+    )
+    for endpoint in documented_only:
+        assert endpoint.verification_source.startswith("https://")
+        assert endpoint.verification_observed
+        assert endpoint.enabled, "a documented-unreachable entry is graded like any other"

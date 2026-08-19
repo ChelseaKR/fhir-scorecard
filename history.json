@@ -69,6 +69,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "820114f1eb6249c6",
+        "first_seen": "2026-08-05"
+      }
     ]
   },
   "bcbs-mn": {
@@ -137,6 +143,12 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "0b609ec47c1bc423",
+        "first_seen": "2026-08-05"
       }
     ]
   },
@@ -207,6 +219,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "a1f3dfabfe8bb490",
+        "first_seen": "2026-08-05"
+      }
     ]
   },
   "ccah-provider-directory": {
@@ -268,6 +286,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "b4924cf854242db6",
+        "first_seen": "2026-08-08"
+      }
     ]
   },
   "chg-provider-directory": {
@@ -328,6 +352,21 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "e3e234086cbb3a6a",
+        "first_seen": "2026-08-08"
+      }
+    ]
+  },
+  "christus-provider-directory": {
+    "first_seen": "2026-08-19",
+    "observations": [
+      {
+        "date": "2026-08-19",
+        "up": false
       }
     ]
   },
@@ -398,6 +437,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "acc5fa85fc925585",
+        "first_seen": "2026-08-05"
+      }
     ]
   },
   "cigna-provider-directory": {
@@ -466,6 +511,12 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "e3e234086cbb3a6a",
+        "first_seen": "2026-08-05"
       }
     ]
   },
@@ -555,6 +606,51 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "ab34b8167aed12e6",
+        "first_seen": "2026-08-05"
+      },
+      {
+        "digest": "1b311d6469e2b54e",
+        "first_seen": "2026-08-07"
+      },
+      {
+        "digest": "98bbf6fc9202924c",
+        "first_seen": "2026-08-12"
+      },
+      {
+        "digest": "e5dff49119b06c49",
+        "first_seen": "2026-08-19"
+      }
+    ]
+  },
+  "elevance-shared-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 7,
+      "resources_with_interactions": 7,
+      "software_name": "hos-fhir-server",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-08-19",
+    "last_seen": "2026-08-19",
+    "observations": [
+      {
+        "date": "2026-08-19",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "d8e1adb42f0639da",
+        "first_seen": "2026-08-19"
+      }
     ]
   },
   "epic-sandbox": {
@@ -633,6 +729,16 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "0ade5a6bc074c189",
+        "first_seen": "2026-08-05"
+      },
+      {
+        "digest": "65957f89e7164cd4",
+        "first_seen": "2026-08-12"
+      }
     ]
   },
   "firely-public": {
@@ -701,6 +807,12 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "9767bb357fd26c46",
+        "first_seen": "2026-08-05"
       }
     ]
   },
@@ -771,6 +883,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "df1b2d667557b7f2",
+        "first_seen": "2026-08-05"
+      }
     ]
   },
   "hapi-fhir-r4": {
@@ -840,6 +958,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "f71525454a25d0e1",
+        "first_seen": "2026-08-05"
+      }
     ]
   },
   "hapi-fhir-r5": {
@@ -908,6 +1032,21 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "2ad780435da296f2",
+        "first_seen": "2026-08-05"
+      }
+    ]
+  },
+  "hcsc-provider-directory": {
+    "first_seen": "2026-08-19",
+    "observations": [
+      {
+        "date": "2026-08-19",
+        "up": false
       }
     ]
   },
@@ -991,6 +1130,20 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "6eb0d6acf1f4cbe4",
+        "first_seen": "2026-08-05"
+      },
+      {
+        "digest": "0327feb2cfb8b1aa",
+        "first_seen": "2026-08-11"
+      },
+      {
+        "digest": "bf7758416ed5cc4a",
+        "first_seen": "2026-08-19"
+      }
     ]
   },
   "hpsm-patient-access": {
@@ -1051,6 +1204,12 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "854895185068d46e",
+        "first_seen": "2026-08-08"
       }
     ]
   },
@@ -1121,6 +1280,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "68d0bb96edba98df",
+        "first_seen": "2026-08-05"
+      }
     ]
   },
   "iehp-patient-access": {
@@ -1182,6 +1347,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "153a9b11920365ab",
+        "first_seen": "2026-08-08"
+      }
     ]
   },
   "iehp-provider-directory": {
@@ -1242,6 +1413,48 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "9cbb8a5cea276ff5",
+        "first_seen": "2026-08-08"
+      }
+    ]
+  },
+  "imperial-patient-access": {
+    "first_seen": "2026-08-19",
+    "observations": [
+      {
+        "date": "2026-08-19",
+        "up": false
+      }
+    ]
+  },
+  "imperial-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 146,
+      "resources_with_interactions": 145,
+      "software_name": "Azure Healthcare APIs",
+      "software_version": "5.0.23"
+    },
+    "first_seen": "2026-08-19",
+    "last_seen": "2026-08-19",
+    "observations": [
+      {
+        "date": "2026-08-19",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "20946eaba9372dd1",
+        "first_seen": "2026-08-19"
       }
     ]
   },
@@ -1312,6 +1525,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "11ed31254a4be339",
+        "first_seen": "2026-08-05"
+      }
     ]
   },
   "kaiser-permanente-health-plan": {
@@ -1373,57 +1592,47 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "1cd62b115154d03f",
+        "first_seen": "2026-08-08"
+      }
     ]
   },
   "la-care-provider-directory": {
+    "alternation_rebuild": {
+      "events_after": 1,
+      "events_before": 8
+    },
+    "alternations": [
+      {
+        "changes": [
+          "software_version: '5.4.1.11_edfx' -> '5.4.1.13_edfx'"
+        ],
+        "digest": "b4924cf854242db6",
+        "first_return": "2026-08-08",
+        "last_return": "2026-08-16",
+        "returns": 4,
+        "state_first_seen": "2026-08-08"
+      },
+      {
+        "changes": [
+          "software_version: '5.4.1.13_edfx' -> '5.4.1.11_edfx'"
+        ],
+        "digest": "fd27f793f6196414",
+        "first_return": "2026-08-11",
+        "last_return": "2026-08-19",
+        "returns": 4,
+        "state_first_seen": "2026-08-08"
+      }
+    ],
     "events": [
       {
         "changes": [
           "software_version: '5.4.1.13_edfx' -> '5.4.1.11_edfx'"
         ],
         "date": "2026-08-08"
-      },
-      {
-        "changes": [
-          "software_version: '5.4.1.11_edfx' -> '5.4.1.13_edfx'"
-        ],
-        "date": "2026-08-08"
-      },
-      {
-        "changes": [
-          "software_version: '5.4.1.13_edfx' -> '5.4.1.11_edfx'"
-        ],
-        "date": "2026-08-11"
-      },
-      {
-        "changes": [
-          "software_version: '5.4.1.11_edfx' -> '5.4.1.13_edfx'"
-        ],
-        "date": "2026-08-12"
-      },
-      {
-        "changes": [
-          "software_version: '5.4.1.13_edfx' -> '5.4.1.11_edfx'"
-        ],
-        "date": "2026-08-13"
-      },
-      {
-        "changes": [
-          "software_version: '5.4.1.11_edfx' -> '5.4.1.13_edfx'"
-        ],
-        "date": "2026-08-14"
-      },
-      {
-        "changes": [
-          "software_version: '5.4.1.13_edfx' -> '5.4.1.11_edfx'"
-        ],
-        "date": "2026-08-15"
-      },
-      {
-        "changes": [
-          "software_version: '5.4.1.11_edfx' -> '5.4.1.13_edfx'"
-        ],
-        "date": "2026-08-16"
       }
     ],
     "fingerprint": {
@@ -1434,7 +1643,7 @@
       "resource_count": 24,
       "resources_with_interactions": 24,
       "software_name": "HAPI FHIR Server",
-      "software_version": "5.4.1.13_edfx"
+      "software_version": "5.4.1.11_edfx"
     },
     "first_seen": "2026-08-08",
     "last_seen": "2026-08-19",
@@ -1482,6 +1691,16 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "b4924cf854242db6",
+        "first_seen": "2026-08-08"
+      },
+      {
+        "digest": "fd27f793f6196414",
+        "first_seen": "2026-08-08"
       }
     ]
   },
@@ -1564,6 +1783,12 @@
           "software_version: '5.1.30-6daa238' -> '5.1.30-76fa156'"
         ],
         "date": "2026-08-19"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.30-76fa156' -> '5.1.30-74dfb62'"
+        ],
+        "date": "2026-08-19"
       }
     ],
     "fingerprint": {
@@ -1574,7 +1799,7 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "medplum",
-      "software_version": "5.1.30-76fa156"
+      "software_version": "5.1.30-74dfb62"
     },
     "first_seen": "2026-08-05",
     "last_seen": "2026-08-19",
@@ -1630,6 +1855,68 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "5387b35e9040f09e",
+        "first_seen": "2026-08-05"
+      },
+      {
+        "digest": "179e89ba21a3c2bc",
+        "first_seen": "2026-08-05"
+      },
+      {
+        "digest": "fb25ce101f763f28",
+        "first_seen": "2026-08-07"
+      },
+      {
+        "digest": "bf73b3ee49c0efb8",
+        "first_seen": "2026-08-08"
+      },
+      {
+        "digest": "ba820bcdf936c289",
+        "first_seen": "2026-08-08"
+      },
+      {
+        "digest": "6c72ea24e256afb6",
+        "first_seen": "2026-08-09"
+      },
+      {
+        "digest": "7c30ece2a674cd50",
+        "first_seen": "2026-08-10"
+      },
+      {
+        "digest": "70c5c71346277c41",
+        "first_seen": "2026-08-11"
+      },
+      {
+        "digest": "d4682daf33046adb",
+        "first_seen": "2026-08-12"
+      },
+      {
+        "digest": "48a47e1206eb5489",
+        "first_seen": "2026-08-13"
+      },
+      {
+        "digest": "8331e310600013ba",
+        "first_seen": "2026-08-14"
+      },
+      {
+        "digest": "bc292a541646ba2e",
+        "first_seen": "2026-08-15"
+      },
+      {
+        "digest": "bfaf8cf0962e8433",
+        "first_seen": "2026-08-18"
+      },
+      {
+        "digest": "7510113aeceba171",
+        "first_seen": "2026-08-19"
+      },
+      {
+        "digest": "81c4bf0ad75d2dd2",
+        "first_seen": "2026-08-19"
       }
     ]
   },
@@ -1700,6 +1987,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "f1419fc4bded33af",
+        "first_seen": "2026-08-05"
+      }
     ]
   },
   "scfhp-patient-access": {
@@ -1760,6 +2053,12 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "58b590e1a505810e",
+        "first_seen": "2026-08-08"
       }
     ]
   },
@@ -1822,6 +2121,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "4cdade2063fe5ded",
+        "first_seen": "2026-08-08"
+      }
     ]
   },
   "sharp-health-plan-patient-access": {
@@ -1883,6 +2188,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "c0eddab25677920d",
+        "first_seen": "2026-08-08"
+      }
     ]
   },
   "sharp-health-plan-provider-directory": {
@@ -1943,6 +2254,12 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "7b6b59e014705fdd",
+        "first_seen": "2026-08-08"
       }
     ]
   },
@@ -2013,6 +2330,12 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "d8d6984a22559329",
+        "first_seen": "2026-08-05"
+      }
     ]
   },
   "smart-health-it-stu3": {
@@ -2082,6 +2405,39 @@
         "date": "2026-08-19",
         "up": true
       }
+    ],
+    "states": [
+      {
+        "digest": "e099b5bacc1e09b0",
+        "first_seen": "2026-08-05"
+      }
+    ]
+  },
+  "unitedhealthcare-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 9,
+      "resources_with_interactions": 9,
+      "software_name": "optum-flex-server-default",
+      "software_version": "4.4.2.4"
+    },
+    "first_seen": "2026-08-19",
+    "last_seen": "2026-08-19",
+    "observations": [
+      {
+        "date": "2026-08-19",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "bab0fa9d2b25f7cc",
+        "first_seen": "2026-08-19"
+      }
     ]
   },
   "va-lighthouse": {
@@ -2150,6 +2506,21 @@
       {
         "date": "2026-08-19",
         "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "16d39fa547c36fe0",
+        "first_seen": "2026-08-05"
+      }
+    ]
+  },
+  "wellpoint-patient-access": {
+    "first_seen": "2026-08-19",
+    "observations": [
+      {
+        "date": "2026-08-19",
+        "up": false
       }
     ]
   }

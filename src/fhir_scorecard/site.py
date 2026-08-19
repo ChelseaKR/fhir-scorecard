@@ -1500,6 +1500,17 @@ _FINDING_DOCS = [
         "vantages are always shown. A network path difference must never flip a grade.",
     ),
     (
+        "T0",
+        "Not a CapabilityStatement",
+        "The server answered, and what came back is not a CapabilityStatement. Now what?",
+        "A server that answers /metadata with an OperationOutcome, a sign-in page, or a search "
+        "Bundle has answered, so it is reachable, and it has not published the document FHIR R4 "
+        "requires at that path. That is a finding about the endpoint and carries the whole "
+        "transparency weight. It is deliberately one finding rather than four: the checks below "
+        "read fields inside a CapabilityStatement, and reporting each of them as missing would "
+        "describe a document nobody received.",
+    ),
+    (
         "T1",
         "FHIR version",
         "Does the server declare the release it intends to serve?",
@@ -1526,6 +1537,19 @@ _FINDING_DOCS = [
         "Interaction coverage",
         "Do declared resources document their interactions?",
         "A resource listed with no interactions tells a client nothing it can act on.",
+    ),
+    (
+        "I0",
+        "No document to read profiles from",
+        "What replaces I1 and I3 when the CapabilityStatement is unreadable?",
+        "The interop counterpart of T0, and it carries exactly the points I1 and I3 would have "
+        "carried, so an unreadable document can never move a letter in either direction. It "
+        "exists because those two checks used to run against an empty parse result and publish "
+        '"no profile canonical declared in rest.resource.supportedProfile, rest.resource.profile, '
+        'instantiates, imports, or meta.profile" and "no OAuth security service declared" about a '
+        "document that was never a CapabilityStatement. I1 names five elements as checked; none "
+        "of them had been. SMART discovery is a separate retrieval and is still graded on its own "
+        "evidence.",
     ),
     (
         "I1",

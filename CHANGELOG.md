@@ -8,6 +8,40 @@ not versioned by these entries; what a version names is the composite GitHub Act
 distribution behind it, which consumers pin by tag
 (see `docs/adr/0002-release-versioning-applies-action-export.md`).
 
+## [Unreleased]
+
+Merged changes land here until the next tag.
+
+### Fixed
+
+- **Interop readiness no longer describes a document it could not read.** When a server answers
+  `/metadata` with HTTP 200 and a body that is not a CapabilityStatement — an `OperationOutcome`,
+  a sign-in page from an authenticating gateway, a search `Bundle`, an empty body — the two checks
+  that read a CapabilityStatement (I1 profiles, I3 declared security) used to run anyway, against
+  a parse result whose fields were dataclass defaults, and publish "no profile canonical declared
+  in rest.resource.supportedProfile, rest.resource.profile, instantiates, imports, or meta.profile"
+  and "no OAuth security service declared". I1's message names five elements as checked; none of
+  them existed to check. Both rendered on the endpoint page beside a spec citation under a named
+  organization, which is the exact shape of claim the project forbids itself and had already
+  removed once, for unreachable endpoints, in the v0.1.0 line. `grade_transparency` had always
+  handled the same input honestly with a single T0 finding; `grade_interop` now does the same with
+  **I0**, which carries exactly the points I1 and the applicable I3 would have carried. **No
+  dimension score and no letter changes**, in either direction, for any input: this corrects what
+  the site says, never what it scores. SMART discovery is a separate retrieval and is still graded
+  on its own evidence, so an endpoint whose CapabilityStatement is unreadable still gets credit for
+  a SMART document it does publish. No endpoint in the current registry returns such a body, so
+  nothing published today changes; the registry grows one payer developer portal at a time, and
+  the shape is ordinary enough that it would have arrived.
+
+### Added
+
+- **T0 and I0 are defined on the methodology page.** Every finding code renders as a link to
+  `/how-we-grade/#<code>`, and T0 has been emitted since v0.1 with no entry there, so it linked to
+  an anchor that did not exist. Both are documented now, and a test drives grading over a matrix
+  that reaches every branch and asserts that the set of codes the grader can emit is exactly the
+  set the page defines — in both directions, so an undocumented code and a documented check that
+  no longer runs each fail the build.
+
 ## [0.1.0] - 2026-08-16
 
 First release. The previously-untagged `[0.1.0]` section dated 2026-08-05 and everything

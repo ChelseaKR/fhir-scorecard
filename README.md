@@ -178,10 +178,10 @@ because California's exchange is state-based. CMS-9115-F's qualified-health-plan
 prong from the regulator's own file: every issuer selling an individual-market QHP on HealthCare.gov
 in Texas for 2026, as enumerated by CMS/CCIIO's QHP Landscape PY2026 Individual Medical dataset -
 13,013 plan-county rows, 18 HIOS issuer IDs, **15 issuer organizations**, frozen before any URL was
-probed. Five publish a base URL this project could verify from their own documentation. Not one of
-the fifteen publishes a Patient Access API base URL that answers a stranger, and of the four that
-publish a Provider Directory base URL - the surface the rule requires to be reachable *without*
-authentication - two answer and two do not.
+probed. Six publish a base URL this project could verify from their own documentation. Three of the
+fifteen publish a Patient Access base URL and one of the three answers a stranger; six publish a
+Provider Directory base URL - the surface the rule requires to be reachable *without*
+authentication - and four of the six answer.
 
 ## Findings
 
@@ -236,9 +236,9 @@ an assistant can be told what the numbers do not mean.
 
 ## Status
 
-v0.1.0-dev. Thirty-six endpoints across payers, payer provider directories, a federal provider API,
-EHR vendor sandboxes, and reference servers, in two curated cohorts (California payers, Texas
-marketplace issuers). Thirty-three were verified from a retrieved conformance document; three are
+v0.1.0-dev. Thirty-seven endpoints across payers, payer provider directories, a federal provider
+API, EHR vendor sandboxes, and reference servers, in two curated cohorts (California payers, Texas
+marketplace issuers). Thirty-three were verified from a retrieved conformance document; four are
 listed on the organization's own publication of a base URL that does not answer, which is a finding
 about the public record rather than a gap in this one. Registry curation continues one roster at a
 time - see [docs/SAMPLING-FRAME.md](docs/SAMPLING-FRAME.md) - because payer base URLs are not

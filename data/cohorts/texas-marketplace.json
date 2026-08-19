@@ -71,15 +71,9 @@
       "programs": [
         "tx-marketplace"
       ],
-      "excluded": {
-        "reason": "the issuer's interoperability page names a different vendor for each API and prints no base URL for either, stating that it 'does not support developer-specific questions' and directing developers to the vendors",
-        "basis": "portal_reviewed",
-        "reviewed": {
-          "method": "retrieved the issuer's own interoperability page and read it in full; it describes a Patient Access API run by one vendor to CARIN and Da Vinci standards and a Provider Directory API run by another to Da Vinci PDex Plan-Net, and for both it offers a vendor documentation link rather than an endpoint",
-          "date": "2026-08-19",
-          "source": "https://www.christushealthplan.org/interoperability"
-        }
-      }
+      "endpoints": [
+        "christus-provider-directory"
+      ]
     },
     {
       "id": "cigna-healthcare",

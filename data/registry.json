@@ -271,13 +271,13 @@
       "id": "cigna-provider-directory",
       "name": "Cigna Provider Directory API",
       "kind": "payer_provider_directory",
-      "base_url": "https://p-hi2.digitaledge.cigna.com/ProviderDirectory/v1",
+      "base_url": "https://fhir.cigna.com/ProviderDirectory/v1",
       "verification": {
-        "method": "live CapabilityStatement fetch; implementation description 'ProviderDirectory API' on a Cigna controlled domain; unauthenticated by design per the Provider Directory API requirement",
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, 8 resource types); publisher 'Cigna, Inc.', implementation description 'ProviderDirectory API', implementation.url matching the requested base, on a Cigna controlled domain; unauthenticated by design per the Provider Directory API requirement, which Cigna's guide states in those words. Corrected 2026-08-19: this entry stood on https://p-hi2.digitaledge.cigna.com/ProviderDirectory/v1 from the 2026-08-05 wave. That address still answers identically, but Cigna's developer portal no longer prints it anywhere; the Provider Directory implementation guide prints the address above instead, and the older host survives only as an unused token-substitution value inside the portal's JavaScript bundle. Both addresses were fetched on 2026-08-19 and both answered. The entry follows what the organization publishes, so it moved; the availability and drift record is keyed on the endpoint id and therefore spans both addresses for this one surface",
         "date": "2026-08-05",
         "reverified": {
           "date": "2026-08-19",
-          "method": "live CapabilityStatement re-fetch from the davis-ca residential vantage; fhirVersion 4.0.1, 8 resource types, publisher 'Cigna, Inc.', software 'no software name'"
+          "method": "live CapabilityStatement fetch of the newly documented address from the davis-ca residential vantage; fhirVersion 4.0.1, 8 resource types, publisher 'Cigna, Inc.'"
         }
       },
       "enabled": true
@@ -525,6 +525,20 @@
         "basis": "publisher_documented",
         "source": "https://interoperability.hcsc.com/s/provider-directory-api",
         "observed": "HTTP 500 to a GET of /metadata. TLS is clean from this vantage with and without certificate verification, so the host is live and the server is erroring at the conformance path FHIR R4 requires every server to publish. The page prints this string as a base URL to substitute into spec paths rather than as a FHIR base, which is recorded here rather than repaired: no other address for this surface is printed, and constructing one would be a guess"
+      },
+      "enabled": true
+    },
+    {
+      "id": "christus-provider-directory",
+      "name": "CHRISTUS Health Plan Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://christushealthplan.healthsparq.com/api/provider-fhir-service",
+      "verification": {
+        "method": "base URL printed verbatim on CHRISTUS Health Plan's own site, under the literal heading 'Base FHIR Provider Directory URL', on a page the plan's interoperability section links to (page footer: last updated 2026-06-24). The host is the vendor's; attribution to CHRISTUS rests on the plan printing this exact string on its own domain. The plan publishes no Patient Access base URL: that section names a different vendor and links off-site to the vendor's documentation",
+        "date": "2026-08-19",
+        "basis": "publisher_documented",
+        "source": "https://www.christushealthplan.org/privacy-and-patient-rights/interoperability/healthsparq-fhir-api",
+        "observed": "HTTP 404 to a GET of /metadata. The same page describes a 'public token' flow for this directory - POST an insurer code and brand code to a public token URL, then pass the result as a Subject-Token header - so the surface CMS requires to be reachable without authentication is reachable only after a token exchange, and its conformance document is not reachable at all from here"
       },
       "enabled": true
     }

@@ -561,7 +561,10 @@ def _verification_sentence(entry: Endpoint | None) -> str:
         listed = f"{entry.verified_method} (recorded {entry.verified_date})."
     if entry.reverified_date:
         return f"{listed} Re-checked {entry.reverified_date}: {entry.reverified_method}."
-    return f"{listed} Not re-checked since; the date above is a curation date, not a fresh one."
+    return (
+        f"{listed} No later re-check is recorded, so the date above is the last time anyone "
+        "checked this entry against the live endpoint."
+    )
 
 
 def _write_site(

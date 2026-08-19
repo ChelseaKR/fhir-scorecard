@@ -270,8 +270,8 @@ def test_the_page_says_when_an_entry_was_last_checked_and_when_it_was_not() -> N
 
     never = _verification_sentence(_endpoint())
     assert "recorded 2026-08-04" in never
-    assert "Not re-checked since" in never
-    assert "curation date, not a fresh one" in never
+    assert "No later re-check is recorded" in never
+    assert "the last time anyone checked this entry" in never
 
     rechecked = _verification_sentence(
         _endpoint(reverified_date="2026-08-19", reverified_method="live re-fetch, publisher same")

@@ -99,11 +99,18 @@ Merged changes land here until the next tag.
   45 CFR 156.221 reaches issuers on the *federally-facilitated* exchanges, and Texas is one. The
   roster is CMS/CCIIO's own QHP Landscape PY2026 Individual Medical dataset filtered to Texas -
   13,013 plan-county rows, 18 HIOS issuer IDs, **15 issuer organizations**, frozen 2026-08-19
-  before any URL was probed. Five publish a base URL this project could verify from their own
-  documentation; eight endpoints entered the registry and five of them answer. **Not one of the
-  fifteen publishes a Patient Access API base URL that answers a stranger**, and of the four that
-  publish a Provider Directory base URL - the surface the rule requires to be reachable *without*
-  authentication - two answer, one returns HTTP 500 and one refuses the TLS handshake.
+  before any URL was probed. Six publish a base URL this project could verify from their own
+  documentation; nine endpoints entered the registry and five of them answer. Three of the fifteen
+  publish a **Patient Access** base URL and one of the three answers a stranger; six publish a
+  **Provider Directory** base URL - the surface the rule requires to be reachable *without*
+  authentication - and four of the six answer, while one returns HTTP 500 and one returns 404
+  behind a token exchange its own page documents.
+- **`cigna-provider-directory` now stands on the address Cigna publishes.** The entry carried
+  `p-hi2.digitaledge.cigna.com/ProviderDirectory/v1` from the 2026-08-05 wave. That address still
+  answers, but Cigna's developer portal no longer prints it anywhere - it survives only as an
+  unused token-substitution value inside the portal's JavaScript bundle - and the Provider
+  Directory implementation guide prints `fhir.cigna.com/ProviderDirectory/v1` instead. Both were
+  fetched on 2026-08-19 and both answered; the entry follows what the organization publishes.
 - **Every registry entry re-verified, and the one that was not says so.** Curation dates ran
   2026-08-04 to 08-07 while availability was published daily beside them. 29 of 30 answered a
   re-fetch on 2026-08-19 and carry a dated re-check record; `capital-bluecross` failed TLS

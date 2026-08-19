@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import pytest
 from conftest import good_capability, good_smart
@@ -474,9 +475,11 @@ def test_the_texas_frame_still_says_where_its_denominator_came_from() -> None:
     assert len(cohort.members) == 15
     assert all(member.programs == ("tx-marketplace",) for member in cohort.members)
 
-    sources = " ".join(f"{s.label} {s.url}" for s in cohort.sources)
-    assert "QHP Landscape PY2026 Individual Medical" in sources
-    assert "data.healthcare.gov" in sources
+    labels = " ".join(s.label for s in cohort.sources)
+    assert "QHP Landscape PY2026 Individual Medical" in labels
+    # Host compared exactly, not by substring: "data.healthcare.gov" appearing anywhere in a URL
+    # is satisfied by a hostname that merely ends with it, which is not the same claim.
+    assert any(urlsplit(s.url).netloc == "data.healthcare.gov" for s in cohort.sources)
     assert all(s.date for s in cohort.sources)
 
     notes = " ".join(cohort.notes)

@@ -264,7 +264,7 @@ any URL was probed. Texas HHSC's Medicaid managed care roster was considered for
 left out on a documentation ground: `hhs.texas.gov` returns 403 to automated retrieval, and a frame
 a reader cannot reproduce is not a frame.
 
-**Five of the 15 publish a base URL this project could verify from their own documentation. Eight
+**Six of the 15 publish a base URL this project could verify from their own documentation. Nine
 endpoints entered the registry, five of which answer.**
 
 | Issuer | Outcome |
@@ -274,10 +274,10 @@ endpoints entered the registry, five of which answer.**
 | Wellpoint (Elevance) | **Verified** → registry: the shared Provider Directory base URL, publisher `Elevance Health, Inc`, listed under Elevance rather than a brand |
 | Imperial Insurance Companies | **Verified** → registry: `members.imperialhealthplan.com/api/fhir`, and **listed, documented-unreachable**: `api.imperialhealthplan.com/fhir` from its own PDF refuses the TLS handshake |
 | Blue Cross and Blue Shield of Texas (HCSC) | **Listed, documented-unreachable**: `api.hcsc.net`, printed as the Provider Directory "API endpoint base url", answers HTTP 500 at `/metadata` |
-| Cigna Healthcare | Already listed from waves 1 and 5; re-fetched today |
+| Cigna Healthcare | Already listed from waves 1 and 5; re-fetched today. **Corrected**: the Provider Directory entry stood on `p-hi2.digitaledge.cigna.com/ProviderDirectory/v1`, which still answers, but Cigna's portal no longer prints it anywhere and its implementation guide prints `fhir.cigna.com/ProviderDirectory/v1` instead. Both were fetched today, both answered, and the entry moved to the address the organization publishes |
 | Ambetter from Superior HealthPlan (Centene) | No base URL: both APIs deferred to a partner portal that shows an unregistered visitor a 1,128-byte shell |
 | Baylor Scott & White Health Plan | No base URL: defers to its vendor's portal, and never mentions a Provider Directory API |
-| CHRISTUS Health Plan | No base URL: a different vendor named for each API, and "does not support developer-specific questions" |
+| CHRISTUS Health Plan | **Listed, documented-unreachable**: `christushealthplan.healthsparq.com/api/provider-fhir-service`, printed under the heading "Base FHIR Provider Directory URL", answers HTTP 404 at `/metadata`. Its Patient Access section names a different vendor and prints no address |
 | Community First Health Plans | No base URL: names its vendor and the IGs, links only to vendor documentation |
 | Community Health Choice | No base URL: its own portal calls the Provider Directory API "publicly available" and offers an unregistered visitor only Sign in and Sign up |
 | Moda Health Plan | No base URL: prints one address, its vendor's developer portal |
@@ -288,23 +288,24 @@ endpoints entered the registry, five of which answer.**
 
 ### What the roster bought this time
 
-**Not one of the fifteen publishes a Patient Access API base URL that answers.** Two publish one
-that does not (Wellpoint 401, Imperial TLS refusal); Cigna's, listed since wave 1, is the only
-Patient Access endpoint in this cohort a stranger can retrieve. Every other issuer routes Patient
-Access through a registration gate, which the rule permits.
+**Three of the fifteen publish a Patient Access API base URL, and one of the three answers.**
+Cigna's does; Wellpoint's returns 401 and Imperial's refuses the TLS handshake. The other twelve
+route Patient Access through a registration gate and print no address, which the rule permits: it
+requires the API, not a public address for it.
 
-**The Provider Directory API is where the difference shows, and it is not what the rule intends.**
-That surface is required to be reachable *without* authentication. Of the four issuers publishing a
-directory base URL, two answer (UnitedHealthcare, Elevance) and two do not (HCSC returns 500,
-Imperial's own PDF host refuses TLS). Of the eleven that publish none, three describe their
-directory API in their own words as public while printing no address for it.
+**The Provider Directory API is the surface where that permission does not apply**, since it is
+required to be reachable *without* authentication. Six issuers publish a directory base URL and
+**four of the six answer** (Cigna, UnitedHealthcare, Elevance, Imperial). Two do not: HCSC returns
+HTTP 500, and CHRISTUS returns 404 behind a "public token" exchange its own page documents. Of the
+nine issuers that publish no address at all, two describe their directory API in their own words as
+public while printing nowhere to reach it.
 
-**The vendor pattern from California repeated at national scale.** Nine of the ten unlisted issuers
-hand developers to a portal - Centene's, Inovalon's twice, Edifecs', Azure API Management twice,
-1upHealth's, HealthTrio's and HealthSparq's - and none of those portals prints an endpoint to an
-unregistered visitor. The tenth publishes nothing at all.
+**The vendor pattern from California repeated at national scale.** Eight of the nine unlisted
+issuers hand developers to a portal - Centene's, Inovalon's twice, Edifecs', Azure API Management
+twice, 1upHealth's and HealthTrio's - and none of those portals prints an endpoint to an
+unregistered visitor. The ninth publishes nothing at all.
 
-**Three of the eight listed endpoints are corporate, not brand-level.** HCSC publishes one
+**Four of the nine listed endpoints are corporate, not brand- or state-level.** HCSC publishes one
 directory address for five states' Blue Cross plans; Elevance publishes one for thirteen brands;
 Cigna's two are corporate. For those issuers there is no Texas-specific address to grade, which is
 a fact about the surface rather than a gap in this curation.

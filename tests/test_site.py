@@ -175,7 +175,7 @@ def test_site_build_produces_indexable_pages(tmp_path: Path) -> None:
     assert '<meta name="description"' in ep
     assert "https://alpha.test/r4" in ep
     assert "answered" in ep  # availability surfaced
-    assert "/fhir-scorecard/badge/alpha.svg" in ep
+    assert "/badge/alpha.svg" in ep
     assert "Share this endpoint's grade" in ep
 
     # Every generated page must appear in the sitemap: an orphan page is not indexable.
@@ -243,3 +243,37 @@ def test_claim_page_states_what_we_do_to_servers(tmp_path: Path) -> None:
     assert "remove-or-dispute.yml" in flat
     # It must own the mistake that motivated multi-vantage probing.
     assert "intercepted TLS" in flat
+
+
+def test_internal_links_follow_the_origin_shape(tmp_path: Path) -> None:
+    """Root-hosted origins get root links; a path-carrying origin gets that path prepended.
+
+    The prefix used to be hardcoded as /fhir-scorecard/, which was correct for exactly one
+    hosting shape: the day the site started serving at the root of fhir.chelseakr.com, every
+    internal link on it pointed at a path that exists only on the old project-page host.
+    """
+    from fhir_scorecard.site import write_page
+
+    card = _card()
+    page = endpoint_page(card, "https://a.test/metadata", "2026-08-19", "https://fhir.example.test")
+
+    root_dir = tmp_path / "root"
+    write_page(root_dir, page, "https://fhir.example.test", "2026-08-19 00:00 UTC")
+    rooted = (root_dir / page.path / "index.html").read_text()
+    assert 'href="/how-we-grade/' in rooted
+    assert 'src="/badge/acme.svg"' in rooted
+    assert "/fhir-scorecard/" not in rooted.replace("github.com/ChelseaKR/fhir-scorecard", "")
+
+    prefixed_dir = tmp_path / "prefixed"
+    prefixed_page = endpoint_page(
+        card, "https://a.test/metadata", "2026-08-19", "https://host.example/fhir-scorecard"
+    )
+    write_page(
+        prefixed_dir, prefixed_page, "https://host.example/fhir-scorecard", "2026-08-19 00:00 UTC"
+    )
+    prefixed = (prefixed_dir / prefixed_page.path / "index.html").read_text()
+    assert 'href="/fhir-scorecard/how-we-grade/' in prefixed
+    assert 'src="/fhir-scorecard/badge/acme.svg"' in prefixed
+    # Absolute URLs are never rewritten, in either shape.
+    assert 'href="https://github.com/ChelseaKR/fhir-scorecard"' in prefixed
+    assert '="/fhir-scorecard/fhir-scorecard/' not in prefixed

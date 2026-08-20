@@ -13,6 +13,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fhir_scorecard.cohort import Cohort, CohortMember
 from fhir_scorecard.grading import NOT_OBSERVED, Finding, Scorecard
@@ -206,7 +207,7 @@ def _signal_map(cards: Sequence[Scorecard]) -> str:
             continue
         signals = "".join(
             f'<a class="signal signal-{_grade_slug(card.grade)}" '
-            f'href="/fhir-scorecard/endpoint/{html.escape(card.endpoint_id)}/" '
+            f'href="/endpoint/{html.escape(card.endpoint_id)}/" '
             f'title="{html.escape(card.name)}: {html.escape(_signal_status(card))}">'
             f'<span class="sr-only">{html.escape(card.name)}: '
             f"{html.escape(_signal_status(card))}</span></a>"
@@ -214,7 +215,7 @@ def _signal_map(cards: Sequence[Scorecard]) -> str:
         )
         rows.append(
             '<div class="signal-row">'
-            f'<a class="signal-label" href="/fhir-scorecard/{_KIND_SLUGS[kind]}/">'
+            f'<a class="signal-label" href="/{_KIND_SLUGS[kind]}/">'
             f"{html.escape(_KIND_LABELS[kind])}</a>"
             f'<span class="signal-count">{len(group):02d}</span>'
             f'<div class="signal-track">{signals}</div></div>'
@@ -271,7 +272,7 @@ def _findings_html(card: Scorecard) -> str:
                 f'<span class="sr-only">{prefix}: </span>'
                 f"{html.escape(f.message)}</span>"
                 '<span class="finding-links">'
-                f'<a href="/fhir-scorecard/how-we-grade/#{html.escape(f.code)}">{f.code}</a>'
+                f'<a href="/how-we-grade/#{html.escape(f.code)}">{f.code}</a>'
                 f'<a href="{html.escape(f.citation)}" rel="nofollow">Spec ↗</a></span></li>'
             )
         out.append(
@@ -318,8 +319,8 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
         "isAccessibleForFree": True,
     }
     body = f"""
-<nav aria-label="Breadcrumb"><a href="/fhir-scorecard/">Home</a> /
-<a href="/fhir-scorecard/{_KIND_SLUGS.get(card.kind, "reference-servers")}/">
+<nav aria-label="Breadcrumb"><a href="/">Home</a> /
+<a href="/{_KIND_SLUGS.get(card.kind, "reference-servers")}/">
 {html.escape(kind_label)}</a></nav>
 <header class="endpoint-hero">
 <div class="endpoint-heading">
@@ -349,7 +350,7 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
 <p class="eyebrow">Interpretation</p>
 <p>A grade describes two public discovery documents at one point in time. It does not inspect
 patient data, authenticated behavior, or clinical quality.</p>
-<a class="text-link" href="/fhir-scorecard/how-we-grade/">Read the scoring method →</a>
+<a class="text-link" href="/how-we-grade/">Read the scoring method →</a>
 </section>
 </div>
 <h2>Findings</h2>
@@ -362,7 +363,7 @@ patient data, authenticated behavior, or clinical quality.</p>
 </section>
 <details class="badge-embed">
 <summary>Share this endpoint's {"status" if unobserved else "grade"}</summary>
-<div><img src="/fhir-scorecard/badge/{html.escape(card.endpoint_id)}.svg"
+<div><img src="/badge/{html.escape(card.endpoint_id)}.svg"
 alt="FHIR Scorecard: {html.escape(card.name)} {html.escape(_badge_alt(card))}" width="{
         _badge_width(card.grade)
     }" height="28">
@@ -373,7 +374,7 @@ alt="FHIR Scorecard: {html.escape(_badge_alt(card))}"&gt;&lt;/a&gt;</code></div>
 </details>
 <p class="caveat">This is an observational snapshot of a public, unauthenticated surface. It is
 not an audit, a ranking of care quality, or a statement about anyone's regulatory compliance.
-See <a href="/fhir-scorecard/how-we-grade/">how we grade</a>.</p>
+See <a href="/how-we-grade/">how we grade</a>.</p>
 {_json_ld(jsonld)}
 """
     return Page(
@@ -402,12 +403,12 @@ def org_page(name: str, cards: list[Scorecard], origin: str) -> Page:
         '<li class="surface-card">'
         f'<div>{_grade_badge(c.grade)}<span class="eyebrow">'
         f"{html.escape(_KIND_LABELS.get(c.kind, c.kind))}</span></div>"
-        f'<a href="/fhir-scorecard/endpoint/{c.endpoint_id}/">{html.escape(c.name)}</a>'
+        f'<a href="/endpoint/{c.endpoint_id}/">{html.escape(c.name)}</a>'
         f"<p>{html.escape(_status_words(c))}.</p></li>"
         for c in sorted(cards, key=lambda c: c.name)
     )
     body = f"""
-<nav aria-label="Breadcrumb"><a href="/fhir-scorecard/">Home</a></nav>
+<nav aria-label="Breadcrumb"><a href="/">Home</a></nav>
 <p class="eyebrow">Organization record</p>
 <h1>{html.escape(name)}: public FHIR endpoints</h1>
 <p class="lede">{len(cards)} publicly observable FHIR surfaces from this organization.</p>
@@ -428,13 +429,13 @@ def kind_page(kind: str, cards: list[Scorecard], origin: str) -> Page:
     label = _KIND_LABELS.get(kind, kind)
     blurb = _KIND_BLURBS.get(kind, "")
     rows = "".join(
-        f'<tr><td><a href="/fhir-scorecard/endpoint/{c.endpoint_id}/">'
+        f'<tr><td><a href="/endpoint/{c.endpoint_id}/">'
         f"{html.escape(c.name)}</a></td><td>{_grade_badge(c.grade)}</td>"
         f"<td>{html.escape(c.availability or 'not yet recorded')}</td></tr>"
         for c in sorted(cards, key=lambda c: (c.grade, c.name))
     )
     body = f"""
-<nav aria-label="Breadcrumb"><a href="/fhir-scorecard/">Home</a></nav>
+<nav aria-label="Breadcrumb"><a href="/">Home</a></nav>
 <p class="eyebrow">Endpoint registry / {len(cards)} surfaces</p>
 <h1>{html.escape(label)}</h1>
 <p class="lede">{html.escape(blurb)}</p>
@@ -475,7 +476,7 @@ def _cohort_included_rows(cohort: Cohort, cards: dict[str, Scorecard]) -> str:
     rows = "".join(
         f"<tr><td>{html.escape(member.name)}</td>"
         f"<td>{html.escape(_programs_text(member))}</td>"
-        f'<td><a href="/fhir-scorecard/endpoint/{card.endpoint_id}/">'
+        f'<td><a href="/endpoint/{card.endpoint_id}/">'
         f"{html.escape(card.name)}</a></td>"
         f"<td>{html.escape(_KIND_LABELS.get(card.kind, card.kind))}</td>"
         f"<td>{_grade_badge(card.grade)}</td></tr>"
@@ -539,14 +540,14 @@ def cohort_page(cohort: Cohort, cards: dict[str, Scorecard], origin: str) -> Pag
 <h2>Members reviewed and not listed</h2>
 <p>Each exclusion records how far the review went, on what date, and where to check it. A review
 that found nothing is not proof that nothing exists: if one of these plans publishes a base URL
-we missed, please <a href="/fhir-scorecard/claim/">tell us</a>.</p>
+we missed, please <a href="/claim/">tell us</a>.</p>
 <table><caption>Cohort members with no verifiable public endpoint</caption>
 <thead><tr><th scope="col">Plan</th><th scope="col">Programs</th>
 <th scope="col">Why it is not listed</th></tr></thead>
 <tbody>{excluded_rows}</tbody></table>
 """
     body = f"""
-<nav aria-label="Breadcrumb"><a href="/fhir-scorecard/">Home</a></nav>
+<nav aria-label="Breadcrumb"><a href="/">Home</a></nav>
 <p class="eyebrow">Curated cohort / fixed public roster</p>
 <h1>{html.escape(cohort.name)}</h1>
 <p class="lede">{html.escape(cohort.description)}</p>
@@ -1268,8 +1269,27 @@ th {
 """
 
 
+def _site_path_prefix(origin: str) -> str:
+    """The path component of the origin, so internal links follow the hosting shape.
+
+    Internal links are written site-root-relative (``/endpoint/...``), which is correct
+    when the site is served at a domain root, as the canonical
+    ``https://fhir.chelseakr.com`` is. An origin that carries a path - the project-page
+    shape this site was served under until 2026-08-19, where root-relative links would
+    escape the site - gets that path prepended to every internal href and src at render
+    time. Hardcoding the project path was a live bug: the day the custom domain started
+    serving, every internal link on it pointed at ``/fhir-scorecard/...``, a path that
+    exists only on the old host.
+    """
+    return urlsplit(origin).path.rstrip("/")
+
+
+_INTERNAL_LINK = re.compile(r'\b(href|src)="/(?!/)')
+
+
 def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str:
-    return f"""<!DOCTYPE html>
+    prefix = _site_path_prefix(origin)
+    document = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -1288,13 +1308,13 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <a class="skip-link" href="#content">Skip to content</a>
 <header class="site-header">
 <div class="site-header-inner">
-<a class="brand" href="/fhir-scorecard/">
+<a class="brand" href="/">
 <span class="brand-mark" aria-hidden="true">+·</span><span>FHIR Scorecard</span></a>
 <nav class="site-nav" aria-label="Primary">
-<a href="/fhir-scorecard/#registry">Registry</a>
-<a href="/fhir-scorecard/how-we-grade/">Method</a>
-<a href="/fhir-scorecard/dataset.csv">Data</a>
-<a class="nav-action" href="/fhir-scorecard/claim/">Correct a record</a>
+<a href="/#registry">Registry</a>
+<a href="/how-we-grade/">Method</a>
+<a href="/dataset.csv">Data</a>
+<a class="nav-action" href="/claim/">Correct a record</a>
 </nav>
 </div>
 </header>
@@ -1307,15 +1327,18 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <p>Generated {html.escape(generated_at)}. Only public <code>/metadata</code> and SMART discovery
 documents are read; no patient data is ever accessed.</p></div>
 <nav aria-label="Footer">
-<a href="/fhir-scorecard/how-we-grade/">Method</a>
-<a href="/fhir-scorecard/scorecards.json">JSON</a>
-<a href="/fhir-scorecard/dataset.csv">CSV</a>
+<a href="/how-we-grade/">Method</a>
+<a href="/scorecards.json">JSON</a>
+<a href="/dataset.csv">CSV</a>
 <a href="https://github.com/ChelseaKR/fhir-scorecard">Source ↗</a>
 </nav></div>
 </footer>
 </body>
 </html>
 """
+    if prefix:
+        document = _INTERNAL_LINK.sub(rf'\1="{prefix}/', document)
+    return document
 
 
 def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] = ()) -> Page:
@@ -1331,7 +1354,7 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
         '<li class="category-card">'
         f'<div class="category-card-top"><span class="eyebrow">{len(v)} endpoints</span>'
         f'<span class="category-arrow" aria-hidden="true">↗</span></div>'
-        f'<a href="/fhir-scorecard/{_KIND_SLUGS.get(k, k)}/">'
+        f'<a href="/{_KIND_SLUGS.get(k, k)}/">'
         f"{html.escape(_KIND_LABELS.get(k, k))}</a>"
         f"<p>{html.escape(_KIND_BLURBS.get(k, 'Publicly observable FHIR surfaces.'))}</p>"
         f'<div class="grade-distribution" aria-label="Grade distribution">'
@@ -1404,7 +1427,7 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
     cohort_section = ""
     if cohorts:
         items = "".join(
-            f'<li><a href="/fhir-scorecard/{c.cohort_id}/">{html.escape(c.name)}</a>: '
+            f'<li><a href="/{c.cohort_id}/">{html.escape(c.name)}</a>: '
             f"{len(c.included)} of {len(c.members)} member organizations listed, the rest "
             "recorded with the reason they could not be</li>"
             for c in cohorts
@@ -1426,7 +1449,7 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
 person can check: reachable or not, clearly documented or not, ready to interoperate or not.</p>
 <div class="hero-actions">
 <a class="button" href="#registry">Explore the registry</a>
-<a class="text-link" href="/fhir-scorecard/how-we-grade/">See exactly how grades work →</a>
+<a class="text-link" href="/how-we-grade/">See exactly how grades work →</a>
 </div>
 </div>
 <aside class="scope-note" aria-label="Scope of measurement">
@@ -1471,12 +1494,12 @@ the research note and its corrections →</a></div>
 <div class="section-heading"><div><p class="eyebrow">Open by construction</p>
 <h2>Inspect the result—or the machinery.</h2></div></div>
 <ul class="data-links">
-<li><a href="/fhir-scorecard/dataset.csv"><span>CSV</span>Flat dataset <b>↓</b></a></li>
-<li><a href="/fhir-scorecard/scorecards.json"><span>JSON</span>Full scorecards <b>↓</b></a></li>
-<li><a href="/fhir-scorecard/how-we-grade/"><span>METHOD</span>Finding codes <b>→</b></a></li>
+<li><a href="/dataset.csv"><span>CSV</span>Flat dataset <b>↓</b></a></li>
+<li><a href="/scorecards.json"><span>JSON</span>Full scorecards <b>↓</b></a></li>
+<li><a href="/how-we-grade/"><span>METHOD</span>Finding codes <b>→</b></a></li>
 <li><a href="https://github.com/ChelseaKR/fhir-scorecard"><span>SOURCE</span>Code and registry
 <b>↗</b></a></li>
-<li><a href="/fhir-scorecard/claim/"><span>CORRECT</span>Add or dispute an endpoint
+<li><a href="/claim/"><span>CORRECT</span>Add or dispute an endpoint
 <b>→</b></a></li>
 </ul>
 </section>
@@ -1620,7 +1643,7 @@ _FINDING_DOCS = [
 
 def claim_page(origin: str) -> Page:
     body = """
-<nav aria-label="Breadcrumb"><a href="/fhir-scorecard/">Home</a></nav>
+<nav aria-label="Breadcrumb"><a href="/">Home</a></nav>
 <p class="eyebrow">Participation and correction</p>
 <h1>Add, correct, or remove an endpoint</h1>
 <p class="lede">If we got something wrong about your organization, we would rather be corrected
@@ -1688,7 +1711,7 @@ def how_we_grade_page(origin: str) -> Page:
         for code, title, question, detail in _FINDING_DOCS
     )
     body = f"""
-<nav aria-label="Breadcrumb"><a href="/fhir-scorecard/">Home</a></nav>
+<nav aria-label="Breadcrumb"><a href="/">Home</a></nav>
 <p class="eyebrow">Transparent by design</p>
 <h1>How we grade</h1>
 <p class="lede">Every finding is deterministic, cites a spec clause, and can be explained in one

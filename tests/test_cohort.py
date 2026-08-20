@@ -265,7 +265,7 @@ def test_cohort_page_lists_grades_and_exclusions(tmp_path: Path) -> None:
     flat = " ".join(page.body.split())
     assert "1 of 2 member organizations publish" in flat
     assert "Medi-Cal managed care, Covered California" in flat
-    assert 'href="/fhir-scorecard/endpoint/alpha/"' in page.body
+    assert 'href="/endpoint/alpha/"' in page.body
     assert "Gated Plan" in page.body
     assert "requires registration" in page.body
     assert 'href="https://example.test/gated"' in page.body
@@ -302,7 +302,7 @@ def test_home_page_links_cohorts_only_when_present(tmp_path: Path) -> None:
     cohort = load_cohort(_write(tmp_path, _cohort_payload()), _REGISTRY_IDS)
     cards = [_card("alpha", "Alpha")]
     with_cohort = home_page(cards, "https://example.test", (cohort,))
-    assert 'href="/fhir-scorecard/california/"' in with_cohort.body
+    assert 'href="/california/"' in with_cohort.body
     assert "Curated cohorts" in with_cohort.body
     without = home_page(cards, "https://example.test")
     assert "Curated cohorts" not in without.body
@@ -376,7 +376,7 @@ def test_cli_builds_cohort_page_into_site_and_sitemap(tmp_path: Path) -> None:
     assert "Gated Plan" in page
     assert "<loc>https://example.test/california/</loc>" in (out / "sitemap.xml").read_text()
     home = (out / "index.html").read_text()
-    assert 'href="/fhir-scorecard/california/"' in home
+    assert 'href="/california/"' in home
 
 
 def test_cli_without_cohort_dir_builds_no_cohort_page(tmp_path: Path) -> None:

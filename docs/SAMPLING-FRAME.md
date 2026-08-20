@@ -123,11 +123,45 @@ a pass that can do that properly.
 | Frame | Roster | Retrieved | Status |
 |---|---|---|---|
 | California payer cohort | DHCS Medi-Cal managed care plan roster + Covered California issuer list, deduplicated to 27 organizations | 2026-08-07 | Published at `/california/` |
-| Texas marketplace cohort | CMS/CCIIO **QHP Landscape PY2026 Individual Medical**, filtered to `State Code = TX`: 15 issuer organizations, 18 HIOS issuer IDs, 13,013 plan-county rows | 2026-08-19 | Published at `/texas-marketplace/` |
+| Federal marketplace frame (national) | CMS/CCIIO **QHP Landscape PY2026 Individual Medical**: every issuer selling an individual-market QHP on HealthCare.gov, in every federally-facilitated-exchange state. 30 states, 176 state-issuer organizations, 183 HIOS issuer IDs, 97,082 plan-county rows; the per-issuer roster is committed at `data/frames/qhp-landscape-py2026-individual-medical.csv` | 2026-08-19 | Reviewed a state at a time. Texas (15 organizations) at `/texas-marketplace/`, Florida (15 organizations) at `/florida-marketplace/`; the other 28 states' 146 state-issuer organizations are **not yet reviewed**, which is a statement about this project's progress and never about what those issuers publish |
 | National and reference surfaces | Not a frame. EHR vendor sandboxes, reference servers, and one federal API are listed individually for calibration, are graded only within their own kind, and are never counted in a cohort rate | - | `data/registry.json` |
 
 A cohort is added by writing its roster and sources into `data/cohorts/`, not by adding endpoints
 and describing them afterwards.
+
+### The federal-exchange frame is national; the review proceeds a state at a time
+
+The QHP Landscape file is not a Texas file or a Florida file: it enumerates the whole
+federally-facilitated marketplace, which makes it the payer-side analogue of the rosters ONC's
+Lantern ingests on the provider side - a denominator somebody else publishes, at a scale nobody
+could assemble by hand. The whole national roster is committed under `data/frames/` so the
+denominator exists first, per the rule at the top of this document.
+
+What does not scale mechanically is the review. Each state-issuer's documentation has to be
+found and read by a person, which is why cohorts are published per state as they are completed
+rather than all at once. Until a state is reviewed, its issuers are carried as **not yet
+reviewed** - a fact about this project, never rendered as "publishes nothing", which is a fact
+about an issuer that only a completed review can establish. The two must never be merged, and
+the frame's coverage arithmetic (2 of 30 states, 30 of 176 state-issuer organizations reviewed)
+is recomputed from the committed roster by `tests/test_plan_evidence.py` rather than maintained
+by hand.
+
+### Why the Florida frame is drawn the way it is
+
+Florida is the same prong as Texas - 45 CFR 156.221 reaching QHP issuers on the
+federally-facilitated exchanges - and it is the largest HealthCare.gov market in the country,
+which makes it the highest-coverage state the frame can add. Filtered to `State Code = FL`, the
+same file carries 7,569 plan-county rows, 16 HIOS issuer IDs, and 15 issuer names; the
+per-issuer rows are committed at `data/cohorts/florida-marketplace.roster.csv`. The unit is the
+issuer name CMS prints, so the denominator is 15: one name (Ambetter Health) carries two HIOS
+IDs.
+
+One choice is new here and is written down because it moves a number a reader might compute
+differently: CMS names corporate siblings separately - Florida Blue and Florida Blue HMO,
+Cigna Healthcare and Cigna HealthCare of Florida, Inc. - and the cohort keeps them separate,
+because collapsing them would substitute this project's corporate-structure judgment for the
+regulator's enumeration. Each pair shares its family's published endpoints; a reader who
+collapses the pairs gets 13 organizations the other way, and the cohort page says so.
 
 ### Why the Texas frame is drawn the way it is
 

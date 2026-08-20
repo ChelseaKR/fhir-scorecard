@@ -541,6 +541,111 @@
         "observed": "HTTP 404 to a GET of /metadata. The same page describes a 'public token' flow for this directory - POST an insurer code and brand code to a public token URL, then pass the result as a Subject-Token header - so the surface CMS requires to be reachable without authentication is reachable only after a token exchange, and its conformance document is not reachable at all from here"
       },
       "enabled": true
+    },
+    {
+      "id": "florida-blue-patient-access",
+      "name": "Florida Blue Patient Access API (CMS Interoperability conformance endpoint)",
+      "kind": "payer",
+      "base_url": "https://apigw.bcbsfl.com/interop/interop-developer-portal/cms/iop/v1/R4",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, HAPI FHIR Server 5.4.1.12_edfx, 24 rest resources). The base is the server URL plus the /R4/metadata route printed together in the OpenAPI spec Florida Blue's own developer portal embeds for its 'CMS Interoperability Patient Access Metadata' product, whose page says the Florida Blue Capability Statement endpoint for the CMS Interoperability APIs is accessed via that route. Florida Blue publishes its conformance document on a different base than its OAuth-gated member-data base (which answers 401 to an unauthenticated GET of /metadata and is in the candidate log); the entry is the base that serves the document this project grades. The document's implementation.url names an internal Edifecs host, so attribution rests on Florida Blue printing this base in its own portal. The portal covers the corporate family: its own disclaimer says HMO coverage is offered by Health Options Inc., DBA Florida Blue HMO, and no separate HMO endpoint is published",
+        "date": "2026-08-19",
+        "basis": "live_capability",
+        "source": "https://developer.bcbsfl.com/interop/interop-developer-portal/product/patient-access"
+      },
+      "enabled": true
+    },
+    {
+      "id": "florida-blue-provider-directory",
+      "name": "Florida Blue Provider Directory API (CMS Interoperability conformance endpoint)",
+      "kind": "payer_provider_directory",
+      "base_url": "https://apigw.bcbsfl.com/interop/interop-developer-portal/cms/iop/v1/pd/R4",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, HAPI FHIR Server 5.4.1.12_edfx). The base is the server URL plus the /pd/R4/metadata route printed together in the OpenAPI spec the portal embeds for its 'CMS Interoperability Provider Directory Metadata' product. Two things are recorded rather than repaired: the document this route serves is the same clinical-resource CapabilityStatement as the Patient Access route, not a Plan-Net one, and the resource base the portal documents for the directory itself - which its product page calls an open access service that does not require registration - answers 404 to a GET of /metadata (candidate log). What is graded here is the conformance surface Florida Blue actually publishes for this API",
+        "date": "2026-08-19",
+        "basis": "live_capability",
+        "source": "https://developer.bcbsfl.com/interop/interop-developer-portal/product/758"
+      },
+      "enabled": true
+    },
+    {
+      "id": "avmed-patient-access",
+      "name": "AvMed Patient Access API",
+      "kind": "payer",
+      "base_url": "https://avmp.interop.avmed.com/api/v1/avmp",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, software HiPaaS 4.0.1 1.35.0). The base URL is printed under the literal heading 'Base URL' in AvMed's own Patient Access API Documentation PDF (2026), linked from avmed.org/en/for-developers. The document's implementation block describes 'SHP' with a sentara.com URL - AvMed is Sentara-owned and the page routes developer support to the Sentara Health Plans CMS Interoperability support team - so the platform is the parent's; attribution to AvMed rests on AvMed publishing this exact base in its own materials",
+        "date": "2026-08-19",
+        "basis": "live_capability",
+        "source": "https://www.avmed.org/en/for-developers"
+      },
+      "enabled": true
+    },
+    {
+      "id": "avmed-provider-directory",
+      "name": "AvMed Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://avmp.interop.avmed.com/avmp/api/plannet",
+      "verification": {
+        "method": "base URL printed under the literal heading 'Base URL' in AvMed's own Provider Directory API Documentation PDF (2026), linked from avmed.org/en/for-developers. AvMed prints two addresses for this surface and neither answers; this entry names the one its API documentation of record declares as the base URL",
+        "date": "2026-08-19",
+        "basis": "publisher_documented",
+        "source": "https://www.avmed.org/en/for-developers",
+        "observed": "HTTP 404 ({\"statusCode\": 404, \"message\": \"Resource not found\"}) to an unauthenticated GET of /metadata. The other address AvMed publishes for this surface - a myfhir.avmed.org/provider/metadata link titled 'Capability Statement and Meta Data' on the for-developers page - fails TLS verification because the served certificate is AvMed's own (CN=myfhir.avmed.org, O=Avmed) and expired 2026-05-15, an endpoint-side fact rather than a vantage-side one; with verification disabled the same URL serves a 1,666-byte HTML maintenance page, not a CapabilityStatement. Both addresses are in the candidate log. The surface the rule requires to be reachable without authentication is published twice and reachable at neither address"
+      },
+      "enabled": true
+    },
+    {
+      "id": "amerihealth-caritas-next-patient-access",
+      "name": "AmeriHealth Caritas Next (Florida) Patient Access API",
+      "kind": "payer",
+      "base_url": "https://api-ext.amerihealthcaritas.com/FLDS/patient-api",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, software AmeriHealth Caritas 1.0.0); implementation.url matches the requested base exactly. The URL is printed on the corporate developer portal's Swagger API Details table, which carries three Florida plan IDs (FLDS, FLEX, KCHC) all labelled 'AmeriHealth Caritas Next, Florida'; all three serve byte-identical documents, so the entry is the row the table leads with and the other two are in the candidate log. One entry per organization per surface. The consumer brand site amerihealthcaritasnext.com prints no base URL and does not link the portal, which is recorded because it is where a member would look",
+        "date": "2026-08-19",
+        "basis": "live_capability",
+        "source": "https://developer.amerihealthcaritas.com/dvp/v1/apidocumentation"
+      },
+      "enabled": true
+    },
+    {
+      "id": "amerihealth-caritas-next-provider-directory",
+      "name": "AmeriHealth Caritas Next (Florida) Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api-ext.amerihealthcaritas.com/FLDS/provider-api",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, software AmeriHealth Caritas 1.0.0); implementation.url matches the requested base exactly, and the portal's documentation says in words that the Provider Directory API requires no security protocols, which matches what the probe found. Same three-plan-ID table as the Patient Access entry: FLDS is the row the table leads with, FLEX and KCHC serve byte-identical documents and are in the candidate log",
+        "date": "2026-08-19",
+        "basis": "live_capability",
+        "source": "https://developer.amerihealthcaritas.com/dvp/v1/apidocumentation"
+      },
+      "enabled": true
+    },
+    {
+      "id": "22-health-patient-access",
+      "name": "22 Health (Community Care Plan) Patient Access API",
+      "kind": "payer",
+      "base_url": "https://ccpcmsioapi.zeomega.com/t/ccpprd.com/fhir/r4",
+      "verification": {
+        "method": "live CapabilityStatement fetch. The base URL is printed verbatim, in a table headed 'Base URLs for connecting to these APIs are', on the issuer's own /api/ page; the host is the vendor's (ZeOmega HealthUnity), so attribution rests on the plan printing this exact string on its own domain. Two things the document declares are recorded rather than tidied: fhirVersion is 4.0.0, not the 4.0.1 every other listed endpoint declares, and it carries no software element, identifying itself only as 'ZeOmega FHIR R4 Implementation' dated 2021-01-01. The Drug Formulary base URL printed in the same table answers 404 and is in the candidate log",
+        "date": "2026-08-19",
+        "basis": "live_capability",
+        "source": "https://22healthplan.com/api/"
+      },
+      "enabled": true
+    },
+    {
+      "id": "22-health-provider-directory",
+      "name": "22 Health (Community Care Plan) Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://ccpcmsioapi.zeomega.com/t/ccpprd.com/fhir/v1/ProviderDirectory",
+      "verification": {
+        "method": "live CapabilityStatement fetch (fhirVersion 4.0.1, software ZeOmega HealthUnity Interoperability Platform 3.2.1), unauthenticated as the rule requires. Printed in the same 'Base URLs' table on the issuer's own /api/ page as the Patient Access entry. The document's implementation describes itself as a 'Plan Coverage & Formulary FHIR Server' while serving the provider-directory path, which is recorded rather than repaired: what is graded is the document the published address serves",
+        "date": "2026-08-19",
+        "basis": "live_capability",
+        "source": "https://22healthplan.com/api/"
+      },
+      "enabled": true
     }
   ]
 }

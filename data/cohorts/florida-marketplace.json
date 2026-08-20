@@ -1,0 +1,234 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the issuer's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the issuer publishes a base URL that returns 404' and 'the issuer publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "florida-marketplace",
+    "name": "Florida marketplace issuer cohort",
+    "description": "The Patient Access and Provider Directory APIs of every issuer selling an individual-market qualified health plan on HealthCare.gov in Florida for 2026, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Membership is CMS's own file, not a list assembled here. The QHP Landscape PY2026 Individual Medical dataset published by the Center for Consumer Information and Insurance Oversight lists every plan sold on HealthCare.gov; filtered to Florida it carries 7,569 plan-county rows, 16 HIOS issuer IDs, and 15 issuer names. The unit of analysis is the issuer organization CMS names, so the denominator is 15: one name, Ambetter Health, carries two HIOS IDs. The per-issuer rows are committed beside this file in florida-marketplace.roster.csv, so the denominator can be recomputed from data rather than trusted from prose.",
+    "Florida is a federally-facilitated exchange state, the same prong of CMS-9115-F as the Texas cohort: 45 CFR 156.221 reaches qualified health plan issuers on the federal exchanges, so every organization on this roster is an impacted payer through this line of business alone. Florida is the largest HealthCare.gov market in the country, which is why it is the frame's second state.",
+    "The roster names corporate siblings separately and this cohort keeps them separate. Florida Blue and Florida Blue HMO are one GuideWell family selling under two licenses (the HMO is Health Options Inc.), and Cigna Healthcare and Cigna HealthCare of Florida, Inc. are two Cigna entities. The unit stays the name CMS prints, because collapsing them would substitute this project's corporate-structure judgment for the regulator's enumeration; each pair shares its family's published endpoints, and a reader who collapses the pairs gets 13 organizations the other way.",
+    "Where a member's endpoints are its national parent's, the parent's documentation covers the Florida line by brand or by plan type, never by state: Cigna's Patient Access documentation covers 'Individual Family Plans governed by CMS', Wellpoint is a brand row in Elevance's Interoperability API Endpoint Support Document (IO105 v15.0), and UnitedHealthcare's documentation names no line of business at all. The word 'Florida' appears in none of them, which is recorded here because attribution by brand is weaker than attribution by state and a reader should know which one they are getting.",
+    "The rule requires the API. It does not require an issuer to print its base URL where an unregistered visitor can read it, and nothing on this page treats an issuer that does not as being out of compliance with anything. What a missing base URL costs is narrower and worth naming exactly: conformance stops being checkable by anyone who has not already entered a business relationship with the issuer.",
+    "Every count on this page distinguishes what an issuer publishes from what answers. A published base URL that returns 404, an expired certificate in front of a maintenance page, and a portal that shows an unregistered visitor an empty shell are three different findings, and each member's record says which one it is."
+  ],
+  "sources": [
+    {
+      "label": "CMS / CCIIO: QHP Landscape PY2026 Individual Medical (individual_market_medical.zip, issued 2026-08-04, modified 2026-08-10)",
+      "url": "https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45",
+      "date": "2026-08-19"
+    }
+  ],
+  "members": [
+    {
+      "id": "22-health",
+      "name": "22 Health (Community Care Plan)",
+      "roster_name": "22 Health",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "endpoints": [
+        "22-health-patient-access",
+        "22-health-provider-directory"
+      ]
+    },
+    {
+      "id": "ambetter-health",
+      "name": "Ambetter Health (Centene / Sunshine Health)",
+      "roster_name": "Ambetter Health",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's own interoperability page describes both APIs and prints no base URL for either, directing developers to Centene's Partner Portal, which serves a 1,128-byte single-page-app shell with no API content to an unregistered visitor - the same posture, byte for byte, as the Texas Ambetter brand's",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's Florida interoperability page (branded Ambetter from Sunshine Health; the legacy ambetter.sunshinehealth.com address 301s to it) and read it in full. Its developer FAQ answers 'how do I access and use the Patient Access API' and the Provider Directory equivalent by sending the reader to partners.centene.com/apis, which was also retrieved and contains no endpoint content unauthenticated",
+          "date": "2026-08-19",
+          "source": "https://www.ambetterhealth.com/en/fl/resources/interoperability-and-patient-access/"
+        }
+      }
+    },
+    {
+      "id": "amerihealth-caritas-next",
+      "name": "AmeriHealth Caritas Next, Florida",
+      "roster_name": "AmeriHealth Caritas Next",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "endpoints": [
+        "amerihealth-caritas-next-patient-access",
+        "amerihealth-caritas-next-provider-directory"
+      ]
+    },
+    {
+      "id": "avmed",
+      "name": "AvMed (Sentara)",
+      "roster_name": "AvMed",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "endpoints": [
+        "avmed-patient-access",
+        "avmed-provider-directory"
+      ]
+    },
+    {
+      "id": "capital-health-plan",
+      "name": "Capital Health Plan",
+      "roster_name": "Capital Health Plan",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's only interoperability page says CHP has contracted with 1Up Resources to manage both APIs and prints no base URL; every 'FHIR API' link on it lands on the vendor's generic FHIR education page, which prints none either and never mentions CHP. The page itself notes that the mandate requires this information to be publicly available",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's CHP Patient Access API page and read it in full; swept the site's sitemaps, which hold no other interoperability page; retrieved the linked docs.1up.health/docs/fhir-info page (337,141 bytes) unauthenticated, which is vendor education with no payer endpoint and no CHP mention. Despite the GuideWell affiliation, nothing defers to Florida Blue's portal",
+          "date": "2026-08-19",
+          "source": "https://capitalhealth.com/legal/chp-patient-access-api/"
+        }
+      }
+    },
+    {
+      "id": "cigna-healthcare",
+      "name": "Cigna Healthcare",
+      "roster_name": "Cigna Healthcare",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "endpoints": [
+        "cigna-patientaccess",
+        "cigna-provider-directory"
+      ]
+    },
+    {
+      "id": "cigna-healthcare-of-florida",
+      "name": "Cigna HealthCare of Florida, Inc.",
+      "roster_name": "Cigna HealthCare of Florida, Inc.",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "endpoints": [
+        "cigna-patientaccess",
+        "cigna-provider-directory"
+      ]
+    },
+    {
+      "id": "florida-blue",
+      "name": "Florida Blue (BlueCross BlueShield FL)",
+      "roster_name": "Florida Blue (BlueCross BlueShield FL)",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "endpoints": [
+        "florida-blue-patient-access",
+        "florida-blue-provider-directory"
+      ]
+    },
+    {
+      "id": "florida-blue-hmo",
+      "name": "Florida Blue HMO (Health Options Inc.)",
+      "roster_name": "Florida Blue HMO (a BlueCross BlueShield FL company)",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "endpoints": [
+        "florida-blue-patient-access",
+        "florida-blue-provider-directory"
+      ]
+    },
+    {
+      "id": "florida-health-care-plans",
+      "name": "Florida Health Care Plans",
+      "roster_name": "Florida Health Care Plans",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's third-party API page says FHCP has contracted with mPulse to manage and support both APIs and prints no base URL; the vendor's public documentation prints only multi-tenant HealthTrio hosts with no FHCP identifier anywhere, and those hosts reject the standard FHIR media type, answering 406 to an Accept: application/fhir+json request for /metadata",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved the issuer's interoperability and third-party-API pages and read them in full; followed the 'FHIR API' link through healthtrio.com's 301 to mpulse.com, whose API documentation and OpenAPI specs were retrieved unauthenticated and enumerate only vendor-generic server URLs. Despite the GuideWell affiliation, nothing defers to Florida Blue's portal",
+          "date": "2026-08-19",
+          "source": "https://www.fhcp.com/interoperability/third-party-api/"
+        }
+      }
+    },
+    {
+      "id": "health-first-commercial-plans",
+      "name": "Health First Commercial Plans, Inc. (Health First Health Plans)",
+      "roster_name": "Health First Commercial Plans, Inc.",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's developer documentation says Health First Health Plans has partnered with Epic for its interoperability solution and prints no base URL, linking only to Epic's generic developer pages; neither documentation page mentions a Provider Directory API at all. Epic's public endpoint directory prints a 'Health First' row that answers, but nothing connects that row to this issuer beyond the shared name, and a vendor's directory row is the attribution this registry excludes",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "the issuer's own pages answer HTTP 403 - a Cloudflare bot challenge - to every unauthenticated non-browser client tried, so the 2026 Epic documentation page was read from a Wayback Machine snapshot captured the same day (20260819235130) and the earlier 1upHealth-era page from its 2026-05-16 snapshot. That a compliance-documentation page is unreadable by any scripted public client is recorded as its own finding",
+          "date": "2026-08-19",
+          "source": "https://www.hf.org/health-first-health-plans/epic-developer-documentation-health-first-2026"
+        }
+      }
+    },
+    {
+      "id": "molina-healthcare",
+      "name": "Molina Healthcare",
+      "roster_name": "Molina Healthcare",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's developer portal - an Azure API Management instance operated by Cognizant TriZetto - names 'FL - Molina Healthcare' in its servicing list and prints no hostname anywhere; the API list it serves an unregistered visitor renders no API entries, only portal chrome, and its 47-page product documentation PDF is generic vendor material containing no occurrence of 'Molina' and no absolute base URL",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved developer.interop.molinahealthcare.com, its /apis list, and its Interoperability Product Documentation PDF (611,394 bytes, 47 pages) unauthenticated and read them; retrieved the member data-sharing page that routes third-party developers there. The portal's own text requires registration and approval before reaching anything live",
+          "date": "2026-08-19",
+          "source": "https://developer.interop.molinahealthcare.com/"
+        }
+      }
+    },
+    {
+      "id": "oscar-health-of-florida",
+      "name": "Oscar Health Maintenance Organization of Florida",
+      "roster_name": "Oscar Health Maintenance Organization of Florida",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "excluded": {
+        "reason": "the issuer's member and developer pages describe the Patient Access API as delegated to 1upHealth and print no endpoint; reaching one requires creating a 1upHealth developer account. No Provider Directory API documentation exists anywhere on hioscar.com: its complete sitemaps hold only the two patient-access pages and their Spanish variants",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "retrieved both hioscar.com CMS patient-access pages and every hioscar.com sitemap; searched every listed URL for interoperability, API, FHIR, and directory paths; retrieved the linked 1upHealth documentation pages, which are readable unauthenticated and contain no Oscar-specific endpoint and no payer base URL",
+          "date": "2026-08-19",
+          "source": "https://www.hioscar.com/cms_patient_access_developer_page"
+        }
+      }
+    },
+    {
+      "id": "unitedhealthcare",
+      "name": "UnitedHealthcare",
+      "roster_name": "UnitedHealthcare",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "endpoints": [
+        "unitedhealthcare-provider-directory"
+      ]
+    },
+    {
+      "id": "wellpoint",
+      "name": "Wellpoint (Elevance Health)",
+      "roster_name": "Wellpoint",
+      "programs": [
+        "fl-marketplace"
+      ],
+      "endpoints": [
+        "wellpoint-patient-access",
+        "elevance-shared-provider-directory"
+      ]
+    }
+  ]
+}

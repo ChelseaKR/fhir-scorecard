@@ -83,9 +83,44 @@ Merged changes land here until the next tag.
   `uses: ChelseaKR/fhir-scorecard@<tag>`, and all three targets were scoped to `src` and `tests`,
   so they printed "All checks passed!" and "Success: no issues found" without opening it. Nothing
   was wrong with the file; the gates could not have said so either way.
+- **The ROADMAP argues from the registry it actually has** (#25). Its governing-constraint
+  section built the whole sequencing argument on 19 endpoints and a seven-of-nine payer anecdote
+  while the registry it plans for had grown past both. Every figure in that section is now
+  measured from the committed data - 45 endpoints, three cohorts, 23 of 57 roster organizations
+  publishing a verifiable base URL, a 176-organization national frame with 30 reviewed - the
+  section says where its numbers come from, and `tests/test_plan_evidence.py` recomputes each
+  one from `data/` so the next drift fails the build instead of waiting for a reader. The same
+  test pins the README's cohort and status figures, which were previously checked by hand.
 
 ### Added
 
+- **A third cohort, and the largest so far to publish: the Florida marketplace issuers** at
+  `/florida-marketplace/`. Same frame as Texas - CMS/CCIIO's QHP Landscape PY2026 Individual
+  Medical file, the qualified-health-plan prong of CMS-9115-F at 45 CFR 156.221 - filtered to
+  the largest HealthCare.gov state: 7,569 plan-county rows, 16 HIOS issuer IDs, **15 issuer
+  organizations**, frozen 2026-08-19 before any URL was probed. **Nine of the fifteen publish a
+  base URL this project could verify from the organization's own documentation**, inverting the
+  Texas result (six of fifteen), and the pattern inverts expectations too: a brand-new
+  one-county issuer prints three base URLs in the open while Oscar, Molina and Centene's
+  Ambetter publish nothing a stranger can reach, in Florida exactly as in Texas. Eight endpoints
+  entered the registry (37 becomes 45), seven on a retrieved CapabilityStatement and one -
+  AvMed's Provider Directory, published at two addresses of which one 404s and the other sits
+  behind AvMed's own certificate that expired 2026-05-15 - as `publisher_documented`, graded
+  daily and published as `not observed` rather than dropped. Two failure shapes are new to the
+  registry: an expired certificate in front of a maintenance page, and an issuer (Health First)
+  whose interoperability documentation itself answers HTTP 403 to every scripted client, so the
+  pages were read from same-day Wayback captures and the exclusion says so.
+- **The sampling frame goes national, and the denominator is now committed data.** The QHP
+  Landscape file enumerates the whole federally-facilitated marketplace, so the frame it backs
+  is national: 176 state-issuer organizations across 30 states, committed verbatim at
+  `data/frames/qhp-landscape-py2026-individual-medical.csv`, of which the two marketplace
+  cohorts have reviewed 30. The unreviewed 146 are carried as *not yet reviewed* - a fact about
+  this project's progress, never rendered as "publishes nothing". Per-cohort rosters are
+  committed beside the cohorts (`texas-marketplace.roster.csv`, `florida-marketplace.roster.csv`),
+  every cohort member now carries the exact `roster_name` CMS prints so the member-to-roster tie
+  is mechanical, and `tests/test_plan_evidence.py` recomputes the frame arithmetic, the roster
+  totals the prose cites (13,013/18/15 for Texas, 7,569/16/15 for Florida), and the
+  member-to-roster correspondence in both directions.
 - **T0 and I0 are defined on the methodology page.** Every finding code renders as a link to
   `/how-we-grade/#<code>`, and T0 has been emitted since v0.1 with no entry there, so it linked to
   an anchor that did not exist. Both are documented now, and a test drives grading over a matrix

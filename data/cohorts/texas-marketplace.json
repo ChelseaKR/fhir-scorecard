@@ -26,6 +26,7 @@
     {
       "id": "ambetter-superior-healthplan",
       "name": "Ambetter from Superior HealthPlan (Centene)",
+      "roster_name": "Ambetter from Superior HealthPlan",
       "programs": [
         "tx-marketplace"
       ],
@@ -42,6 +43,7 @@
     {
       "id": "baylor-scott-and-white-health-plan",
       "name": "Baylor Scott & White Health Plan",
+      "roster_name": "Baylor Scott and White Health Plan",
       "programs": [
         "tx-marketplace"
       ],
@@ -58,6 +60,7 @@
     {
       "id": "blue-cross-blue-shield-of-texas",
       "name": "Blue Cross and Blue Shield of Texas (HCSC)",
+      "roster_name": "Blue Cross and Blue Shield of Texas",
       "programs": [
         "tx-marketplace"
       ],
@@ -68,6 +71,7 @@
     {
       "id": "christus-health-plan",
       "name": "CHRISTUS Health Plan",
+      "roster_name": "CHRISTUS Health Plan",
       "programs": [
         "tx-marketplace"
       ],
@@ -78,6 +82,7 @@
     {
       "id": "cigna-healthcare",
       "name": "Cigna Healthcare",
+      "roster_name": "Cigna Healthcare",
       "programs": [
         "tx-marketplace"
       ],
@@ -89,6 +94,7 @@
     {
       "id": "community-first",
       "name": "Community First Health Plans (University Health)",
+      "roster_name": "Community First",
       "programs": [
         "tx-marketplace"
       ],
@@ -105,6 +111,7 @@
     {
       "id": "community-health-choice",
       "name": "Community Health Choice (Harris Health System)",
+      "roster_name": "Community Health Choice",
       "programs": [
         "tx-marketplace"
       ],
@@ -121,6 +128,7 @@
     {
       "id": "harbor-health",
       "name": "Harbor Health",
+      "roster_name": "Harbor Health",
       "programs": [
         "tx-marketplace"
       ],
@@ -137,6 +145,7 @@
     {
       "id": "imperial-insurance-companies",
       "name": "Imperial Insurance Companies, Inc.",
+      "roster_name": "Imperial Insurance Companies, Inc.",
       "programs": [
         "tx-marketplace"
       ],
@@ -148,6 +157,7 @@
     {
       "id": "moda-health-plan",
       "name": "Moda Health Plan, Inc.",
+      "roster_name": "Moda Health Plan, Inc.",
       "programs": [
         "tx-marketplace"
       ],
@@ -164,6 +174,7 @@
     {
       "id": "molina-healthcare",
       "name": "Molina Healthcare",
+      "roster_name": "Molina Healthcare",
       "programs": [
         "tx-marketplace"
       ],
@@ -180,6 +191,7 @@
     {
       "id": "oscar-insurance-company",
       "name": "Oscar Insurance Company",
+      "roster_name": "Oscar Insurance Company",
       "programs": [
         "tx-marketplace"
       ],
@@ -196,6 +208,7 @@
     {
       "id": "sendero-health-plans",
       "name": "Sendero Health Plans (Central Health)",
+      "roster_name": "Sendero Health Plans, Local Nonprofit",
       "programs": [
         "tx-marketplace"
       ],
@@ -212,6 +225,7 @@
     {
       "id": "unitedhealthcare",
       "name": "UnitedHealthcare",
+      "roster_name": "UnitedHealthcare",
       "programs": [
         "tx-marketplace"
       ],
@@ -222,6 +236,7 @@
     {
       "id": "wellpoint",
       "name": "Wellpoint (Elevance Health)",
+      "roster_name": "WellPoint",
       "programs": [
         "tx-marketplace"
       ],

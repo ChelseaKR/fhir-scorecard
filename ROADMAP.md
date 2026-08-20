@@ -8,24 +8,43 @@ get there, and the honest constraints on it.
 
 `gtfs-scorecard` earns organic search because **1,128 agencies means 1,128 indexable pages**,
 each answering a real query ("is my transit agency's GTFS feed any good"). `fhir-scorecard` has
-**19 endpoints**. Nineteen pages is not an SEO surface, it is a pamphlet.
+**45 endpoints** across **three cohort pages**. Forty-five pages is still not an SEO surface,
+so the conclusion this section used to draw from a smaller number survives on the real one.
+
+Where the numbers in this document come from: they are measured from `data/registry.json`,
+`data/cohorts/*.json`, and the committed rosters under `data/frames/` and `data/cohorts/`, and
+`tests/test_plan_evidence.py` recomputes every figure in this section from that data, so a
+number here that drifts from the registry fails the build. Recompute, don't trust: this
+document once argued from 19 endpoints while the registry held 30.
 
 So the sequencing below is deliberate: build the page infrastructure early because it is cheap
 and shapes everything after it, but understand that **search traffic is gated on registry
-growth, and registry growth is gated on payers publishing base URLs**. Seven of nine payer
-organizations with a documented URL verified; the other fifteen candidate organizations had no
-public URL to try. That is a curation problem and partly an industry problem, not a build
-problem, and no amount of markup fixes it.
+growth, and registry growth is gated on payers publishing base URLs**. That gate is now
+measured with fixed denominators instead of anecdotes: across the three published cohorts -
+California's 27 organizations, Texas's 15, Florida's 15 - **23 of 57 roster organizations
+publish a base URL this project could verify from the organization's own documentation**, and
+every one of the other 34 carries a dated exclusion record saying exactly what its review
+found. That is a curation problem and partly an industry problem, not a build problem, and no
+amount of markup fixes it.
+
+The frame is now bigger than the review. The federal-marketplace roster committed at
+`data/frames/qhp-landscape-py2026-individual-medical.csv` enumerates **176 state-issuer
+organizations across 30 states**, of which the Texas and Florida cohorts have reviewed 30; the
+other 146 are *not yet reviewed*, which is a statement about this project's progress and never
+about what those issuers publish (`docs/SAMPLING-FRAME.md`). The denominator for a national
+payer-side coverage tracker exists; what does not scale mechanically is the per-issuer review.
 
 Two ways the registry can realistically grow:
 
-1. **Systematic sourcing.** CMS-regulated payers number in the hundreds. Each one's developer
-   portal has to be found and read. This is slow, mostly manual, and the only reliable method.
+1. **Systematic sourcing, a state at a time.** The frame machinery makes the denominator free;
+   each state still costs a person finding and reading every issuer's developer portal. Texas
+   and Florida each took a full curation wave (`data/CANDIDATES.md`, waves nine and ten). This
+   is slow, mostly manual, and the only reliable method.
 2. **Inbound correction.** A claim flow (phase 3) lets a payer add or fix their own entry. This
    is how `gtfs-scorecard` grows without the maintainer doing all the work, and it only becomes
    possible once the site is worth landing on.
 
-Nineteen endpoints with a defensible method beats two hundred with a guessed registry. The
+Forty-five endpoints with a defensible method beats two hundred with a guessed registry. The
 project's credibility is the asset; the page count follows it, not the other way round.
 
 ---
@@ -58,8 +77,10 @@ read.*
 - [x] **MCP server** (`fhir-scorecard mcp`), read-only over the published dataset, with a
       `grading_method` tool that returns the documented limits so an assistant can be told what
       the numbers do not mean
-- [ ] **Historical archive**: dated snapshots so availability and drift can be studied over time,
-      which is the part nobody else has
+- [~] **Historical archive**: dated snapshots so availability and drift can be studied over time,
+      which is the part nobody else has. The `capability-history` branch now accrues one dated
+      commit per day on which an observation changed; a browsable archive surface on the site is
+      still open
 - [ ] A monthly dated dataset release, signed
 
 ## Phase 3: participation
@@ -78,7 +99,9 @@ read.*
 
 *Goal: it runs unattended and its own quality is enforced, not asserted.*
 
-- [ ] Custom domain (`fhirscorecard.org` or similar) with HTTPS and a stable canonical origin
+- [~] Custom domain with HTTPS and a stable canonical origin: `fhir.chelseakr.com` — DNS and the
+      GitHub Pages domain configuration exist; the canonical-origin cutover in the site build and
+      docs, and HTTPS enforcement once the certificate is provisioned, are the remaining steps
 - [ ] **Lighthouse and accessibility budgets** as merge gates, matching the 100-accessibility bar
       held elsewhere in the portfolio
 - [ ] **SEO config validation** in CI: sitemap completeness, canonical correctness, JSON-LD
@@ -91,9 +114,12 @@ read.*
       Finishing this means **one genuinely independent vantage** — a residential or other-provider
       runner posting a `probes-*.json`, however irregular — after which the wording can change and
       not before
-- [ ] OpenSSF Scorecard, CodeQL, dependency and secret scanning, SHA-pinned actions
-      (partly done), signed dataset releases
-- [ ] `CHANGELOG.md` and semantic versioning with a real `v0.1.0` tag
+- [~] OpenSSF Scorecard and signed dataset releases still open; CodeQL, full-history secret
+      scanning, dependency audit of the locked set, and SHA-pinned actions are in place
+      (`.github/workflows/security.yml`)
+- [x] `CHANGELOG.md` and semantic versioning with a real `v0.1.0` tag: cut 2026-08-16, released
+      by `.github/workflows/release.yml` from an SSH-signed tag
+      (`docs/adr/0002-release-versioning-applies-action-export.md`)
 
 ## Phase 5: the parts that make it worth citing
 
@@ -102,9 +128,12 @@ read.*
 - [ ] **Availability leaderboard** once the 14-observation floor is met across the registry
 - [ ] **Drift timeline** per endpoint: when did this payer change what it declares
 - [ ] **Conformance-over-time report**, published monthly, with the write-up as its front door
-- [ ] **Coverage tracker**: which CMS-regulated payers have a *publicly checkable* endpoint at
+- [~] **Coverage tracker**: which CMS-regulated payers have a *publicly checkable* endpoint at
       all, with the "documented but unreachable" and "no public URL found" populations counted
-      separately and never merged
+      separately and never merged. The denominator now exists - the national federal-marketplace
+      roster under `data/frames/` (176 state-issuer organizations, 30 states) with per-state
+      review status in `docs/SAMPLING-FRAME.md` - and adds a third population those two must
+      never be merged with: *not yet reviewed*. The tracker page itself is still open
 
 ---
 

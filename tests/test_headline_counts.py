@@ -180,7 +180,7 @@ def test_cohort_endpoint_count_never_exceeds_the_endpoints_it_can_show() -> None
     )
     page = cohort_page(cohort, {"alpha": _answering("alpha")}, "https://example.test")
     assert "<strong>1</strong><span>endpoints listed</span>" in page.body
-    assert page.body.count('<td><a href="/fhir-scorecard/endpoint/') == 1
+    assert page.body.count('<td><a href="/endpoint/') == 1
 
 
 def test_published_api_reports_both_numbers(tmp_path: Path) -> None:

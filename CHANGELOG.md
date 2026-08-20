@@ -26,7 +26,13 @@ Merged changes land here until the next tag.
 
 ### Fixed
 
-- **Interop readiness no longer describes a document it could not read.** When a server answers
+- **Internal links follow the hosting shape instead of hardcoding one.** Every internal href
+  and src was written with a literal `/fhir-scorecard/` prefix - correct for exactly one
+  hosting shape, the GitHub project page, and wrong the moment the site started serving at the
+  root of `fhir.chelseakr.com`, where every internal link pointed at a path that exists only on
+  the old host. Links are now written site-root-relative, and an origin that carries a path
+  gets it prepended mechanically at render time, so both shapes render correctly and a test
+  pins each. Absolute URLs (the GitHub repo links) are never rewritten. When a server answers
   `/metadata` with HTTP 200 and a body that is not a CapabilityStatement — an `OperationOutcome`,
   a sign-in page from an authenticating gateway, a search `Bundle`, an empty body — the two checks
   that read a CapabilityStatement (I1 profiles, I3 declared security) used to run anyway, against

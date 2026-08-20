@@ -6,7 +6,7 @@ authors:
   - family-names: Kelly-Reif
     given-names: Chelsea
 repository-code: "https://github.com/ChelseaKR/fhir-scorecard"
-url: "https://chelseakr.github.io/fhir-scorecard/"
+url: "https://fhir.chelseakr.com/"
 abstract: >-
   Deterministic grades for the public discovery surfaces of FHIR endpoints across health payers,
   providers, EHR vendors, and reference servers. Derived only from unauthenticated

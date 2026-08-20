@@ -121,7 +121,7 @@ jobs:
             python -m fhir_scorecard.cli grade \
               --registry data/registry.json \
               --out site \
-              --origin "https://chelseakr.github.io/fhir-scorecard" \
+              --origin "https://fhir.chelseakr.com" \
               --from-probes \
               --probes-in "${peers[@]}"
           else
@@ -129,7 +129,7 @@ jobs:
             python -m fhir_scorecard.cli grade \
               --registry data/registry.json \
               --out site \
-              --origin "https://chelseakr.github.io/fhir-scorecard" \
+              --origin "https://fhir.chelseakr.com" \
               --vantage "github-actions/ubuntu-latest"
           fi
       - name: Persist drift and availability history

@@ -129,7 +129,7 @@ statement about anyone's care quality; it is a snapshot of public surfaces on a 
 
 Every probe, including all rejections and their failure modes, is in
 [`data/CANDIDATES.md`](../data/CANDIDATES.md). The live scorecard is at
-[chelseakr.github.io/fhir-scorecard](https://chelseakr.github.io/fhir-scorecard/) and regrades
+[fhir.chelseakr.com](https://fhir.chelseakr.com/) and regrades
 daily.
 
 If you work at a payer whose endpoint I could not reach and it is in fact publicly available,

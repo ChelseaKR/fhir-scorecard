@@ -99,9 +99,11 @@ read.*
 
 *Goal: it runs unattended and its own quality is enforced, not asserted.*
 
-- [~] Custom domain with HTTPS and a stable canonical origin: `fhir.chelseakr.com` — DNS and the
-      GitHub Pages domain configuration exist; the canonical-origin cutover in the site build and
-      docs, and HTTPS enforcement once the certificate is provisioned, are the remaining steps
+- [x] Custom domain with HTTPS and a stable canonical origin: `https://fhir.chelseakr.com` —
+      DNS, the GitHub Pages domain with its certificate issued and HTTPS enforced, and the
+      canonical origin in the site build, workflow, citation file and living docs. The old
+      `chelseakr.github.io/fhir-scorecard` URLs redirect, so dated findings and ADRs keep the
+      URLs they were written with
 - [ ] **Lighthouse and accessibility budgets** as merge gates, matching the 100-accessibility bar
       held elsewhere in the portfolio
 - [ ] **SEO config validation** in CI: sitemap completeness, canonical correctness, JSON-LD

@@ -17,7 +17,7 @@ from pathlib import Path
 from fhir_scorecard.cohort import Cohort, CohortMember
 from fhir_scorecard.grading import NOT_OBSERVED, Finding, Scorecard
 
-DEFAULT_ORIGIN = "https://chelseakr.github.io/fhir-scorecard"
+DEFAULT_ORIGIN = "https://fhir.chelseakr.com"
 
 _PROGRAM_LABELS = {
     "medi-cal": "Medi-Cal managed care",

@@ -335,3 +335,8 @@ li.unobserved .finding-copy, li.note .finding-copy { color: var(--usa-base-dark)
   .site-main { width: 100%; padding: 0; }
   a { color: inherit; }
 }
+
+/* Logo lockup: the site's own signal dots, rising. Original mark - deliberately unlike the
+ * trademarked FHIR flame and unlike any government seal. */
+.usa-logo a { display: inline-flex; align-items: center; gap: .55rem; }
+.site-logo-mark { flex: none; }

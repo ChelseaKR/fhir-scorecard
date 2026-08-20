@@ -733,6 +733,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <meta property="og:type" content="website">
 <meta property="og:url" content="{html.escape(canonical)}">
 <meta name="theme-color" content="#162e51">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/uswds/css/uswds.min.css">
 <link rel="stylesheet" href="/assets/site.css">
 <script src="/assets/uswds/js/uswds-init.min.js"></script>
@@ -744,7 +745,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <div class="usa-nav-container">
 <div class="usa-navbar">
 <div class="usa-logo"><em class="usa-logo__text">
-<a href="/" title="FHIR Scorecard">FHIR Scorecard</a></em></div>
+<a href="/" title="FHIR Scorecard"><svg class="site-logo-mark" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><rect width="28" height="28" rx="6" fill="#162e51"/><circle cx="8" cy="19.5" r="3.1" fill="#70e17b"/><circle cx="14" cy="13.5" r="3.1" fill="#73b3e7"/><circle cx="20" cy="7.5" r="3.1" fill="#ffbe2e"/></svg><span>FHIR Scorecard</span></a></em></div>
 <button type="button" class="usa-menu-btn">Menu</button>
 </div>
 <nav aria-label="Primary navigation" class="usa-nav">

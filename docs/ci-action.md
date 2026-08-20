@@ -13,7 +13,7 @@ never touches patient data.
 ## What it does, and what it is not
 
 It performs one request for each of the two documents from one runner, grades what came back
-against [the published method](https://chelseakr.github.io/fhir-scorecard/how-we-grade/), and
+against [the published method](https://fhir.chelseakr.com/how-we-grade/), and
 exits non-zero if a threshold you set was not met.
 
 It is not an audit, a compliance determination, or a statement about care quality. It describes

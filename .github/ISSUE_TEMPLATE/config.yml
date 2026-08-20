@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: How grades are calculated
-    url: https://chelseakr.github.io/fhir-scorecard/how-we-grade/
+    url: https://fhir.chelseakr.com/how-we-grade/
     about: Every finding code, what it checks, and the spec clause it cites
   - name: Why some payers cannot be checked publicly
     url: https://github.com/ChelseaKR/fhir-scorecard/blob/main/docs/payer-verifiability.md

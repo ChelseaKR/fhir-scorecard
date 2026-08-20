@@ -3,7 +3,7 @@
 All notable changes to this project are documented in this file. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The site and dataset at
-<https://chelseakr.github.io/fhir-scorecard/> are still republished daily from `main` and are
+<https://fhir.chelseakr.com/> are still republished daily from `main` and are
 not versioned by these entries; what a version names is the composite GitHub Action and the
 distribution behind it, which consumers pin by tag
 (see `docs/adr/0002-release-versioning-applies-action-export.md`).
@@ -11,6 +11,18 @@ distribution behind it, which consumers pin by tag
 ## [Unreleased]
 
 Merged changes land here until the next tag.
+
+### Changed
+
+- **The canonical origin is <https://fhir.chelseakr.com/>.** The site had lived at
+  `chelseakr.github.io/fhir-scorecard`, a project path under a shared user domain, which made
+  the canonical URLs a hosting detail rather than a name the project controls. The DNS record,
+  the GitHub Pages domain with its certificate issued, and HTTPS enforcement all exist as of
+  2026-08-19; GitHub redirects every old URL to the new origin, so nothing published breaks.
+  The site build's default origin, the daily workflow's `--origin`, `CITATION.cff`, the issue
+  template links and the living docs now print the new origin. Dated findings and ADRs keep the
+  URLs they were written with - they are records of what was said on a day, and the redirect
+  keeps them live.
 
 ### Fixed
 

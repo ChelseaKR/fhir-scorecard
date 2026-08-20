@@ -2097,6 +2097,12 @@
           "software_version: '5.1.30-74dfb62' -> '5.1.30-e3ab98e'"
         ],
         "date": "2026-08-20"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.30-e3ab98e' -> '5.1.30-2861e7f'"
+        ],
+        "date": "2026-08-20"
       }
     ],
     "fingerprint": {
@@ -2107,7 +2113,7 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "medplum",
-      "software_version": "5.1.30-e3ab98e"
+      "software_version": "5.1.30-2861e7f"
     },
     "first_seen": "2026-08-05",
     "last_seen": "2026-08-20",
@@ -2232,6 +2238,10 @@
       },
       {
         "digest": "aae1dcdc22cd0b63",
+        "first_seen": "2026-08-20"
+      },
+      {
+        "digest": "f4ab4d69c1914e26",
         "first_seen": "2026-08-20"
       }
     ]

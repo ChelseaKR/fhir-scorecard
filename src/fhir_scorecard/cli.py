@@ -39,6 +39,7 @@ from fhir_scorecard.site import (
     robots,
     sitemap,
     status_badge,
+    write_assets,
     write_page,
 )
 from fhir_scorecard.vantage import VantageProbe, load_probe_files, reconcile, write_probes
@@ -615,6 +616,7 @@ def _write_site(
         (badge_dir / f"{card.endpoint_id}.svg").write_text(status_badge(card), encoding="utf-8")
     (out / "sitemap.xml").write_text(sitemap(pages, origin), encoding="utf-8")
     (out / "robots.txt").write_text(robots(origin), encoding="utf-8")
+    write_assets(out)
 
 
 if __name__ == "__main__":

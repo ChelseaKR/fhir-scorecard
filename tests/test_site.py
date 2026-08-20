@@ -168,8 +168,12 @@ def test_site_build_produces_indexable_pages(tmp_path: Path) -> None:
     assert '"@type": "Dataset"' in home
     assert '<html lang="en">' in home
     assert 'class="signal-panel"' in home
-    assert 'href="#content">Skip to content</a>' in home
-    assert "prefers-reduced-motion" in home
+    assert 'class="usa-skipnav" href="#content">Skip to main content</a>' in home
+    assert "/assets/uswds/css/uswds.min.css" in home
+    assert "/assets/site.css" in home
+    assert (out / "assets" / "uswds" / "css" / "uswds.min.css").is_file()
+    assert (out / "assets" / "site.css").is_file()
+    assert "prefers-reduced-motion" in (out / "assets" / "site.css").read_text()
 
     ep = (out / "endpoint" / "alpha" / "index.html").read_text()
     assert '<meta name="description"' in ep

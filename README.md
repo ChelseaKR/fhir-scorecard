@@ -220,9 +220,12 @@ Neither is a compliance determination, and both say so.
 
 Every endpoint, organization, category, and cohort gets its own indexable page with a canonical URL,
 description, and structured data, plus a sitemap and a methodology page that every finding links
-into. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and, more
-importantly, for the constraint that governs it: search traffic scales with registry size, and
-registry size is gated on payers publishing base URLs.
+into. The pages are styled with the [U.S. Web Design System](https://designsystem.digital.gov/),
+vendored at a pinned version and served entirely from the site's own origin; this is an
+independent open-source project, not a government website, and the site's own footer says so on
+every page. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and,
+more importantly, for the constraint that governs it: search traffic scales with registry size,
+and registry size is gated on payers publishing base URLs.
 
 ## Use the data
 
@@ -284,7 +287,7 @@ are no blank rows and no silent skips.
 | Documentation | Applies: README, ROADMAP, CONTRIBUTING, SECURITY, CHANGELOG, CITATION.cff, ADRs (`docs/adr/`) |
 | Quality & Metrics | Applies: deterministic findings tied to cited spec text; coverage floor enforced in CI; drift tracked across runs |
 | Release & Versioning | Applies: the composite Action in `action.yml` is consumed as `ChelseaKR/fhir-scorecard@<tag>`, so a tag is a shipped interface. Releases are cut by dispatching `.github/workflows/release.yml` with an existing SSH-signed annotated SemVer tag; the shared authorize workflow verifies the signature against `.github/allowed_signers` and that the commit is an ancestor of `main`, `make verify` and the full-history secret scan re-run at that commit, and the build is attested (SLSA provenance) and attached to a GitHub Release whose notes are the matching CHANGELOG section. Tag, `pyproject.toml` and CHANGELOG versions must agree or the release fails. `docs/adr/0002-release-versioning-applies-action-export.md` supersedes `docs/adr/0001-release-versioning-na.md`; the site and dataset are still published daily from `main` and are not what a version names |
-| Performance | Applies (scoped): the published pages are deterministically generated static HTML with inline CSS and no third-party subresource; the only images are same-origin badge SVGs the build writes. No transfer-size or timing budget is enforced in CI and none is claimed, and there is no server-side surface to load-test |
+| Performance | Applies (scoped): the published pages are deterministically generated static HTML styled by the U.S. Web Design System, vendored into the package at a pinned version (`src/fhir_scorecard/assets/uswds/VERSION.txt`) and served from the site's own origin - stylesheets, scripts, fonts, and icons included - so there is still no third-party subresource; the only other images are same-origin badge SVGs the build writes. No transfer-size or timing budget is enforced in CI and none is claimed, and there is no server-side surface to load-test |
 | AI Development Measurement | Applies: no tool-usage counter is collected and none gates a merge. `make verify` and `.github/workflows/security.yml` are what a change clears regardless of how it was authored |
 | Incident Response | Applies: no incident to date. Vulnerabilities go through the path in [SECURITY.md](SECURITY.md); a wrong or unwanted listing goes through the remove-or-dispute issue template and is corrected without the reporter proving anything first. A postmortem will be committed under `docs/incidents/` when there is one to write |
 | Data Governance | Applies: the only collected data is the response to two unauthenticated GET requests against public FHIR discovery paths, at a rate stated in [SECURITY.md](SECURITY.md); no authentication, no patient data, no path beyond those two. Registry provenance and the rejected-candidate log are committed under `data/`, and every published payload names its source |

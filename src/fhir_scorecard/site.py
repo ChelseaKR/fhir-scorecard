@@ -10,6 +10,7 @@ from __future__ import annotations
 import html
 import json
 import re
+import shutil
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -319,9 +320,15 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
         "isAccessibleForFree": True,
     }
     body = f"""
-<nav aria-label="Breadcrumb"><a href="/">Home</a> /
-<a href="/{_KIND_SLUGS.get(card.kind, "reference-servers")}/">
-{html.escape(kind_label)}</a></nav>
+<nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list">
+<li class="usa-breadcrumb__list-item">
+<a href="/" class="usa-breadcrumb__link"><span>Home</span></a></li>
+<li class="usa-breadcrumb__list-item">
+<a href="/{_KIND_SLUGS.get(card.kind, "reference-servers")}/" class="usa-breadcrumb__link">
+<span>{html.escape(kind_label)}</span></a></li>
+<li class="usa-breadcrumb__list-item usa-current" aria-current="page">
+<span>{html.escape(card.name)}</span></li>
+</ol></nav>
 <header class="endpoint-hero">
 <div class="endpoint-heading">
 <p class="eyebrow">Public surface / {html.escape(kind_label)}</p>
@@ -350,7 +357,7 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
 <p class="eyebrow">Interpretation</p>
 <p>A grade describes two public discovery documents at one point in time. It does not inspect
 patient data, authenticated behavior, or clinical quality.</p>
-<a class="text-link" href="/how-we-grade/">Read the scoring method →</a>
+<a class="usa-link" href="/how-we-grade/">Read the scoring method →</a>
 </section>
 </div>
 <h2>Findings</h2>
@@ -372,9 +379,11 @@ alt="FHIR Scorecard: {html.escape(card.name)} {html.escape(_badge_alt(card))}" w
 &lt;img src="{html.escape(origin)}/badge/{html.escape(card.endpoint_id)}.svg"
 alt="FHIR Scorecard: {html.escape(_badge_alt(card))}"&gt;&lt;/a&gt;</code></div>
 </details>
-<p class="caveat">This is an observational snapshot of a public, unauthenticated surface. It is
+<div class="usa-alert usa-alert--info usa-alert--slim site-caveat"><div class="usa-alert__body">
+<p class="usa-alert__text">This is an observational snapshot of a public, unauthenticated surface. It is
 not an audit, a ranking of care quality, or a statement about anyone's regulatory compliance.
 See <a href="/how-we-grade/">how we grade</a>.</p>
+</div></div>
 {_json_ld(jsonld)}
 """
     return Page(
@@ -408,13 +417,15 @@ def org_page(name: str, cards: list[Scorecard], origin: str) -> Page:
         for c in sorted(cards, key=lambda c: c.name)
     )
     body = f"""
-<nav aria-label="Breadcrumb"><a href="/">Home</a></nav>
+<nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list"><li class="usa-breadcrumb__list-item"><a href="/" class="usa-breadcrumb__link"><span>Home</span></a></li></ol></nav>
 <p class="eyebrow">Organization record</p>
 <h1>{html.escape(name)}: public FHIR endpoints</h1>
 <p class="lede">{len(cards)} publicly observable FHIR surfaces from this organization.</p>
 <ul class="surface-grid">{rows}</ul>
-<p class="caveat">Observational snapshots of public surfaces, not audits or compliance
+<div class="usa-alert usa-alert--info usa-alert--slim site-caveat"><div class="usa-alert__body">
+<p class="usa-alert__text">Observational snapshots of public surfaces, not audits or compliance
 determinations.</p>
+</div></div>
 """
     return Page(
         path=f"org/{org_slug(name)}",
@@ -435,7 +446,7 @@ def kind_page(kind: str, cards: list[Scorecard], origin: str) -> Page:
         for c in sorted(cards, key=lambda c: (c.grade, c.name))
     )
     body = f"""
-<nav aria-label="Breadcrumb"><a href="/">Home</a></nav>
+<nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list"><li class="usa-breadcrumb__list-item"><a href="/" class="usa-breadcrumb__link"><span>Home</span></a></li></ol></nav>
 <p class="eyebrow">Endpoint registry / {len(cards)} surfaces</p>
 <h1>{html.escape(label)}</h1>
 <p class="lede">{html.escape(blurb)}</p>
@@ -443,14 +454,16 @@ def kind_page(kind: str, cards: list[Scorecard], origin: str) -> Page:
 <p><strong>{sum(c.reachable for c in cards)}</strong><span>answered on this run</span></p>
 <div class="grade-distribution" aria-label="Grade distribution">{_grade_counts(cards)}</div>
 </div>
-<div class="table-scroll" tabindex="0" role="region" aria-label="Graded endpoints">
-<table class="registry-table"><caption>{len(cards)} graded {html.escape(label.lower())}</caption>
+<div class="usa-table-container--scrollable" tabindex="0" role="region" aria-label="Graded endpoints">
+<table class="usa-table usa-table--striped registry-table"><caption>{len(cards)} graded {html.escape(label.lower())}</caption>
 <thead><tr><th scope="col">Endpoint</th><th scope="col">Grade</th>
 <th scope="col">Availability</th></tr></thead>
 <tbody>{rows}</tbody></table></div>
-<p class="caveat">Grades are comparable within this category only. A payer Patient Access API and
+<div class="usa-alert usa-alert--info usa-alert--slim site-caveat"><div class="usa-alert__body">
+<p class="usa-alert__text">Grades are comparable within this category only. A payer Patient Access API and
 an EHR vendor sandbox answer to different implementation guides, so they are never ranked
 against each other.</p>
+</div></div>
 """
     return Page(
         path=_KIND_SLUGS.get(kind, kind),
@@ -541,13 +554,13 @@ def cohort_page(cohort: Cohort, cards: dict[str, Scorecard], origin: str) -> Pag
 <p>Each exclusion records how far the review went, on what date, and where to check it. A review
 that found nothing is not proof that nothing exists: if one of these plans publishes a base URL
 we missed, please <a href="/claim/">tell us</a>.</p>
-<table><caption>Cohort members with no verifiable public endpoint</caption>
+<table class="usa-table usa-table--striped"><caption>Cohort members with no verifiable public endpoint</caption>
 <thead><tr><th scope="col">Plan</th><th scope="col">Programs</th>
 <th scope="col">Why it is not listed</th></tr></thead>
 <tbody>{excluded_rows}</tbody></table>
 """
     body = f"""
-<nav aria-label="Breadcrumb"><a href="/">Home</a></nav>
+<nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list"><li class="usa-breadcrumb__list-item"><a href="/" class="usa-breadcrumb__link"><span>Home</span></a></li></ol></nav>
 <p class="eyebrow">Curated cohort / fixed public roster</p>
 <h1>{html.escape(cohort.name)}</h1>
 <p class="lede">{html.escape(cohort.description)}</p>
@@ -568,18 +581,20 @@ and finite, the gap is itself a finding.</p>
 {notes}
 {sources_html}
 <h2>Listed endpoints</h2>
-<div class="table-scroll" tabindex="0" role="region" aria-label="Verified cohort endpoints">
-<table><caption>Verified public FHIR endpoints of cohort members</caption>
+<div class="usa-table-container--scrollable" tabindex="0" role="region" aria-label="Verified cohort endpoints">
+<table class="usa-table usa-table--striped"><caption>Verified public FHIR endpoints of cohort members</caption>
 <thead><tr><th scope="col">Plan</th><th scope="col">Programs</th>
 <th scope="col">Endpoint</th><th scope="col">Category</th><th scope="col">Grade</th></tr></thead>
 <tbody>{_cohort_included_rows(cohort, cards)}</tbody></table></div>
 <p>Grades are comparable within a category only: a Patient Access API and a Provider Directory
 API answer to different expectations and are never ranked against each other.</p>
 {excluded_html}
-<p class="caveat">Observational snapshots of public discovery surfaces. Not audits, not
+<div class="usa-alert usa-alert--info usa-alert--slim site-caveat"><div class="usa-alert__body">
+<p class="usa-alert__text">Observational snapshots of public discovery surfaces. Not audits, not
 compliance determinations, and not statements about care quality. Publishing a base URL to
 unregistered visitors is not required by any rule this project reads, and a plan that does not
 is not violating anything; it is only not independently checkable from outside.</p>
+</div></div>
 """
     return Page(
         path=cohort.cohort_id,
@@ -670,603 +685,19 @@ def write_page(out_dir: Path, page: Page, origin: str, generated_at: str) -> Non
     )
 
 
-_STYLE = """
-:root {
-  --ink: #102b3f;
-  --ink-soft: #435c68;
-  --paper: #f5f8f8;
-  --paper-deep: #e8f0f1;
-  --white: #ffffff;
-  --line: #cbdadd;
-  --teal: #007f82;
-  --teal-dark: #00666a;
-  --teal-wash: #d9eded;
-  --pass: #19734b;
-  --warn: #a35d00;
-  --alert: #a43b2a;
-  --fail: #8f2430;
-  --shadow: 0 18px 50px rgb(16 43 63 / 8%);
-  color-scheme: light;
-}
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  color: var(--ink);
-  background: var(--paper);
-  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
-  font-size: 1rem;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-body::before {
-  position: fixed;
-  z-index: -1;
-  inset: 0;
-  content: "";
-  opacity: .34;
-  background-image:
-    linear-gradient(rgb(16 43 63 / 3%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(16 43 63 / 3%) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(to bottom, black, transparent 48rem);
-}
-a { color: var(--teal-dark); text-underline-offset: .16em; }
-a:hover { color: var(--ink); }
-a:focus-visible, [tabindex="0"]:focus-visible {
-  outline: 3px solid #eea83b;
-  outline-offset: 4px;
-}
-.skip-link {
-  position: fixed;
-  z-index: 20;
-  top: .75rem;
-  left: .75rem;
-  padding: .65rem 1rem;
-  color: var(--white);
-  background: var(--ink);
-  transform: translateY(-150%);
-}
-.skip-link:focus { transform: none; }
-.site-header {
-  border-bottom: 1px solid var(--line);
-  background: rgb(245 248 248 / 92%);
-  backdrop-filter: blur(12px);
-}
-.site-header-inner, .site-footer-inner, main {
-  width: min(100% - 2rem, 74rem);
-  margin-inline: auto;
-}
-.site-header-inner {
-  display: flex;
-  min-height: 4.75rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-}
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: .75rem;
-  color: var(--ink);
-  font-size: .92rem;
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-decoration: none;
-  text-transform: uppercase;
-}
-.brand-mark {
-  display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
-  place-items: center;
-  color: var(--white);
-  border-radius: 50%;
-  background: var(--ink);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  font-size: 1.35rem;
-  font-weight: 400;
-  letter-spacing: -.25em;
-  text-indent: -.25em;
-}
-.site-nav { display: flex; align-items: center; gap: 1.5rem; }
-.site-nav a {
-  color: var(--ink-soft);
-  font-size: .86rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-.site-nav a:hover { color: var(--teal-dark); }
-.site-nav .nav-action {
-  padding: .48rem .8rem;
-  border: 1px solid var(--ink);
-  color: var(--ink);
-}
-main { min-height: 70vh; padding-block: 4rem 6rem; }
-h1, h2, h3, p { margin-top: 0; }
-h1, h2 {
-  font-family: Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  font-weight: 500;
-  letter-spacing: -.035em;
-}
-h1 {
-  max-width: 18ch;
-  margin-bottom: 1rem;
-  font-size: clamp(2.6rem, 7vw, 5.4rem);
-  line-height: .98;
-}
-h2 { font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.08; }
-h3 { line-height: 1.25; }
-em { color: var(--teal-dark); font-weight: 400; }
-.eyebrow {
-  margin-bottom: .65rem;
-  color: var(--teal-dark);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  font-size: .72rem;
-  font-weight: 700;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-}
-.lede { max-width: 48rem; color: var(--ink-soft); font-size: clamp(1.15rem, 2vw, 1.35rem); }
-code {
-  padding: .08em .3em;
-  border-radius: 2px;
-  color: var(--ink);
-  background: var(--paper-deep);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  font-size: .88em;
-  overflow-wrap: anywhere;
-}
-nav[aria-label="Breadcrumb"] {
-  margin-bottom: 2.5rem;
-  color: var(--ink-soft);
-  font-size: .82rem;
-}
-.button {
-  display: inline-block;
-  padding: .78rem 1.15rem;
-  border: 1px solid var(--teal-dark);
-  color: var(--white);
-  background: var(--teal-dark);
-  font-size: .9rem;
-  font-weight: 700;
-  text-decoration: none;
-}
-.button:hover { color: var(--white); background: var(--ink); }
-.button-secondary { color: var(--ink); background: transparent; border-color: var(--ink); }
-.button-secondary:hover { color: var(--white); }
-.text-link { font-size: .9rem; font-weight: 700; text-decoration-thickness: 1px; }
-.grade {
-  display: inline-grid;
-  min-width: 2rem;
-  min-height: 2rem;
-  padding: .16rem .42rem;
-  place-items: center;
-  color: var(--white);
-  border-radius: 50%;
-  background: var(--ink-soft);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  font-weight: 800;
-  line-height: 1;
-}
-.grade-a { background: var(--pass); }
-.grade-b { background: var(--teal-dark); }
-.grade-c { background: var(--warn); }
-.grade-d { background: var(--alert); }
-.grade-f { background: var(--fail); }
-.grade-not-observed {
-  min-width: 0;
-  min-height: 0;
-  padding: .3rem .7rem;
-  border-radius: 999px;
-  background: var(--ink-soft);
-  font-family: inherit;
-  font-size: .78rem;
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-.home-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(17rem, .7fr);
-  gap: clamp(2rem, 7vw, 7rem);
-  align-items: end;
-  padding: 2.5rem 0 5.5rem;
-}
-.home-hero h1 { max-width: 13ch; }
-.hero-copy .lede { max-width: 42rem; }
-.hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  margin-top: 2rem;
-  flex-wrap: wrap;
-}
-.scope-note {
-  position: relative;
-  padding: 2rem;
-  border: 1px solid var(--line);
-  background: var(--white);
-  box-shadow: var(--shadow);
-}
-.scope-note::before {
-  position: absolute;
-  inset: 7px;
-  border: 1px solid var(--paper-deep);
-  content: "";
-}
-.scope-note > * { position: relative; }
-.scope-note code { display: block; margin: .55rem 0; padding: .5rem .65rem; }
-.scope-note p:last-child { margin: 1.4rem 0 0; color: var(--ink-soft); font-size: .88rem; }
-.scope-icon { display: block; margin-bottom: 2rem; color: var(--teal); font-size: 2rem; }
-.signal-panel { padding: clamp(1.5rem, 4vw, 3rem); color: var(--white); background: var(--ink); }
-.signal-panel .eyebrow { color: #77d3d0; }
-.signal-panel h2 { margin-bottom: 0; color: var(--white); }
-.signal-panel-heading { display: flex; justify-content: space-between; gap: 2rem; }
-.signal-totals { display: flex; gap: 1.6rem; align-items: end; }
-.signal-totals p { margin: 0; color: #b8cbcf; font-size: .75rem; text-transform: uppercase; }
-.signal-totals strong { display: block; color: var(--white); font-size: 1.25rem; }
-.signal-map { margin-top: 3rem; }
-.signal-row {
-  display: grid;
-  grid-template-columns: minmax(12rem, 1.25fr) 2rem 2fr;
-  gap: 1rem;
-  min-height: 3rem;
-  align-items: center;
-  border-top: 1px solid rgb(255 255 255 / 14%);
-}
-.signal-label { color: #d8e5e7; font-size: .82rem; text-decoration: none; }
-.signal-label:hover { color: var(--white); }
-.signal-count { color: #86a2a9; font-family: ui-monospace, monospace; font-size: .75rem; }
-.signal-track { display: flex; align-items: center; gap: clamp(.35rem, 1vw, .8rem); }
-.signal {
-  display: block;
-  width: .75rem;
-  height: .75rem;
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-  outline: 1px solid currentcolor;
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-.signal:hover, .signal:focus {
-  z-index: 1;
-  transform: scale(1.65);
-  box-shadow: 0 0 0 4px var(--ink);
-}
-.signal-a, .grade-count-a, .signal.signal-a { color: #67c28e; background: #67c28e; }
-.signal-b, .grade-count-b, .signal.signal-b { color: #42b9bd; background: #42b9bd; }
-.signal-c, .grade-count-c, .signal.signal-c { color: #efb04b; background: #efb04b; }
-.signal-d, .grade-count-d, .signal.signal-d { color: #e27c58; background: #e27c58; }
-.signal-f, .grade-count-f, .signal.signal-f { color: #d85b6b; background: #d85b6b; }
-.signal-not-observed, .grade-count-not-observed,
-.signal.signal-not-observed { color: #8fa3ac; background: #8fa3ac; }
-.signal-note {
-  margin: 1.25rem 0 0;
-  max-width: 62ch;
-  color: #a9bec3;
-  font-size: .78rem;
-}
-.signal-legend { display: flex; gap: 1rem; margin-top: 1.5rem; color: #a9bec3; font-size: .72rem; }
-.signal-legend span { display: flex; align-items: center; gap: .35rem; }
-.signal-legend i { width: .5rem; height: .5rem; border-radius: 50%; }
-.home-section { padding: 6rem 0; }
-.section-heading {
-  display: grid;
-  grid-template-columns: 1.15fr .85fr;
-  gap: 4rem;
-  align-items: end;
-}
-.section-heading h2 { max-width: 16ch; margin-bottom: 0; }
-.section-heading > p { max-width: 33rem; margin-bottom: .3rem; color: var(--ink-soft); }
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  margin: 3rem 0 0;
-  padding: 1px;
-  list-style: none;
-  background: var(--line);
-}
-.category-card { min-height: 17rem; padding: 2rem; background: var(--white); }
-.category-card-top { display: flex; justify-content: space-between; }
-.category-arrow { color: var(--teal); }
-.category-card > a {
-  display: inline-block;
-  color: var(--ink);
-  font-size: 1.35rem;
-  font-weight: 700;
-}
-.category-card > p { max-width: 34rem; color: var(--ink-soft); font-size: .9rem; }
-.grade-distribution { display: flex; gap: .5rem; margin-top: 1.5rem; }
-.grade-count {
-  display: inline-flex;
-  min-width: 2.2rem;
-  overflow: hidden;
-  align-items: stretch;
-  color: var(--ink);
-  border: 1px solid currentcolor;
-  background: transparent;
-  font-family: ui-monospace, monospace;
-  font-size: .68rem;
-}
-.grade-count strong { padding: .2rem .35rem; color: currentcolor; background: var(--white); }
-.grade-count span { padding: .2rem .3rem; color: var(--ink); background: currentcolor; }
-.ruled-section { border-block: 1px solid var(--line); }
-ul.cards, .surface-grid { margin: 2rem 0; padding: 0; list-style: none; }
-ul.cards li { padding: 1rem 0; border-bottom: 1px solid var(--line); }
-.cohort-list a { font-weight: 700; }
-.evidence-callout { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; }
-.evidence-callout h2 { max-width: 13ch; }
-.evidence-callout > div:last-child { color: var(--ink-soft); font-size: 1.08rem; }
-.data-section { padding-bottom: 1rem; }
-.data-links { margin: 3rem 0 0; padding: 0; border-top: 1px solid var(--line); list-style: none; }
-.data-links a {
-  display: grid;
-  grid-template-columns: 6rem 1fr auto;
-  gap: 1rem;
-  padding: 1.2rem .25rem;
-  align-items: center;
-  color: var(--ink);
-  border-bottom: 1px solid var(--line);
-  font-weight: 700;
-  text-decoration: none;
-}
-.data-links a:hover { padding-inline: .75rem; background: var(--white); }
-.data-links span {
-  color: var(--teal-dark);
-  font-family: ui-monospace, monospace;
-  font-size: .7rem;
-}
-.data-links b { font-size: 1.2rem; }
-.endpoint-hero {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 3rem;
-  align-items: end;
-  padding-bottom: 3rem;
-  border-bottom: 1px solid var(--line);
-}
-.endpoint-hero h1 { max-width: 20ch; font-size: clamp(2.5rem, 6vw, 4.7rem); }
-.hero-grade { min-width: 8rem; padding: 1.4rem; text-align: center; background: var(--white); }
-.hero-grade > span {
-  display: block;
-  margin-bottom: .8rem;
-  color: var(--ink-soft);
-  font-size: .72rem;
-}
-.hero-grade .grade { min-width: 4.3rem; min-height: 4.3rem; font-size: 2rem; }
-.hero-grade .grade-not-observed { min-width: 0; min-height: 0; font-size: .8rem; }
-.score-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
-.dimension-meter { padding: 1rem; background: var(--white); }
-.dimension-meter > div {
-  display: flex;
-  justify-content: space-between;
-  gap: .75rem;
-  font-size: .8rem;
-}
-.dimension-meter strong { font-family: ui-monospace, monospace; }
-.meter { display: block; height: 3px; margin-top: .85rem; background: var(--paper-deep); }
-.meter > span { display: block; width: var(--score); height: 100%; background: var(--teal); }
-.meter-unscored {
-  height: 3px;
-  background: repeating-linear-gradient(
-    90deg, var(--paper-deep) 0 6px, transparent 6px 12px);
-}
-.dimension-meter-unscored strong { color: var(--ink-soft); font-family: inherit; font-size: .8rem; }
-.evidence-grid {
-  display: grid;
-  grid-template-columns: 1.35fr .65fr;
-  gap: 1rem;
-  margin: 1rem 0 4rem;
-}
-.evidence-card { padding: 2rem; border: 1px solid var(--line); background: var(--white); }
-.evidence-card-accent { background: var(--teal-wash); }
-dl.facts {
-  display: grid;
-  grid-template-columns: minmax(7rem, auto) 1fr;
-  gap: .65rem 1.5rem;
-  margin: 0;
-}
-dl.facts dt { color: var(--ink-soft); font-size: .8rem; font-weight: 600; }
-dl.facts dd { margin: 0; overflow-wrap: anywhere; }
-.finding-group {
-  margin: 1rem 0;
-  padding: 1.25rem;
-  border: 1px solid var(--line);
-  background: var(--white);
-}
-.finding-group .dimension-meter { padding: 0 0 1.1rem; }
-ul.findings { margin: 0; padding: 0; list-style: none; }
-.finding {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) auto;
-  gap: .8rem;
-  padding: .85rem 0;
-  align-items: start;
-  border-top: 1px solid var(--paper-deep);
-}
-.mark {
-  display: grid;
-  width: 1.5rem;
-  height: 1.5rem;
-  place-items: center;
-  border-radius: 50%;
-  font-weight: 800;
-}
-li.no .mark { color: var(--fail); background: #f7e6e8; }
-li.ok .mark { color: var(--pass); background: #e4f1e9; }
-li.unobserved .mark, li.note .mark { color: var(--ink-soft); background: var(--paper-deep); }
-li.unobserved .finding-copy, li.note .finding-copy { color: var(--ink-soft); font-style: italic; }
-.finding-copy { font-size: .92rem; }
-.finding-links {
-  display: flex;
-  gap: .8rem;
-  font-family: ui-monospace, monospace;
-  font-size: .7rem;
-}
-.verification {
-  margin-top: 4rem;
-  padding: 2rem;
-  border-left: 4px solid var(--teal);
-  background: var(--white);
-}
-.verification h2 { font-size: 1.7rem; }
-.badge-embed { margin-top: 1rem; border: 1px solid var(--line); background: var(--white); }
-.badge-embed summary { padding: 1rem 1.25rem; cursor: pointer; font-weight: 700; }
-.badge-embed > div { padding: 0 1.25rem 1.25rem; }
-.badge-embed img { display: block; }
-.badge-embed p { margin: 1rem 0 .5rem; color: var(--ink-soft); font-size: .86rem; }
-.badge-embed code { display: block; padding: .75rem; white-space: normal; }
-.category-summary, .cohort-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
-  margin: 3rem 0 2rem;
-  padding: 1.2rem 0;
-  align-items: center;
-  border-block: 1px solid var(--line);
-}
-.category-summary > p, .cohort-stats p { margin: 0; }
-.category-summary > p strong, .cohort-stats strong { margin-right: .5rem; font-size: 1.6rem; }
-.category-summary > p span, .cohort-stats span { color: var(--ink-soft); font-size: .78rem; }
-.category-summary .grade-distribution { margin: 0 0 0 auto; }
-.table-scroll { overflow-x: auto; }
-table { width: 100%; margin: 1.5rem 0; border-collapse: collapse; background: var(--white); }
-caption { padding: .75rem 0; color: var(--ink-soft); text-align: left; font-size: .8rem; }
-th, td {
-  padding: .85rem 1rem;
-  border-bottom: 1px solid var(--paper-deep);
-  text-align: left;
-  vertical-align: top;
-}
-th {
-  color: var(--ink-soft);
-  font-family: ui-monospace, monospace;
-  font-size: .68rem;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-.registry-table td:first-child a { color: var(--ink); font-weight: 700; }
-.surface-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-.surface-card { padding: 1.5rem; border: 1px solid var(--line); background: var(--white); }
-.surface-card > div { display: flex; gap: 1rem; align-items: center; }
-.surface-card .eyebrow { margin: 0; }
-.surface-card > a { display: block; margin-top: 1.3rem; color: var(--ink); font-weight: 700; }
-.surface-card p { margin: .5rem 0 0; color: var(--ink-soft); font-size: .86rem; }
-.action-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  margin: 4rem 0;
-  background: var(--line);
-}
-.action-grid section { padding: clamp(1.5rem, 4vw, 3rem); background: var(--white); }
-.action-grid h2 { font-size: 1.8rem; }
-.action-number { color: var(--teal); font-family: ui-monospace, monospace; }
-.probe-contract, .weight-panel {
-  display: grid;
-  grid-template-columns: .8fr 1.2fr;
-  gap: 4rem;
-  padding: 3rem;
-  color: var(--white);
-  background: var(--ink);
-}
-.probe-contract .eyebrow, .weight-panel .eyebrow { color: #77d3d0; }
-.probe-contract h2, .weight-panel h2 { color: var(--white); }
-.probe-contract code { color: var(--white); background: rgb(255 255 255 / 12%); }
-.weight-bars p {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  padding-bottom: 1rem;
-}
-.weight-bars i {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: var(--weight);
-  height: 3px;
-  background: #77d3d0;
-}
-.method-list {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1px;
-  margin: 2rem 0 4rem;
-  background: var(--line);
-}
-.method-card {
-  display: grid;
-  grid-template-columns: 2.5rem 1fr;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: var(--white);
-  scroll-margin-top: 2rem;
-}
-.method-card > span {
-  color: var(--teal-dark);
-  font-family: ui-monospace, monospace;
-  font-weight: 800;
-}
-.method-card h3 { margin-bottom: .65rem; }
-.method-card p { margin-bottom: .65rem; color: var(--ink-soft); font-size: .9rem; }
-.method-card strong { color: var(--ink); }
-.caveat {
-  margin-top: 4rem;
-  padding-top: 1rem;
-  color: var(--ink-soft);
-  border-top: 1px solid var(--line);
-  font-size: .82rem;
-}
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-.site-footer { color: #bad0d4; background: var(--ink); }
-.site-footer-inner {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
-  padding-block: 3rem;
-}
-.footer-brand { color: var(--white); font-family: Charter, Georgia, serif; font-size: 1.5rem; }
-.site-footer p { max-width: 42rem; font-size: .82rem; }
-.site-footer nav { display: flex; justify-content: flex-end; gap: 1.25rem; flex-wrap: wrap; }
-.site-footer a { color: #d5e3e5; font-size: .8rem; }
-@media (max-width: 760px) {
-  .site-header-inner { min-height: 4rem; }
-  .site-nav a:not(.nav-action) { display: none; }
-  main { padding-block: 2.5rem 4rem; }
-  .home-hero, .endpoint-hero, .evidence-grid, .section-heading, .evidence-callout,
-  .probe-contract, .weight-panel, .site-footer-inner { grid-template-columns: 1fr; gap: 2rem; }
-  .home-hero { padding-bottom: 3rem; }
-  .signal-panel-heading { display: block; }
-  .signal-totals { margin-top: 1.5rem; }
-  .signal-row { grid-template-columns: minmax(8rem, 1fr) 1.5rem 1fr; }
-  .category-grid, .surface-grid, .action-grid, .method-list { grid-template-columns: 1fr; }
-  .score-overview { grid-template-columns: 1fr; }
-  .category-summary, .cohort-stats { align-items: flex-start; flex-wrap: wrap; }
-  .category-summary .grade-distribution { width: 100%; margin-left: 0; }
-  .finding { grid-template-columns: 2rem 1fr; }
-  .finding-links { grid-column: 2; }
-  .data-links a { grid-template-columns: 4.5rem 1fr auto; }
-}
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
-}
-@media print {
-  .site-header, .site-footer, .hero-actions { display: none; }
-  body { background: #fff; }
-  body::before { display: none; }
-  main { width: 100%; padding: 0; }
-  a { color: inherit; }
-}
-"""
+def write_assets(out_dir: Path) -> None:
+    """Copy the vendored stylesheet, script, font, and icon files into the site output.
+
+    Every page links /assets/uswds/css/uswds.min.css and /assets/site.css, so the site stays
+    fully self-contained: the design system is served from the same origin as the pages, at the
+    version pinned in assets/uswds/VERSION.txt, and no page ever fetches a third-party
+    subresource. The files ship inside the package so an installed copy builds the same site a
+    checkout does.
+    """
+    from importlib import resources
+
+    with resources.as_file(resources.files("fhir_scorecard") / "assets") as assets_root:
+        shutil.copytree(assets_root, out_dir / "assets", dirs_exist_ok=True)
 
 
 def _site_path_prefix(origin: str) -> str:
@@ -1301,38 +732,68 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <meta property="og:description" content="{html.escape(page.description)}">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{html.escape(canonical)}">
-<meta name="theme-color" content="#102b3f">
-<style>{_STYLE}</style>
+<meta name="theme-color" content="#162e51">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/uswds/css/uswds.min.css">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/uswds/js/uswds-init.min.js"></script>
 </head>
 <body>
-<a class="skip-link" href="#content">Skip to content</a>
-<header class="site-header">
-<div class="site-header-inner">
-<a class="brand" href="/">
-<span class="brand-mark" aria-hidden="true">+·</span><span>FHIR Scorecard</span></a>
-<nav class="site-nav" aria-label="Primary">
-<a href="/#registry">Registry</a>
-<a href="/how-we-grade/">Method</a>
-<a href="/dataset.csv">Data</a>
-<a class="nav-action" href="/claim/">Correct a record</a>
+<a class="usa-skipnav" href="#content">Skip to main content</a>
+<div class="usa-overlay"></div>
+<header class="usa-header usa-header--basic">
+<div class="usa-nav-container">
+<div class="usa-navbar">
+<div class="usa-logo"><em class="usa-logo__text">
+<a href="/" title="FHIR Scorecard"><svg class="site-logo-mark" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><rect width="28" height="28" rx="6" fill="#162e51"/><circle cx="8" cy="19.5" r="3.1" fill="#70e17b"/><circle cx="14" cy="13.5" r="3.1" fill="#73b3e7"/><circle cx="20" cy="7.5" r="3.1" fill="#ffbe2e"/></svg><span>FHIR Scorecard</span></a></em></div>
+<button type="button" class="usa-menu-btn">Menu</button>
+</div>
+<nav aria-label="Primary navigation" class="usa-nav">
+<button type="button" class="usa-nav__close">
+<img src="/assets/uswds/img/usa-icons/close.svg" role="img" alt="Close"></button>
+<ul class="usa-nav__primary usa-accordion">
+<li class="usa-nav__primary-item"><a class="usa-nav-link" href="/#registry"><span>Registry</span></a></li>
+<li class="usa-nav__primary-item"><a class="usa-nav-link" href="/how-we-grade/"><span>Method</span></a></li>
+<li class="usa-nav__primary-item"><a class="usa-nav-link" href="/dataset.csv"><span>Data</span></a></li>
+<li class="usa-nav__primary-item">
+<a class="usa-nav-link" href="/claim/"><span>Correct a record</span></a></li>
+</ul>
 </nav>
 </div>
 </header>
-<main id="content">
+<main id="content" class="site-main">
 {page.body}
 </main>
-<footer class="site-footer">
-<div class="site-footer-inner"><div>
-<p class="footer-brand">Public evidence, plainly stated.</p>
+<footer class="usa-footer usa-footer--slim">
+<div class="grid-container usa-footer__return-to-top"><a href="#">Return to top</a></div>
+<div class="usa-footer__primary-section">
+<div class="usa-footer__primary-container grid-row">
+<div class="mobile-lg:grid-col-8">
+<nav class="usa-footer__nav" aria-label="Footer navigation">
+<ul class="grid-row grid-gap">
+<li class="mobile-lg:grid-col-auto usa-footer__primary-content">
+<a class="usa-footer__primary-link" href="/how-we-grade/">Method</a></li>
+<li class="mobile-lg:grid-col-auto usa-footer__primary-content">
+<a class="usa-footer__primary-link" href="/scorecards.json">JSON</a></li>
+<li class="mobile-lg:grid-col-auto usa-footer__primary-content">
+<a class="usa-footer__primary-link" href="/dataset.csv">CSV</a></li>
+<li class="mobile-lg:grid-col-auto usa-footer__primary-content">
+<a class="usa-footer__primary-link" href="https://github.com/ChelseaKR/fhir-scorecard">Source ↗</a></li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="usa-footer__secondary-section">
+<div class="grid-container">
+<p class="footer-tagline">Public evidence, plainly stated.</p>
 <p>Generated {html.escape(generated_at)}. Only public <code>/metadata</code> and SMART discovery
-documents are read; no patient data is ever accessed.</p></div>
-<nav aria-label="Footer">
-<a href="/how-we-grade/">Method</a>
-<a href="/scorecards.json">JSON</a>
-<a href="/dataset.csv">CSV</a>
-<a href="https://github.com/ChelseaKR/fhir-scorecard">Source ↗</a>
-</nav></div>
+documents are read; no patient data is ever accessed. An independent open-source project; not a
+government website, and affiliated with no government agency.</p>
+</div>
+</div>
 </footer>
+<script src="/assets/uswds/js/uswds.min.js"></script>
 </body>
 </html>
 """
@@ -1448,16 +909,18 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
 <p class="lede">FHIR Scorecard reads the public discovery surface and turns it into evidence a
 person can check: reachable or not, clearly documented or not, ready to interoperate or not.</p>
 <div class="hero-actions">
-<a class="button" href="#registry">Explore the registry</a>
-<a class="text-link" href="/how-we-grade/">See exactly how grades work →</a>
+<a class="usa-button" href="#registry">Explore the registry</a>
+<a class="usa-link" href="/how-we-grade/">See exactly how grades work →</a>
 </div>
 </div>
-<aside class="scope-note" aria-label="Scope of measurement">
-<span class="scope-icon" aria-hidden="true">{{ }}</span>
+<aside class="usa-summary-box scope-note" role="region" aria-label="Scope of measurement">
+<div class="usa-summary-box__body">
 <p class="eyebrow">The entire probe surface</p>
+<div class="usa-summary-box__text">
 <code>GET /metadata</code>
 <code>GET /.well-known/smart-configuration</code>
 <p>No login. No patient data. Two public documents.</p>
+</div></div>
 </aside>
 </header>
 <section class="signal-panel" aria-labelledby="signal-title">
@@ -1487,7 +950,7 @@ implementation guides and public behavior that apply to it.</p></div>
 <div><p>Most payers with a base URL on a public developer portal expose a readable
 CapabilityStatement, and most grade well. The difficult part is locating that URL at all: payer
 base URLs are not predictable, so the registry is verified one portal at a time.</p>
-<a class="text-link" href="https://github.com/ChelseaKR/fhir-scorecard/blob/main/docs/payer-verifiability.md">Read
+<a class="usa-link" href="https://github.com/ChelseaKR/fhir-scorecard/blob/main/docs/payer-verifiability.md">Read
 the research note and its corrections →</a></div>
 </section>
 <section class="home-section data-section">
@@ -1503,8 +966,10 @@ the research note and its corrections →</a></div>
 <b>→</b></a></li>
 </ul>
 </section>
-<p class="caveat">Observational snapshots of public surfaces. Not audits, not rankings of care
+<div class="usa-alert usa-alert--info usa-alert--slim site-caveat"><div class="usa-alert__body">
+<p class="usa-alert__text">Observational snapshots of public surfaces. Not audits, not rankings of care
 quality, not statements about anyone's regulatory compliance.</p>
+</div></div>
 {_json_ld(jsonld)}
 """
     return Page(
@@ -1643,7 +1108,7 @@ _FINDING_DOCS = [
 
 def claim_page(origin: str) -> Page:
     body = """
-<nav aria-label="Breadcrumb"><a href="/">Home</a></nav>
+<nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list"><li class="usa-breadcrumb__list-item"><a href="/" class="usa-breadcrumb__link"><span>Home</span></a></li></ol></nav>
 <p class="eyebrow">Participation and correction</p>
 <h1>Add, correct, or remove an endpoint</h1>
 <p class="lede">If we got something wrong about your organization, we would rather be corrected
@@ -1656,7 +1121,7 @@ base URL was found, not that no API exists.</p>
 <p>We need the base URL and a link to where it is published, because
 confirming the publisher is who the entry claims is what verification means here. Nothing is
 added on an unverified submission.</p>
-<p><a class="button" href="https://github.com/ChelseaKR/fhir-scorecard/issues/new?template=add-endpoint.yml">Tell
+<p><a class="usa-button" href="https://github.com/ChelseaKR/fhir-scorecard/issues/new?template=add-endpoint.yml">Tell
 us about an endpoint</a></p></section>
 <section><span class="action-number">02</span><h2>Something here is wrong</h2>
 <p>This has happened. A live payer endpoint was recorded as dead because a middlebox on the
@@ -1670,7 +1135,7 @@ bot filter, geo rule, or rate limit your edge applies to that provider's address
 that hits all three at once. So when all three fail, the page says the endpoint was not reached
 from that network on that day. It does not say the endpoint is down.</p>
 <p>You do not need to prove anything before asking us to look again.</p>
-<p><a class="button button-secondary" href="https://github.com/ChelseaKR/fhir-scorecard/issues/new?template=remove-or-dispute.yml">Dispute
+<p><a class="usa-button usa-button--outline" href="https://github.com/ChelseaKR/fhir-scorecard/issues/new?template=remove-or-dispute.yml">Dispute
 or remove an entry</a></p></section>
 </div>
 <section class="probe-contract"><div><p class="eyebrow">Our probe contract</p>
@@ -1687,8 +1152,10 @@ observed</strong> rather than graded on a document we were pointed at.
 Publishing is triggered on a schedule and by hand, not by commits, because a commit says nothing
 about your endpoint and a commit-triggered rebuild once turned an ordinary working day into
 dozens of requests to every endpoint here.</p></section>
-<p class="caveat">Grades describe observable properties of public documents. They are not
+<div class="usa-alert usa-alert--info usa-alert--slim site-caveat"><div class="usa-alert__body">
+<p class="usa-alert__text">Grades describe observable properties of public documents. They are not
 audits, not compliance determinations, and not statements about care quality.</p>
+</div></div>
 """
     return Page(
         path="claim",
@@ -1711,7 +1178,7 @@ def how_we_grade_page(origin: str) -> Page:
         for code, title, question, detail in _FINDING_DOCS
     )
     body = f"""
-<nav aria-label="Breadcrumb"><a href="/">Home</a></nav>
+<nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list"><li class="usa-breadcrumb__list-item"><a href="/" class="usa-breadcrumb__link"><span>Home</span></a></li></ol></nav>
 <p class="eyebrow">Transparent by design</p>
 <h1>How we grade</h1>
 <p class="lede">Every finding is deterministic, cites a spec clause, and can be explained in one

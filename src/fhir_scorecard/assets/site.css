@@ -1,0 +1,342 @@
+/* FHIR Scorecard custom layer over USWDS.
+ *
+ * USWDS (vendored at /assets/uswds/, version in that directory's VERSION.txt) provides the
+ * foundation: reset, typography, color system, header, footer, tables, buttons, alerts,
+ * breadcrumbs. This file styles only what USWDS has no component for - the grade marks, the
+ * signal map, the dimension meters, and the page-specific layouts - and it does so with USWDS
+ * design-token values so the whole page reads as one system.
+ */
+:root {
+  --usa-primary: #005ea2;
+  --usa-primary-dark: #1a4480;
+  --usa-primary-darker: #162e51;
+  --usa-base-lightest: #f0f0f0;
+  --usa-base-lighter: #dfe1e2;
+  --usa-base-light: #a9aeb1;
+  --usa-base-dark: #565c65;
+  --usa-ink: #1b1b1b;
+  --usa-success-dark: #008817;
+  --usa-accent-warm-dark: #c05600;
+  --usa-error: #d54309;
+  --usa-error-dark: #b50909;
+  --usa-info-lighter: #e7f6f8;
+  --usa-gold: #ffbe2e;
+  --font-mono: "Roboto Mono Web", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --font-serif: "Merriweather Web", Georgia, Cambria, serif;
+}
+.site-main {
+  display: block;
+  max-width: 75rem;
+  min-height: 60vh;
+  margin-inline: auto;
+  padding: 2.5rem 1rem 5rem;
+}
+.site-main h1 { max-width: 24ch; margin-top: 0; }
+.eyebrow {
+  margin: 0 0 .65rem;
+  color: var(--usa-primary);
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.lede { max-width: 48rem; color: var(--usa-base-dark); font-size: 1.25rem; line-height: 1.55; }
+code {
+  padding: .08em .3em;
+  border-radius: 2px;
+  background: var(--usa-base-lightest);
+  font-family: var(--font-mono);
+  font-size: .88em;
+  overflow-wrap: anywhere;
+}
+
+/* Grade marks. USWDS state colors, one letter each; "not observed" is words on purpose. */
+.grade {
+  display: inline-grid;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: .16rem .42rem;
+  place-items: center;
+  color: #fff;
+  border-radius: 50%;
+  background: var(--usa-base-dark);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  line-height: 1;
+}
+.grade-a { background: var(--usa-success-dark); }
+.grade-b { background: var(--usa-primary); }
+.grade-c { background: var(--usa-accent-warm-dark); }
+.grade-d { background: var(--usa-error); }
+.grade-f { background: var(--usa-error-dark); }
+.grade-not-observed {
+  min-width: 0;
+  min-height: 0;
+  padding: .3rem .7rem;
+  border-radius: 999px;
+  background: var(--usa-base-dark);
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+/* Landing hero and the probe-surface summary box. */
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(17rem, .7fr);
+  gap: 3rem;
+  align-items: end;
+  padding: 1.5rem 0 3.5rem;
+}
+.home-hero h1 { max-width: 16ch; margin-bottom: 1rem; font-size: 2.7rem; line-height: 1.1; }
+.home-hero h1 em { color: var(--usa-primary); font-style: italic; }
+.hero-actions { display: flex; align-items: center; gap: 1.25rem; margin-top: 2rem; flex-wrap: wrap; }
+.scope-note code { display: block; margin: .55rem 0; padding: .5rem .65rem; background: #fff; }
+.scope-note p:last-child { margin-bottom: 0; color: var(--usa-base-dark); font-size: .88rem; }
+
+/* The signal map: one dot per endpoint, on the darkest primary USWDS offers. */
+.signal-panel { padding: 2.5rem; color: #fff; background: var(--usa-primary-darker); }
+.signal-panel .eyebrow { color: var(--usa-gold); }
+.signal-panel h2 { margin: 0; color: #fff; }
+.signal-panel-heading { display: flex; justify-content: space-between; gap: 2rem; }
+.signal-totals { display: flex; gap: 1.6rem; align-items: end; }
+.signal-totals p { margin: 0; color: var(--usa-base-lighter); font-size: .75rem; text-transform: uppercase; }
+.signal-totals strong { display: block; color: #fff; font-size: 1.25rem; }
+.signal-map { margin-top: 2.5rem; }
+.signal-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.25fr) 2rem 2fr;
+  gap: 1rem;
+  min-height: 3rem;
+  align-items: center;
+  border-top: 1px solid rgb(255 255 255 / 18%);
+}
+.signal-label { color: var(--usa-base-lighter); font-size: .82rem; text-decoration: none; }
+.signal-label:hover { color: #fff; }
+.signal-count { color: var(--usa-base-light); font-family: var(--font-mono); font-size: .75rem; }
+.signal-track { display: flex; align-items: center; gap: clamp(.35rem, 1vw, .8rem); }
+.signal {
+  display: block;
+  width: .75rem;
+  height: .75rem;
+  border: 2px solid var(--usa-primary-darker);
+  border-radius: 50%;
+  outline: 1px solid currentcolor;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.signal:hover, .signal:focus {
+  z-index: 1;
+  transform: scale(1.65);
+  box-shadow: 0 0 0 4px var(--usa-primary-darker);
+}
+.signal-a, .grade-count-a, .signal.signal-a { color: #70e17b; background: #70e17b; }
+.signal-b, .grade-count-b, .signal.signal-b { color: #73b3e7; background: #73b3e7; }
+.signal-c, .grade-count-c, .signal.signal-c { color: #ffbe2e; background: #ffbe2e; }
+.signal-d, .grade-count-d, .signal.signal-d { color: #fa9441; background: #fa9441; }
+.signal-f, .grade-count-f, .signal.signal-f { color: #f2938c; background: #f2938c; }
+.signal-not-observed, .grade-count-not-observed,
+.signal.signal-not-observed { color: var(--usa-base-light); background: var(--usa-base-light); }
+.signal-note { margin: 1.25rem 0 0; max-width: 62ch; color: var(--usa-base-lighter); font-size: .78rem; }
+.signal-legend { display: flex; gap: 1rem; margin-top: 1.5rem; color: var(--usa-base-lighter); font-size: .72rem; }
+.signal-legend span { display: flex; align-items: center; gap: .35rem; }
+.signal-legend i { width: .5rem; height: .5rem; border-radius: 50%; }
+
+/* Home sections. */
+.home-section { padding: 3.5rem 0; }
+.ruled-section { border-block: 1px solid var(--usa-base-lighter); }
+.section-heading { display: grid; grid-template-columns: 1.15fr .85fr; gap: 3rem; align-items: end; }
+.section-heading h2 { max-width: 22ch; margin-block: 0; }
+.section-heading > p { max-width: 33rem; margin-bottom: .3rem; color: var(--usa-base-dark); }
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 2.5rem 0 0;
+  padding: 1px;
+  list-style: none;
+  background: var(--usa-base-lighter);
+}
+.category-card { min-height: 15rem; padding: 2rem; background: #fff; }
+.category-card-top { display: flex; justify-content: space-between; }
+.category-arrow { color: var(--usa-primary); }
+.category-card > a { display: inline-block; font-size: 1.35rem; font-weight: 700; }
+.category-card > p { max-width: 34rem; color: var(--usa-base-dark); font-size: .9rem; }
+.grade-distribution { display: flex; gap: .5rem; margin-top: 1.5rem; }
+.grade-count {
+  display: inline-flex;
+  min-width: 2.2rem;
+  overflow: hidden;
+  align-items: stretch;
+  color: var(--usa-ink);
+  border: 1px solid currentcolor;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+}
+.grade-count strong { padding: .2rem .35rem; color: currentcolor; background: #fff; }
+.grade-count span { padding: .2rem .3rem; color: var(--usa-ink); background: currentcolor; }
+ul.cards { margin: 2rem 0; padding: 0; list-style: none; }
+ul.cards li { padding: 1rem 0; border-bottom: 1px solid var(--usa-base-lighter); }
+.cohort-list a { font-weight: 700; }
+.evidence-callout { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
+.evidence-callout > div:last-child { color: var(--usa-base-dark); font-size: 1.08rem; }
+.data-section { padding-bottom: 1rem; }
+.data-links { margin: 2.5rem 0 0; padding: 0; border-top: 1px solid var(--usa-base-lighter); list-style: none; }
+.data-links a {
+  display: grid;
+  grid-template-columns: 6rem 1fr auto;
+  gap: 1rem;
+  padding: 1.2rem .25rem;
+  align-items: center;
+  color: var(--usa-ink);
+  border-bottom: 1px solid var(--usa-base-lighter);
+  font-weight: 700;
+  text-decoration: none;
+}
+.data-links a:hover { padding-inline: .75rem; background: var(--usa-base-lightest); }
+.data-links span { color: var(--usa-primary); font-family: var(--font-mono); font-size: .7rem; }
+.data-links b { font-size: 1.2rem; }
+
+/* Endpoint pages. */
+.endpoint-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3rem;
+  align-items: end;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid var(--usa-base-lighter);
+}
+.endpoint-hero h1 { max-width: 24ch; font-size: 2.4rem; line-height: 1.12; }
+.hero-grade { min-width: 8rem; padding: 1.4rem; text-align: center; border: 1px solid var(--usa-base-lighter); background: #fff; }
+.hero-grade > span { display: block; margin-bottom: .8rem; color: var(--usa-base-dark); font-size: .72rem; }
+.hero-grade .grade { min-width: 4.3rem; min-height: 4.3rem; font-size: 2rem; }
+.hero-grade .grade-not-observed { min-width: 0; min-height: 0; font-size: .8rem; }
+.score-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
+.dimension-meter { padding: 1rem; border: 1px solid var(--usa-base-lighter); background: #fff; }
+.dimension-meter > div { display: flex; justify-content: space-between; gap: .75rem; font-size: .8rem; }
+.dimension-meter strong { font-family: var(--font-mono); }
+.meter { display: block; height: 3px; margin-top: .85rem; background: var(--usa-base-lighter); }
+.meter > span { display: block; width: var(--score); height: 100%; background: var(--usa-primary); }
+.meter-unscored {
+  height: 3px;
+  background: repeating-linear-gradient(90deg, var(--usa-base-lighter) 0 6px, transparent 6px 12px);
+}
+.dimension-meter-unscored strong { color: var(--usa-base-dark); font-family: inherit; font-size: .8rem; }
+.evidence-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 1rem; margin: 1rem 0 3rem; }
+.evidence-card { padding: 2rem; border: 1px solid var(--usa-base-lighter); background: #fff; }
+.evidence-card-accent { background: var(--usa-info-lighter); }
+dl.facts { display: grid; grid-template-columns: minmax(7rem, auto) 1fr; gap: .65rem 1.5rem; margin: 0; }
+dl.facts dt { color: var(--usa-base-dark); font-size: .8rem; font-weight: 600; }
+dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+.finding-group { margin: 1rem 0; padding: 1.25rem; border: 1px solid var(--usa-base-lighter); background: #fff; }
+.finding-group .dimension-meter { padding: 0 0 1.1rem; border: 0; }
+ul.findings { margin: 0; padding: 0; list-style: none; }
+.finding {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  gap: .8rem;
+  padding: .85rem 0;
+  align-items: start;
+  border-top: 1px solid var(--usa-base-lightest);
+}
+.mark { display: grid; width: 1.5rem; height: 1.5rem; place-items: center; border-radius: 50%; font-weight: 800; }
+li.no .mark { color: var(--usa-error-dark); background: #f4e3db; }
+li.ok .mark { color: var(--usa-success-dark); background: #dfeacd; }
+li.unobserved .mark, li.note .mark { color: var(--usa-base-dark); background: var(--usa-base-lightest); }
+li.unobserved .finding-copy, li.note .finding-copy { color: var(--usa-base-dark); font-style: italic; }
+.finding-copy { font-size: .92rem; }
+.finding-links { display: flex; gap: .8rem; font-family: var(--font-mono); font-size: .7rem; }
+.verification { margin-top: 3rem; padding: 2rem; border-left: 4px solid var(--usa-primary); background: var(--usa-base-lightest); }
+.badge-embed { margin-top: 1rem; border: 1px solid var(--usa-base-lighter); background: #fff; }
+.badge-embed summary { padding: 1rem 1.25rem; cursor: pointer; font-weight: 700; }
+.badge-embed > div { padding: 0 1.25rem 1.25rem; }
+.badge-embed img { display: block; }
+.badge-embed p { margin: 1rem 0 .5rem; color: var(--usa-base-dark); font-size: .86rem; }
+.badge-embed code { display: block; padding: .75rem; white-space: normal; }
+
+/* Category and cohort headline strips. */
+.category-summary, .cohort-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin: 2.5rem 0 2rem;
+  padding: 1.2rem 0;
+  align-items: center;
+  border-block: 1px solid var(--usa-base-lighter);
+}
+.category-summary > p, .cohort-stats p { margin: 0; }
+.category-summary > p strong, .cohort-stats strong { margin-right: .5rem; font-size: 1.6rem; }
+.category-summary > p span, .cohort-stats span { color: var(--usa-base-dark); font-size: .78rem; }
+.category-summary .grade-distribution { margin: 0 0 0 auto; }
+.registry-table td:first-child a { font-weight: 700; }
+.surface-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 2rem 0; padding: 0; list-style: none; }
+.surface-card { padding: 1.5rem; border: 1px solid var(--usa-base-lighter); background: #fff; }
+.surface-card > div { display: flex; gap: 1rem; align-items: center; }
+.surface-card .eyebrow { margin: 0; }
+.surface-card > a { display: block; margin-top: 1.3rem; font-weight: 700; }
+.surface-card p { margin: .5rem 0 0; color: var(--usa-base-dark); font-size: .86rem; }
+
+/* Claim and method pages. */
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 3rem 0; background: var(--usa-base-lighter); }
+.action-grid section { padding: 2.5rem; background: #fff; }
+.action-number { color: var(--usa-primary); font-family: var(--font-mono); }
+.probe-contract, .weight-panel {
+  display: grid;
+  grid-template-columns: .8fr 1.2fr;
+  gap: 3rem;
+  padding: 2.5rem;
+  color: #fff;
+  background: var(--usa-primary-darker);
+}
+.probe-contract .eyebrow, .weight-panel .eyebrow { color: var(--usa-gold); }
+.probe-contract h2, .weight-panel h2 { margin-top: 0; color: #fff; }
+.probe-contract code { color: #fff; background: rgb(255 255 255 / 14%); }
+.weight-bars p { position: relative; display: grid; grid-template-columns: 1fr auto; padding-bottom: 1rem; }
+.weight-bars i { position: absolute; bottom: 0; left: 0; width: var(--weight); height: 3px; background: var(--usa-gold); }
+.method-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; margin: 2rem 0 3rem; background: var(--usa-base-lighter); }
+.method-card { display: grid; grid-template-columns: 2.5rem 1fr; gap: 1rem; padding: 1.5rem; background: #fff; scroll-margin-top: 2rem; }
+.method-card > span { color: var(--usa-primary); font-family: var(--font-mono); font-weight: 800; }
+.method-card h3 { margin-block: 0 .65rem; }
+.method-card p { margin-bottom: .65rem; color: var(--usa-base-dark); font-size: .9rem; }
+.method-card strong { color: var(--usa-ink); }
+.site-caveat { margin-top: 3rem; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.footer-tagline { margin: 0 0 .5rem; font-family: var(--font-serif); font-size: 1.15rem; }
+@media (max-width: 760px) {
+  .home-hero, .endpoint-hero, .evidence-grid, .section-heading, .evidence-callout,
+  .probe-contract, .weight-panel { grid-template-columns: 1fr; gap: 2rem; }
+  .home-hero { padding-bottom: 2rem; }
+  .signal-panel-heading { display: block; }
+  .signal-totals { margin-top: 1.5rem; }
+  .signal-row { grid-template-columns: minmax(8rem, 1fr) 1.5rem 1fr; }
+  .category-grid, .surface-grid, .action-grid, .method-list { grid-template-columns: 1fr; }
+  .score-overview { grid-template-columns: 1fr; }
+  .category-summary, .cohort-stats { align-items: flex-start; flex-wrap: wrap; }
+  .category-summary .grade-distribution { width: 100%; margin-left: 0; }
+  .finding { grid-template-columns: 2rem 1fr; }
+  .finding-links { grid-column: 2; }
+  .data-links a { grid-template-columns: 4.5rem 1fr auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}
+@media print {
+  .usa-header, .usa-footer, .hero-actions { display: none; }
+  .site-main { width: 100%; padding: 0; }
+  a { color: inherit; }
+}
+
+/* Logo lockup: the site's own signal dots, rising. Original mark - deliberately unlike the
+ * trademarked FHIR flame and unlike any government seal. */
+.usa-logo a { display: inline-flex; align-items: center; gap: .55rem; }
+.site-logo-mark { flex: none; }

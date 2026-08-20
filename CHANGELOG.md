@@ -14,6 +14,17 @@ Merged changes land here until the next tag.
 
 ### Changed
 
+- **The site is styled by the U.S. Web Design System, vendored and served same-origin.**
+  USWDS 3.14.0 - the stylesheet, its fonts and icons, and the two scripts its header needs -
+  ships inside the package (`src/fhir_scorecard/assets/uswds/`, provenance and trim rule in its
+  `VERSION.txt`) and the build copies it to `/assets/`, so the pages adopt the design system in
+  full while remaining what they were: static HTML with no third-party subresource. Header,
+  navigation, footer, tables, buttons, breadcrumbs, alerts and the summary box are USWDS
+  components; the domain visualizations nobody's design system has - grade marks, the signal
+  map, dimension meters - keep their own small stylesheet written in USWDS design-token values.
+  Because the system is best known from federal sites, the footer of every page now states in
+  words that this is an independent open-source project and not a government website. The
+  600-line inline stylesheet is gone; pages link two same-origin files instead.
 - **The canonical origin is <https://fhir.chelseakr.com/>.** The site had lived at
   `chelseakr.github.io/fhir-scorecard`, a project path under a shared user domain, which made
   the canonical URLs a hosting detail rather than a name the project controls. The DNS record,

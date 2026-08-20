@@ -1,0 +1,13 @@
+USWDS (U.S. Web Design System) compiled distribution, vendored.
+
+Version: 3.14.0
+Source: https://registry.npmjs.org/@uswds/uswds/-/uswds-3.14.0.tgz (package/dist)
+Retrieved: 2026-08-19
+License: the U.S. Web Design System is a work of the United States government
+released under CC0 1.0 Universal (see https://github.com/uswds/uswds/blob/develop/LICENSE.md);
+bundled fonts carry their own open licenses (SIL OFL for Public Sans/Source Sans Pro/Merriweather,
+Apache 2.0 for Roboto Mono).
+
+Trim rule: css/uswds.min.css, js/uswds.min.js, js/uswds-init.min.js, img/sprite.svg,
+plus exactly the font (.woff2) and image files uswds.min.css references by url(), nothing else.
+Re-vendor by re-running the trim against a newer dist and updating this file.

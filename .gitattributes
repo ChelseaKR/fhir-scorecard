@@ -18,3 +18,8 @@ data/history.json merge=union
 /README.md -export-ignore
 /SECURITY.md -export-ignore
 /src -export-ignore
+# The vendored design system (stylesheets, fonts, icons) exists to build the site. The Action
+# runtime a consumer downloads runs `check` and never builds a site, so the 50-odd asset files
+# stay out of the archive the same way the dataset does. A checkout has them; the archive is
+# the Action runtime, bounded on purpose.
+/src/fhir_scorecard/assets export-ignore

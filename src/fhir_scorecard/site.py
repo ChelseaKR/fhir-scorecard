@@ -23,6 +23,7 @@ _PROGRAM_LABELS = {
     "medi-cal": "Medi-Cal managed care",
     "covered-ca": "Covered California",
     "tx-marketplace": "Texas individual marketplace (HealthCare.gov)",
+    "fl-marketplace": "Florida individual marketplace (HealthCare.gov)",
 }
 
 _KIND_LABELS = {

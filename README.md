@@ -183,6 +183,19 @@ fifteen publish a Patient Access base URL and one of the three answers a strange
 Provider Directory base URL - the surface the rule requires to be reachable *without*
 authentication - and four of the six answer.
 
+The third is the **Florida marketplace issuer cohort** at `/florida-marketplace/`: the same federal
+prong in the largest HealthCare.gov state. From the same CMS file - 7,569 plan-county rows, 16 HIOS
+issuer IDs, **15 issuer organizations**, frozen before any URL was probed, with the per-issuer
+roster committed beside the cohort as `florida-marketplace.roster.csv`. Nine of the fifteen publish
+a base URL this project could verify from the organization's own documentation, which inverts the
+Texas result, and the smallest issuers are among the cleanest publishers: a brand-new one-county
+plan prints its base URLs in the open while three national names publish nothing a stranger can
+reach. The frame behind both marketplace cohorts is national - 176 state-issuer organizations
+across 30 federally-facilitated-exchange states, committed under `data/frames/` - of which these
+two cohorts have reviewed 30; the other 146 are *not yet reviewed*, a statement about this
+project's progress that is never rendered as "publishes nothing"
+(see [docs/SAMPLING-FRAME.md](docs/SAMPLING-FRAME.md)).
+
 ## Findings
 
 `docs/findings/` holds dated write-ups of what pointing this tool at real endpoints produced,
@@ -236,13 +249,13 @@ an assistant can be told what the numbers do not mean.
 
 ## Status
 
-v0.1.0-dev. Thirty-seven endpoints across payers, payer provider directories, a federal provider
-API, EHR vendor sandboxes, and reference servers, in two curated cohorts (California payers, Texas
-marketplace issuers). Thirty-three were verified from a retrieved conformance document; four are
-listed on the organization's own publication of a base URL that does not answer, which is a finding
-about the public record rather than a gap in this one. Registry curation continues one roster at a
-time - see [docs/SAMPLING-FRAME.md](docs/SAMPLING-FRAME.md) - because payer base URLs are not
-predictable from company names. Grades are observational snapshots of public surfaces, not audits,
+v0.1.0-dev. Forty-five endpoints across payers, payer provider directories, a federal provider
+API, EHR vendor sandboxes, and reference servers, in three curated cohorts (California payers,
+Texas marketplace issuers, Florida marketplace issuers). Forty were verified from a retrieved
+conformance document; five are listed on the organization's own publication of a base URL that does
+not answer, which is a finding about the public record rather than a gap in this one. Registry
+curation continues one roster at a time - see [docs/SAMPLING-FRAME.md](docs/SAMPLING-FRAME.md) -
+because payer base URLs are not predictable from company names. Grades are observational snapshots of public surfaces, not audits,
 rankings of care quality, or statements about any organization's compliance.
 
 ## Provenance

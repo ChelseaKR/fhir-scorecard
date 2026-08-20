@@ -332,3 +332,48 @@ Patient Access URL on 2026-08-07. Re-probed once today, that URL and the Wellpoi
 both answer **401**: the per-brand paths are now authenticated and the rotating `implementation.url`
 is no longer observable from outside. The write-up carries a dated re-check section saying so; the
 original observation stands as what was seen on the day it was seen.
+
+## 2026-08-19 (tenth wave): the Florida marketplace cohort
+
+Same frame as the ninth wave's Texas cohort - CMS/CCIIO's QHP Landscape PY2026 Individual
+Medical file, the regulator's own enumeration - filtered to Florida: 7,569 plan-county rows,
+16 HIOS issuer IDs, 15 issuer organizations, frozen before any probe. The per-issuer roster is
+committed at `data/cohorts/florida-marketplace.roster.csv`. One `/metadata` request per
+candidate, plus a same-day independent re-probe of every address that produced a registry
+entry, because every load-bearing claim below was measured twice before being written down.
+
+| Candidate | Base URL | Outcome |
+|---|---|---|
+| Florida Blue CMS Interop Patient Access conformance | apigw.bcbsfl.com/interop/interop-developer-portal/cms/iop/v1/R4 | **Verified** → registry (HAPI 5.4.1.12_edfx, 24 resources) |
+| Florida Blue CMS Interop Provider Directory conformance | apigw.bcbsfl.com/interop/interop-developer-portal/cms/iop/v1/pd/R4 | **Verified** → registry (serves the same clinical CapabilityStatement as the Patient Access route, not a Plan-Net one) |
+| Florida Blue Provider Directory resource base | apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir | Rejected: HTTP 404 at /metadata, on the base the portal calls an open access service; the conformance route above is listed instead |
+| Florida Blue Patient Access member-data base | apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1 | Rejected: HTTP 401 (OAuth-gated member data; conformance route listed instead) |
+| Florida Blue Pharmacy API | apigw.bcbsfl.com/interop/interop-developer-portal/fhir/vendor/R4 | Rejected: HTTP 404 at /metadata |
+| AvMed Patient Access | avmp.interop.avmed.com/api/v1/avmp | **Verified** → registry (HiPaaS; implementation names Sentara, the parent) |
+| AvMed Provider Directory (documented) | avmp.interop.avmed.com/avmp/api/plannet | → registry as `publisher_documented`: HTTP 404 at the base its API documentation declares |
+| AvMed provider conformance link | myfhir.avmed.org/provider | Rejected: the served certificate is AvMed's own and expired 2026-05-15, and behind it sits a 1,666-byte HTML maintenance page, not a CapabilityStatement |
+| AmeriHealth Caritas Next (FLDS) | api-ext.amerihealthcaritas.com/FLDS/patient-api and /FLDS/provider-api | **Verified** → registry (both answer; implementation.url matches exactly) |
+| AmeriHealth Caritas Next (FLEX) | api-ext.amerihealthcaritas.com/FLEX/... | Verified but redundant: byte-identical documents under a second plan ID with the identical label; not listed |
+| AmeriHealth Caritas Next (KCHC) | api-ext.amerihealthcaritas.com/KCHC/... | Verified but redundant: same again under a third plan ID; not listed |
+| 22 Health Patient Access | ccpcmsioapi.zeomega.com/t/ccpprd.com/fhir/r4 | **Verified** → registry (declares fhirVersion 4.0.0 and no software element) |
+| 22 Health Provider Directory | ccpcmsioapi.zeomega.com/t/ccpprd.com/fhir/v1/ProviderDirectory | **Verified** → registry (unauthenticated, as the rule requires) |
+| 22 Health Drug Formulary | ccpcmsioapi.zeomega.com/t/ccpprd.com/fhir/r4/DrugFormulary | Rejected: HTTP 404 at /metadata, printed in the same table as the two that answer |
+| Health First (Epic directory row) | epicproxy.et1426.epichosted.com/FHIRProxyPRD/api/FHIR/R4 | Answers (Epic November 2025, 'Health First FHIR Server') and is **not listed**: the row is Epic's directory attribution by shared name, the issuer prints no base URL of its own, and a vendor row is the attribution this registry excludes |
+| HealthTrio multi-tenant hosts (FHCP's vendor) | www.healthtrioconnect.com/fhirprovdir and /fhir | Not listed: the vendor's public OpenAPI specs print only tenantless multi-tenant hosts with no FHCP identifier, and the hosts answer 406 to `Accept: application/fhir+json` |
+
+### What the second state bought
+
+Florida is the largest HealthCare.gov market, and it inverts the Texas result. Texas: 6 of 15
+organizations publish a verifiable base URL. Florida: 9 of 15 - and the two smallest issuers on
+the roster are among the cleanest publishers. 22 Health, a brand-new Broward-county issuer,
+prints three base URLs on its own page, two of which answer unauthenticated. AmeriHealth
+Caritas Next answers on every published address. Meanwhile three national names - Oscar,
+Molina, and Centene's Ambetter - publish nothing a stranger can reach in Florida, exactly as
+they publish nothing in Texas, so the wall is corporate policy, not state implementation.
+
+The failure inventory also gained two shapes the registry had not seen: a conformance endpoint
+whose certificate expired three months ago in front of a maintenance page (AvMed), and an
+issuer whose interoperability documentation itself sits behind a bot challenge that 403s every
+scripted client (Health First) - the compliance page about public access is not publicly
+readable by the tools that would check it. The Health First pages were read from same-day
+Wayback Machine captures rather than skipped, and the exclusion says so.

@@ -31,7 +31,7 @@ _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,63}$")
 # plan a member, and a tag outside this set would render as an unexplained word. Adding a cohort
 # therefore requires adding its tags here and their labels in ``site.py``, which is deliberate:
 # the label is what a reader sees, and a tag with no label is a word nobody wrote.
-PROGRAMS = {"medi-cal", "covered-ca", "tx-marketplace"}
+PROGRAMS = {"medi-cal", "covered-ca", "tx-marketplace", "fl-marketplace"}
 
 # How far the review behind an exclusion went. Same two strengths as the registry's candidate
 # work: retrieving the plan's own documentation and finding no base URL is a stronger claim than

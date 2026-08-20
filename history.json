@@ -1,4 +1,58 @@
 {
+  "22-health-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.0",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 24,
+      "resources_with_interactions": 0,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-08-20",
+    "last_seen": "2026-08-20",
+    "observations": [
+      {
+        "date": "2026-08-20",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "354aa6cf9dcf5462",
+        "first_seen": "2026-08-20"
+      }
+    ]
+  },
+  "22-health-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 8,
+      "profile_digest": "15413e83f760a957",
+      "resource_count": 8,
+      "resources_with_interactions": 8,
+      "software_name": "ZeOmega HealthUnity Interoperability Platform",
+      "software_version": "3.2.1"
+    },
+    "first_seen": "2026-08-20",
+    "last_seen": "2026-08-20",
+    "observations": [
+      {
+        "date": "2026-08-20",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "412376430da495ab",
+        "first_seen": "2026-08-20"
+      }
+    ]
+  },
   "_meta": {
     "mode": "live"
   },
@@ -15,7 +69,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -68,12 +122,106 @@
       {
         "date": "2026-08-19",
         "up": true
+      },
+      {
+        "date": "2026-08-20",
+        "up": true
       }
     ],
     "states": [
       {
         "digest": "820114f1eb6249c6",
         "first_seen": "2026-08-05"
+      }
+    ]
+  },
+  "amerihealth-caritas-next-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 22,
+      "resources_with_interactions": 22,
+      "software_name": "AmeriHealth Caritas",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-08-20",
+    "last_seen": "2026-08-20",
+    "observations": [
+      {
+        "date": "2026-08-20",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "50246b48e28560aa",
+        "first_seen": "2026-08-20"
+      }
+    ]
+  },
+  "amerihealth-caritas-next-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 6,
+      "resources_with_interactions": 6,
+      "software_name": "AmeriHealth Caritas",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-08-20",
+    "last_seen": "2026-08-20",
+    "observations": [
+      {
+        "date": "2026-08-20",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "64b21519c9b1ff51",
+        "first_seen": "2026-08-20"
+      }
+    ]
+  },
+  "avmed-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 9,
+      "resources_with_interactions": 9,
+      "software_name": "HiPaaS",
+      "software_version": "4.0.1 1.35.0 v1.0.0-rc+20220530 860d7ac46"
+    },
+    "first_seen": "2026-08-20",
+    "last_seen": "2026-08-20",
+    "observations": [
+      {
+        "date": "2026-08-20",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "d7627da67352dc3d",
+        "first_seen": "2026-08-20"
+      }
+    ]
+  },
+  "avmed-provider-directory": {
+    "first_seen": "2026-08-20",
+    "observations": [
+      {
+        "date": "2026-08-20",
+        "up": false
       }
     ]
   },
@@ -90,7 +238,7 @@
       "software_version": "0.5.0"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -142,6 +290,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -165,7 +317,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -217,6 +369,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -240,7 +396,7 @@
       "software_version": "5.4.1.13_edfx"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -284,6 +440,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -307,7 +467,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -352,6 +512,10 @@
       {
         "date": "2026-08-19",
         "up": true
+      },
+      {
+        "date": "2026-08-20",
+        "up": true
       }
     ],
     "states": [
@@ -366,6 +530,10 @@
     "observations": [
       {
         "date": "2026-08-19",
+        "up": false
+      },
+      {
+        "date": "2026-08-20",
         "up": false
       }
     ]
@@ -383,7 +551,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -435,6 +603,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -458,7 +630,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -510,6 +682,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -552,7 +728,7 @@
       "software_version": "2.264.0"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -604,6 +780,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -639,10 +819,14 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-08-19",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -675,7 +859,7 @@
       "software_version": "August 2026"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -728,6 +912,10 @@
       {
         "date": "2026-08-19",
         "up": true
+      },
+      {
+        "date": "2026-08-20",
+        "up": true
       }
     ],
     "states": [
@@ -754,7 +942,7 @@
       "software_version": "6.9.1+e4f2e63c5e20f326898f61339c3b3fcd48017201"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -806,6 +994,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -829,7 +1021,7 @@
       "software_version": "6.9.1+e4f2e63c5e20f326898f61339c3b3fcd48017201"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -882,12 +1074,70 @@
       {
         "date": "2026-08-19",
         "up": true
+      },
+      {
+        "date": "2026-08-20",
+        "up": true
       }
     ],
     "states": [
       {
         "digest": "df1b2d667557b7f2",
         "first_seen": "2026-08-05"
+      }
+    ]
+  },
+  "florida-blue-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 45,
+      "profile_digest": "dd3ef87c24ddc1eb",
+      "resource_count": 24,
+      "resources_with_interactions": 24,
+      "software_name": "HAPI FHIR Server",
+      "software_version": "5.4.1.12_edfx"
+    },
+    "first_seen": "2026-08-20",
+    "last_seen": "2026-08-20",
+    "observations": [
+      {
+        "date": "2026-08-20",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "7b3113b363b19f3a",
+        "first_seen": "2026-08-20"
+      }
+    ]
+  },
+  "florida-blue-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 45,
+      "profile_digest": "dd3ef87c24ddc1eb",
+      "resource_count": 24,
+      "resources_with_interactions": 24,
+      "software_name": "HAPI FHIR Server",
+      "software_version": "5.4.1.12_edfx"
+    },
+    "first_seen": "2026-08-20",
+    "last_seen": "2026-08-20",
+    "observations": [
+      {
+        "date": "2026-08-20",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "7b3113b363b19f3a",
+        "first_seen": "2026-08-20"
       }
     ]
   },
@@ -904,7 +1154,7 @@
       "software_version": "8.11.16-SNAPSHOT/7e7129efb5/2026-07-08"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -956,6 +1206,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -979,7 +1233,7 @@
       "software_version": "8.11.16-SNAPSHOT/7e7129efb5/2026-07-08"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -1032,6 +1286,10 @@
       {
         "date": "2026-08-19",
         "up": true
+      },
+      {
+        "date": "2026-08-20",
+        "up": true
       }
     ],
     "states": [
@@ -1046,6 +1304,10 @@
     "observations": [
       {
         "date": "2026-08-19",
+        "up": false
+      },
+      {
+        "date": "2026-08-20",
         "up": false
       }
     ]
@@ -1076,7 +1338,7 @@
       "software_version": "5.0.23"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -1128,6 +1390,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -1159,7 +1425,7 @@
       "software_version": "4.0.1 3.9.0 v1.0.0-rc+202607151200 bc93922"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -1203,6 +1469,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -1226,7 +1496,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -1278,6 +1548,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -1301,7 +1575,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -1345,6 +1619,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -1368,7 +1646,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -1413,6 +1691,10 @@
       {
         "date": "2026-08-19",
         "up": true
+      },
+      {
+        "date": "2026-08-20",
+        "up": true
       }
     ],
     "states": [
@@ -1427,6 +1709,10 @@
     "observations": [
       {
         "date": "2026-08-19",
+        "up": false
+      },
+      {
+        "date": "2026-08-20",
         "up": false
       }
     ]
@@ -1444,10 +1730,14 @@
       "software_version": "5.0.23"
     },
     "first_seen": "2026-08-19",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -1471,7 +1761,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -1524,6 +1814,10 @@
       {
         "date": "2026-08-19",
         "up": true
+      },
+      {
+        "date": "2026-08-20",
+        "up": true
       }
     ],
     "states": [
@@ -1546,7 +1840,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -1591,6 +1885,10 @@
       {
         "date": "2026-08-19",
         "up": true
+      },
+      {
+        "date": "2026-08-20",
+        "up": true
       }
     ],
     "states": [
@@ -1612,8 +1910,8 @@
         ],
         "digest": "b4924cf854242db6",
         "first_return": "2026-08-08",
-        "last_return": "2026-08-16",
-        "returns": 4,
+        "last_return": "2026-08-20",
+        "returns": 5,
         "state_first_seen": "2026-08-08"
       },
       {
@@ -1643,10 +1941,10 @@
       "resource_count": 24,
       "resources_with_interactions": 24,
       "software_name": "HAPI FHIR Server",
-      "software_version": "5.4.1.11_edfx"
+      "software_version": "5.4.1.13_edfx"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -1690,6 +1988,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -1789,6 +2091,12 @@
           "software_version: '5.1.30-76fa156' -> '5.1.30-74dfb62'"
         ],
         "date": "2026-08-19"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.30-74dfb62' -> '5.1.30-e3ab98e'"
+        ],
+        "date": "2026-08-20"
       }
     ],
     "fingerprint": {
@@ -1799,10 +2107,10 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "medplum",
-      "software_version": "5.1.30-74dfb62"
+      "software_version": "5.1.30-e3ab98e"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -1854,6 +2162,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -1917,6 +2229,10 @@
       {
         "digest": "81c4bf0ad75d2dd2",
         "first_seen": "2026-08-19"
+      },
+      {
+        "digest": "aae1dcdc22cd0b63",
+        "first_seen": "2026-08-20"
       }
     ]
   },
@@ -1933,7 +2249,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -1985,6 +2301,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -2008,7 +2328,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -2052,6 +2372,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -2075,7 +2399,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -2119,6 +2443,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -2142,7 +2470,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -2186,6 +2514,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -2209,7 +2541,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-08",
@@ -2253,6 +2585,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -2276,7 +2612,7 @@
       "software_version": "2019.08.PRE"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -2328,6 +2664,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -2351,7 +2691,7 @@
       "software_version": "2019.08.PRE"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -2403,6 +2743,10 @@
       },
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -2426,10 +2770,14 @@
       "software_version": "4.4.2.4"
     },
     "first_seen": "2026-08-19",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-19",
+        "up": true
+      },
+      {
+        "date": "2026-08-20",
         "up": true
       }
     ],
@@ -2453,7 +2801,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-08-19",
+    "last_seen": "2026-08-20",
     "observations": [
       {
         "date": "2026-08-05",
@@ -2506,6 +2854,10 @@
       {
         "date": "2026-08-19",
         "up": true
+      },
+      {
+        "date": "2026-08-20",
+        "up": true
       }
     ],
     "states": [
@@ -2520,6 +2872,10 @@
     "observations": [
       {
         "date": "2026-08-19",
+        "up": false
+      },
+      {
+        "date": "2026-08-20",
         "up": false
       }
     ]

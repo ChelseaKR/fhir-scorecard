@@ -1920,8 +1920,8 @@
         ],
         "digest": "fd27f793f6196414",
         "first_return": "2026-08-11",
-        "last_return": "2026-08-19",
-        "returns": 4,
+        "last_return": "2026-08-20",
+        "returns": 5,
         "state_first_seen": "2026-08-08"
       }
     ],
@@ -1941,7 +1941,7 @@
       "resource_count": 24,
       "resources_with_interactions": 24,
       "software_name": "HAPI FHIR Server",
-      "software_version": "5.4.1.13_edfx"
+      "software_version": "5.4.1.11_edfx"
     },
     "first_seen": "2026-08-08",
     "last_seen": "2026-08-20",

@@ -281,3 +281,30 @@ def test_internal_links_follow_the_origin_shape(tmp_path: Path) -> None:
     # Absolute URLs are never rewritten, in either shape.
     assert 'href="https://github.com/ChelseaKR/fhir-scorecard"' in prefixed
     assert '="/fhir-scorecard/fhir-scorecard/' not in prefixed
+
+
+def test_the_category_cards_keep_their_grade_colours_and_title_colour() -> None:
+    """Two cascade defects that shipped on the live home page, pinned.
+
+    The per-grade ``.grade-count-*`` rules set the pill's colour, and a later
+    ``.grade-count`` rule at equal specificity reset it to ink, so every pill
+    rendered ink on ink; the letter cell painted ``background: currentcolor``
+    over its own ink colour, which is black by construction. And the card title
+    set no colour, so USWDS's ``a:visited`` turned it purple after one click.
+    """
+    from importlib import resources
+
+    css = (resources.files("fhir_scorecard") / "assets" / "site.css").read_text(encoding="utf-8")
+    start = css.index(".grade-count {")
+    block = css[start : css.index("}", start)]
+    assert "color:" not in block.replace("currentcolor", ""), (
+        "the shared .grade-count rule must not set colour; it follows the per-grade rules "
+        "at equal specificity and would reset every pill to ink"
+    )
+    assert "background:" not in block, "the shared .grade-count rule must not set background"
+    letter = css[css.index(".grade-count span {") :]
+    letter = letter[: letter.index("}")]
+    assert "background: currentcolor" not in letter, (
+        "the letter cell's own colour is ink, so currentcolor paints it black"
+    )
+    assert ".category-card > a:visited" in css, "the card title must pin its visited colour"

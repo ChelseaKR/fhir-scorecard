@@ -189,22 +189,35 @@ code {
 .category-card { min-height: 15rem; padding: 2rem; background: #fff; }
 .category-card-top { display: flex; justify-content: space-between; }
 .category-arrow { color: var(--usa-primary); }
-.category-card > a { display: inline-block; font-size: 1.35rem; font-weight: 700; }
+/* The card title is a link, but USWDS's a:visited purple is not what a card heading should
+   become after one click. Both states are set, at a specificity above the bare element rule. */
+.category-card > a,
+.category-card > a:visited {
+  display: inline-block;
+  color: var(--usa-primary-darker);
+  font-size: 1.35rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.category-card > a:hover,
+.category-card > a:focus { text-decoration: underline; }
 .category-card > p { max-width: 34rem; color: var(--usa-base-dark); font-size: .9rem; }
 .grade-distribution { display: flex; gap: .5rem; margin-top: 1.5rem; }
+/* One pill per grade: the container carries the grade colour (set by .grade-count-* above,
+   as colour and background), the count sits in a white box, and the letter sits on the
+   container's own background. This rule must set neither colour nor background: it follows
+   the per-grade rules at equal specificity, and when it did, every pill was ink on ink. */
 .grade-count {
   display: inline-flex;
   min-width: 2.2rem;
   overflow: hidden;
   align-items: stretch;
-  color: var(--usa-ink);
   border: 1px solid currentcolor;
-  background: transparent;
   font-family: var(--font-mono);
   font-size: .68rem;
 }
-.grade-count strong { padding: .2rem .35rem; color: currentcolor; background: #fff; }
-.grade-count span { padding: .2rem .3rem; color: var(--usa-ink); background: currentcolor; }
+.grade-count strong { padding: .2rem .35rem; color: var(--usa-ink); background: #fff; }
+.grade-count span { padding: .2rem .3rem; color: var(--usa-ink); background: transparent; }
 ul.cards { margin: 2rem 0; padding: 0; list-style: none; }
 ul.cards li { padding: 1rem 0; border-bottom: 1px solid var(--usa-base-lighter); }
 .cohort-list a { font-weight: 700; }

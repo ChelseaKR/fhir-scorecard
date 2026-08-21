@@ -24,6 +24,33 @@
   --font-mono: "Roboto Mono Web", ui-monospace, "SFMono-Regular", Consolas, monospace;
   --font-serif: "Merriweather Web", Georgia, Cambria, serif;
 }
+/* Content typography on USWDS's own prose scale. The compiled system styles text only inside
+ * .usa-prose and its components; the page bodies here are bare elements inside custom layouts,
+ * which left them at browser defaults and the html line-height of 1.15. These are the values
+ * USWDS's prose rules use (Merriweather headings at 2.44/1.95/1.46rem, body at 1.06rem with a
+ * 1.5 line height and a 68ex measure), applied to the content area without the prose wrapper's
+ * width rules, which would fight the grids. */
+.site-main {
+  font-size: 1.06rem;
+  line-height: 1.5;
+}
+.site-main h1, .site-main h2, .site-main h3, .site-main h4 {
+  margin: 0 0 .5em;
+  color: var(--usa-ink);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.site-main h1 { font-size: 2.44rem; }
+.site-main h2 { margin-top: 1.5em; font-size: 1.95rem; }
+.site-main h3 { margin-top: 1.25em; font-size: 1.46rem; }
+.site-main h4 { font-size: 1.06rem; }
+.site-main p { margin: 0 0 1em; max-width: 68ex; }
+.site-main ul, .site-main ol { margin: 0 0 1em; line-height: 1.5; }
+.site-main li { max-width: 68ex; margin-bottom: .25em; }
+.site-main dl { margin: 0 0 1em; }
+.site-main code { font-size: .92em; }
+.site-main table p { max-width: none; }
 .site-main {
   display: block;
   max-width: 75rem;

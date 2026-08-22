@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 import time
@@ -339,6 +340,26 @@ def _build_parser() -> argparse.ArgumentParser:
         default=Path("site"),
         help="directory containing a generated api/index.json",
     )
+    mcp.add_argument(
+        "--root",
+        type=Path,
+        default=Path("."),
+        help="repository root holding corpus/ for the cited_passages tool",
+    )
+    narrate = sub.add_parser(
+        "narrate",
+        help="explain one published scorecard in plain language with citations verified "
+        "against corpus/ (calls a model; needs the `ai` extra and FHIR_AI_PROVIDER)",
+    )
+    narrate.add_argument(
+        "--scorecards", type=Path, default=Path("site/scorecards.json"), help="published dataset"
+    )
+    narrate.add_argument("--endpoint", required=True, help="endpoint_id to narrate")
+    narrate.add_argument("--language", choices=("en", "es"), default="en")
+    narrate.add_argument(
+        "--root", type=Path, default=Path("."), help="repository root with corpus/"
+    )
+    narrate.add_argument("--json", action="store_true", help="emit the full record")
     recheck = sub.add_parser(
         "recheck",
         help="re-probe previously rejected candidates; reports only, never edits the registry",
@@ -448,8 +469,57 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
     if args.command == "mcp":
         from fhir_scorecard.mcp import serve
 
-        return serve(args.site)
+        return serve(args.site, root=args.root)
+    if args.command == "narrate":
+        return _cmd_narrate(args)
     return None
+
+
+def _cmd_narrate(args: argparse.Namespace) -> int:
+    """Narrate one published scorecard (ADR 0003). Imports the `ai` extra lazily so every
+    other command keeps the standard-library-only boundary."""
+    from fhir_scorecard.ai.corpus import CorpusError, CorpusIndex
+    from fhir_scorecard.ai.narrate import NarrationError, narrate
+    from fhir_scorecard.ai.provider import ProviderError, provider_from_env
+
+    try:
+        payload = json.loads(args.scorecards.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"narrate: cannot read {args.scorecards}: {exc}", file=sys.stderr)
+        return 2
+    records = payload.get("scorecards", []) if isinstance(payload, dict) else []
+    record = next((r for r in records if r.get("endpoint_id") == args.endpoint), None)
+    if record is None:
+        print(f"narrate: unknown endpoint {args.endpoint!r}", file=sys.stderr)
+        return 2
+    try:
+        narration = narrate(
+            record,
+            corpus=CorpusIndex.load(args.root),
+            provider=provider_from_env(),
+            language=args.language,
+        )
+    except (CorpusError, NarrationError, ProviderError) as exc:
+        print(f"narrate: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(narration.to_dict(), indent=2, ensure_ascii=False))
+        return 0
+    print(f"{narration.name} ({narration.endpoint_id}): grade {narration.grade}")
+    print(narration.label)
+    print()
+    for number, claim in enumerate(narration.claims, start=1):
+        print(f"{number}. {claim.text}")
+        for citation in claim.citations:
+            print(f'   - {citation.source_label} ({citation.passage_id}): "{citation.quote}"')
+    if narration.withheld_count:
+        print()
+        print(
+            f"{narration.withheld_count} statement(s) withheld because a citation did not "
+            "verify against the retained specification text."
+        )
+    print(f"Model: {narration.model}. Prompt version: {narration.prompt_version}.")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:

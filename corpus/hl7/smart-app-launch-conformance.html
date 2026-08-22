@@ -1,0 +1,588 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE HTML>
+<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <title>Conformance - SMART App Launch v2.2.0</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="author" content="http://hl7.org/fhir"/>
+
+    <link href="fhir.css" rel="stylesheet"/>
+
+    <!-- Bootstrap core CSS -->
+    <link href="assets/css/bootstrap-fhir.css" rel="stylesheet"/>
+
+    <!-- Project extras -->
+    <link href="assets/css/project.css" rel="stylesheet"/>
+    <link href="assets/css/pygments-manni.css" rel="stylesheet"/>
+    <link href="assets/css/jquery-ui.css" rel="stylesheet"/>
+  	<link href="assets/css/prism.css" rel="stylesheet" />
+    <!-- Placeholder for child template CSS declarations -->
+    <link href="assets/css/hl7.css" rel="stylesheet"/>
+    <link href="assets/css/fhir-ig.css" rel="stylesheet"/>
+<link href="assets/css/smart.css" rel="stylesheet"/>
+
+
+    <script type="text/javascript" src="fhir-table-scripts.js"> </script>
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="assets/js/html5shiv.js"></script>
+    <script src="assets/js/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- Favicons -->
+    <link rel="fhir-logo" sizes="144x144" href="assets/ico/icon-fhir-144.png"/>
+    <link rel="fhir-logo" sizes="114x114" href="assets/ico/icon-fhir-114.png"/>
+    <link rel="fhir-logo" sizes="72x72" href="assets/ico/icon-fhir-72.png"/>
+    <link rel="fhir-logo" href="assets/ico/icon-fhir-57.png"/>
+    <link rel="shortcut icon" href="assets/ico/favicon.png"/>
+  </head>
+  <body onload="document.body.style.opacity='1'">
+
+	  <script src="assets/js/prism.js"></script>
+
+    <style type="text/css">h2{--heading-prefix:"6"}
+    h3,h4,h5,h6{--heading-prefix:"6"}</style>
+    <div id="segment-header" class="segment">  <!-- segment-header -->
+      <div class="container">  <!-- container -->
+        <!-- Placeholder for child template header declarations -->
+
+        <div id="hl7-nav">
+          <a id="hl7-logo" no-external="true" href="http://hl7.org">
+            <img height="50" alt="Visit the HL7 website" src="assets/images/hl7-logo-header.png"/>
+          </a>
+        </div>
+        <div id="family-nav">
+          <a id="family-logo" no-external="true" href="http://hl7.org/fhir"><img height="50" alt="Visit the FHIR website" src="assets/images/fhir-logo-www.png"/> </a>
+        </div>
+        <div id="hl7-search">
+          <a id="hl7-search-lnk" no-external="true" href="searchform.html"><img alt="Search FHIR" src="assets/images/search.png"/></a>
+        </div>
+
+        <div id="project-nav">
+          <a id="project-logo" no-external="true" href="http://smarthealthit.org"><img height="55" alt="Visit the SMART Health IT website" src="assets/images/smart-logo.png"/> </a>
+        </div>
+
+        <div id="ig-status">
+          <p><span style="font-size:12pt;font-weight:bold">SMART App Launch</span>
+            <br/>
+            <span style="display:inline-block;">2.2.0 - STU 2.2
+
+
+
+  <img alt="International flag" src="assets/images/001.svg" height="16" title="International"/>
+
+
+            </span>
+          </p>
+        </div>
+      </div> <!-- /container -->
+    </div>  <!-- /segment-header -->
+
+    <div id="segment-navbar" class="segment">  <!-- segment-navbar -->
+      <div id="stripe"> </div>
+      <div class="container">  <!-- container -->
+        <!-- HEADER CONTENT -->
+
+        <nav class="navbar navbar-inverse">
+          <!--status-bar-->
+          <div class="container">
+            <button data-target=".navbar-inverse-collapse" class="navbar-toggle" data-toggle="collapse" type="button">
+              <span class="icon-bar"> </span>
+              <span class="icon-bar"> </span>
+              <span class="icon-bar"> </span>
+            </button>
+            <a class="navbar-brand hidden" href="http://hl7.org/fhir/R4/index.html">FHIR</a>
+            <div class="nav-collapse collapse navbar-inverse-collapse">
+              <ul xmlns="http://www.w3.org/1999/xhtml" class="nav navbar-nav">
+  <li>
+    <a href="index.html">Overview</a>
+  </li>
+  <li class="dropdown">
+    <a data-toggle="dropdown" href="#" class="dropdown-toggle">Apps
+      <b class="caret"></b>
+    </a>
+    <ul class="dropdown-menu">
+      <li>
+        <a href="app-launch.html">Intro</a>
+      </li>
+      <li>
+        <a href="app-launch.html#register-app-with-ehr">Register App</a>
+      </li>
+      <li>
+        <a href="app-launch.html#launch-app-standalone-launch">Standalone Launch</a>
+      </li>
+      <li>
+        <a href="app-launch.html#launch-app-ehr-launch">EHR Launch</a>
+      </li>
+      <li>
+        <a href="app-launch.html#retrieve-well-knownsmart-configuration">Discovery</a>
+      </li>
+      <li>
+        <a href="app-launch.html#obtain-authorization-code">Request Authorization Code</a>
+      </li>
+      <li>
+        <a href="app-launch.html#obtain-access-token">Request Access Token</a>
+      </li>
+      <li>
+        <a href="app-launch.html#access-fhir-api">Access FHIR API</a>
+      </li>
+      <li>
+        <a href="scopes-and-launch-context.html">Scopes and Launch Context</a>
+      </li>
+      <li>
+        <a href="app-state.html">Persisting App State</a>
+      </li>
+      <li>
+        <a href="task-launch.html">Task Requesting Launch</a>
+      </li>
+    </ul>
+  </li>
+  <li class="dropdown">
+    <a data-toggle="dropdown" href="#" class="dropdown-toggle">Backend Services
+      <b class="caret"></b>
+    </a>
+    <ul class="dropdown-menu">
+      <li>
+        <a href="backend-services.html">Backend Services</a>
+      </li>
+      <li>
+        <a href="token-introspection.html">Token Introspection</a>
+      </li>
+    </ul>
+  </li>
+  <li class="dropdown">
+    <a data-toggle="dropdown" href="#" class="dropdown-toggle">Authentication
+      <b class="caret"></b>
+    </a>
+    <ul class="dropdown-menu">
+      <li>
+        <a href="client-confidential-asymmetric.html">Client Authentication - Asymmetric (public key)</a>
+      </li>
+      <li>
+        <a href="client-confidential-symmetric.html">Client Authentication - Symmetric (shared secret)</a>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <a href="conformance.html">Conformance</a>
+  </li>
+ <li class="dropdown">
+    <a data-toggle="dropdown" href="#" class="dropdown-toggle">Brands
+    <span class="badge" style="background: none; border: 1px solid white; font-size: .75em; vertical-align: middle; margin-left: 5px;">New</span>
+      <b class="caret"></b>
+    </a>
+    <ul class="dropdown-menu">
+      <li>
+        <a href="brands.html">User-Access Brands and Endpoints</a>
+      </li>
+      <li>
+        <a href="example-brands.html">User-Access Brand Examples</a>
+      </li>
+    </ul>
+  </li><li class="dropdown">
+    <a data-toggle="dropdown" href="#" class="dropdown-toggle">See also
+      <b class="caret"></b>
+    </a>
+    <ul class="dropdown-menu">
+      <li>
+        <a href="artifacts.html">Artifacts</a>
+      </li>
+      <li>
+        <a href="best-practices.html">Best Practices</a>
+      </li>
+      <li>
+        <a href="examples.html">Examples</a>
+      </li>
+      <li>
+        <a href="references.html">References</a>
+      </li>
+      <li>
+        <a href="http://hl7.org/fhir/smart-app-launch/history.html">History</a>
+      </li>
+    </ul>
+  </li> 
+</ul>
+            </div>  <!-- /.nav-collapse -->
+          </div>  <!-- /.container -->
+        </nav>  <!-- /.navbar -->
+      <!-- /HEADER CONTENT -->
+      </div>  <!-- /container -->
+    </div>  <!-- /segment-navbar -->
+    <!--status-bar-->
+
+    <div id="segment-breadcrumb" class="segment">  <!-- segment-breadcrumb -->
+      <div class="container">  <!-- container -->
+        <ul class="breadcrumb">
+          <li><a href='toc.html'><b>Table of Contents</b></a></li><li><b>Conformance</b></li>
+
+        </ul>
+      </div>  <!-- /container -->
+    </div>  <!-- /segment-breadcrumb -->
+
+    <a name="top"> </a>
+    <div id="segment-content" class="segment">  <!-- segment-content -->
+      <div class="container">  <!-- container -->
+        <div class="row">
+          <div class="inner-wrapper">
+
+<style type="text/css">
+h2:before{color:silver;counter-increment:section;content:var(--heading-prefix) " ";}
+h3:before{color:silver;counter-increment:sub-section;content:var(--heading-prefix) "." counter(sub-section) " ";}
+h4:before{color:silver;counter-increment:composite;content:var(--heading-prefix) "." counter(sub-section) "." counter(composite) " ";}
+h5:before{color:silver;counter-increment:detail;content:var(--heading-prefix) "." counter(sub-section) "." counter(composite) "." counter(detail) " ";}
+h6:before{color:silver;counter-increment:more-detail;content:var(--heading-prefix) "." counter(sub-section) "." counter(composite) "." counter(detail) "." counter(more-detail)" ";}
+</style>
+<div class="col-12">
+  <!--ReleaseHeader--><p id="publish-box">This page is part of the Smart App Launch Implementation Guide (v2.2.0: <a no-external="true" href="https://confluence.hl7.org/display/HL7/HL7+Balloting" title="Standard for Trial-Use">STU</a> 2.2) based on <a no-external="true" href="http://hl7.org/fhir/R4">FHIR (HL7® FHIR® Standard) R4</a>. This is the current published version.  For a full list of available versions, see the <a no-external="true" href="http://hl7.org/fhir/smart-app-launch/history.html">Directory of published versions</a></p><!--EndReleaseHeader-->
+  <h2>Conformance</h2>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+    <p><!-- white space is critical inside of capture --></p>
+<div class="markdown-toc">
+<ul id="markdown-toc">
+  <li><a href="#using-well-known" id="markdown-toc-using-well-known">FHIR Authorization Endpoint and Capabilities Discovery using a Well-Known Uniform Resource Identifiers (URIs)</a></li>
+  <li><a href="#http-headers" id="markdown-toc-http-headers">HTTP Headers</a></li>
+</ul>
+
+</div>
+<p>The SMART App Launch specification enables apps to launch and securely integrate with EHRs. The conformance framework for SMART on FHIR includes:</p>
+
+<ul>
+  <li><strong>Actors</strong>
+    <ul>
+      <li><em>EHR Systems</em>: Operate as both resource servers and authorization servers, managing and providing secure access to health data.</li>
+      <li><em>Apps</em>: Operate as clients, seeking access to health data for diverse purposes.</li>
+    </ul>
+  </li>
+  <li><strong>Capabilities</strong>: the individual functional elements that an EHR system or a third-party application can support. A capability represents a single, distinct piece of functionality or a specific feature available within the SMART on FHIR ecosystem.</li>
+  <li><strong>Capability Sets</strong>: collections of EHR capabilities that, when combined, enable specific use cases or application scenarios  (e.g., patient standalone access).</li>
+  <li><strong>Discovery Protocol</strong>: a standardized method allowing apps to automatically identify the capabilities, services, and endpoints an EHR system offers.</li>
+</ul>
+
+<h4 id="conformance-language">Conformance Language</h4>
+
+<p>This specification uses the conformance verbs SHALL, SHOULD, and MAY as defined
+in <a href="https://www.ietf.org/rfc/rfc2119.txt">RFC2119</a>. Unlike RFC 2119, however,
+this specification allows that different applications may not be able to
+interoperate because of how they use optional features.</p>
+
+<h4 id="capability-sets">Capability Sets</h4>
+
+<p>A <em>Capability Set</em> combines individual capabilities to enable a specific use-case. A SMART on FHIR server SHOULD support one or more <em>Capability Set</em>s. Unless otherwise noted, each capability listed is required to satisfy a <em>Capability Set</em>. Any individual SMART server will publish a granular list of its capabilities; from this list a client can determine which of these Capability Sets are supported:</p>
+
+<p>External implementation guides MAY define additional capabilities to be discovered through this same mechanism. IGs published by HL7 MAY use simple strings to represent additional capabilities (e.g., <code class="highlighter-rouge">example-new-capability</code>); IGs published by other organizations SHALL use full URIs to represent additional capabilities (e.g., <code class="highlighter-rouge">http://sdo.example.org/example-new-capability</code>).</p>
+
+<h5 id="patient-access-for-standalone-apps">Patient Access for Standalone Apps</h5>
+<ol>
+  <li><code class="highlighter-rouge">launch-standalone</code></li>
+  <li>At least one of <code class="highlighter-rouge">client-public</code> or <code class="highlighter-rouge">client-confidential-symmetric</code>; and MAY support <code class="highlighter-rouge">client-confidential-asymmetric</code></li>
+  <li><code class="highlighter-rouge">context-standalone-patient</code></li>
+  <li><code class="highlighter-rouge">permission-patient</code></li>
+</ol>
+
+<h5 id="patient-access-for-ehr-launch-ie-from-portal">Patient Access for EHR Launch (i.e. from Portal)</h5>
+<ol>
+  <li><code class="highlighter-rouge">launch-ehr</code></li>
+  <li>At least one of <code class="highlighter-rouge">client-public</code> or <code class="highlighter-rouge">client-confidential-symmetric</code>; and MAY support <code class="highlighter-rouge">client-confidential-asymmetric</code></li>
+  <li><code class="highlighter-rouge">context-ehr-patient</code></li>
+  <li><code class="highlighter-rouge">permission-patient</code></li>
+</ol>
+
+<h5 id="clinician-access-for-standalone">Clinician Access for Standalone</h5>
+<ol>
+  <li><code class="highlighter-rouge">launch-standalone</code></li>
+  <li>At least one of <code class="highlighter-rouge">client-public</code> or <code class="highlighter-rouge">client-confidential-symmetric</code>; and MAY support <code class="highlighter-rouge">client-confidential-asymmetric</code></li>
+  <li><code class="highlighter-rouge">permission-user</code></li>
+  <li><code class="highlighter-rouge">permission-patient</code></li>
+</ol>
+
+<h5 id="clinician-access-for-ehr-launch">Clinician Access for EHR Launch</h5>
+<ol>
+  <li><code class="highlighter-rouge">launch-ehr</code></li>
+  <li>At least one of <code class="highlighter-rouge">client-public</code> or <code class="highlighter-rouge">client-confidential-symmetric</code>; and MAY support <code class="highlighter-rouge">client-confidential-asymmetric</code></li>
+  <li><code class="highlighter-rouge">context-ehr-patient</code> support</li>
+  <li><code class="highlighter-rouge">context-ehr-encounter</code> support</li>
+  <li><code class="highlighter-rouge">permission-user</code></li>
+  <li><code class="highlighter-rouge">permission-patient</code></li>
+</ol>
+
+<h4 id="capabilities">Capabilities</h4>
+
+<p>To promote interoperability, the following SMART on FHIR <em>Capabilities</em> have been defined. A given set of these capabilities is combined to support a specific use, a <em>Capability Set</em>.</p>
+
+<p>Capabilities designated <em>“experimental”</em> indicate features where community feedback is especially welcome; they are ready for adoption but could change over time based on implementation experience.</p>
+
+<p>To allow for extensibility, additional capabilities MAY be listed by a server or defined by other implementation guides, as long as these capabilities are represented with full URIs. Simple, non-URI capability strings are reserved for definition in SMART App Launch (see below).</p>
+
+<h5 id="launch-modes">Launch Modes</h5>
+
+<ul>
+  <li><code class="highlighter-rouge">launch-ehr</code>: support for SMART’s EHR Launch mode</li>
+  <li><code class="highlighter-rouge">launch-standalone</code>: support for SMART’s Standalone Launch mode</li>
+</ul>
+
+<h5 id="authorization-methods">Authorization Methods</h5>
+
+<ul>
+  <li><code class="highlighter-rouge">authorize-post</code>: support for POST-based authorization</li>
+</ul>
+
+<h5 id="client-types">Client Types</h5>
+
+<ul>
+  <li><code class="highlighter-rouge">client-public</code>: support for SMART’s public client profile (no client authentication)</li>
+  <li><code class="highlighter-rouge">client-confidential-symmetric</code>: support for SMART’s symmetric confidential client profile (“client secret” authentication). See <a href="client-confidential-symmetric.html">Client Authentication: Symmetric</a>.</li>
+  <li><code class="highlighter-rouge">client-confidential-asymmetric</code>: support for SMART’s asymmetric confidential client profile (“JWT authentication”). See <a href="client-confidential-asymmetric.html">Client Authentication: Asymmetric</a>.</li>
+</ul>
+
+<h5 id="single-sign-on">Single Sign-on</h5>
+
+<ul>
+  <li><code class="highlighter-rouge">sso-openid-connect</code>: support for SMART’s OpenID Connect profile</li>
+</ul>
+
+<h5 id="launch-context">Launch Context</h5>
+
+<p>The following capabilities convey that a SMART on FHIR server is capable of providing context
+to an app at launch time.</p>
+
+<h6 id="launch-context-for-ui-integration">Launch Context for UI Integration</h6>
+
+<p>These capabilities only apply during an EHR Launch, and <code class="highlighter-rouge">context-style</code> only for an embedded EHR Launch.</p>
+
+<ul>
+  <li><code class="highlighter-rouge">context-banner</code>: support for “need patient banner” launch context (conveyed via <code class="highlighter-rouge">need_patient_banner</code> token parameter)</li>
+  <li><code class="highlighter-rouge">context-style</code>: support for “SMART style URL” launch context (conveyed via <code class="highlighter-rouge">smart_style_url</code> token parameter). This capability is deemed <em>experimental</em>.</li>
+</ul>
+
+<h6 id="launch-context-for-ehr-launch">Launch Context for EHR Launch</h6>
+
+<p>When a SMART on FHIR server supports the launch of an app from <em>within</em> an
+existing user session (“EHR Launch”), the server has an opportunity to pass
+existing, already-established context (such as the current patient ID) through
+to the launching app. Using the following capabilities, a server declares its
+ability to pass context through to an app at launch time:</p>
+
+<ul>
+  <li><code class="highlighter-rouge">context-ehr-patient</code>: support for patient-level launch context (requested by <code class="highlighter-rouge">launch/patient</code> scope, conveyed via <code class="highlighter-rouge">patient</code> token parameter)</li>
+  <li><code class="highlighter-rouge">context-ehr-encounter</code>: support for encounter-level launch context (requested by <code class="highlighter-rouge">launch/encounter</code> scope, conveyed via <code class="highlighter-rouge">encounter</code> token parameter)</li>
+</ul>
+
+<h6 id="launch-context-for-standalone-launch">Launch Context for Standalone Launch</h6>
+
+<p>When a SMART on FHIR server supports the launch of an app from <em>outside</em> an
+existing user session (“Standalone Launch”), the server may be able to
+proactively resolve new context to help establish the details required for an
+app launch. For example, an external app may request that the SMART on FHIR
+server should work with the end-user to establish a patient context before
+completing the launch.</p>
+
+<ul>
+  <li><code class="highlighter-rouge">context-standalone-patient</code>: support for patient-level launch context (requested by <code class="highlighter-rouge">launch/patient</code> scope, conveyed via <code class="highlighter-rouge">patient</code> token parameter)</li>
+  <li><code class="highlighter-rouge">context-standalone-encounter</code>: support for encounter-level launch context (requested by <code class="highlighter-rouge">launch/encounter</code> scope, conveyed via <code class="highlighter-rouge">encounter</code> token parameter)</li>
+</ul>
+
+<h5 id="permissions">Permissions</h5>
+
+<ul>
+  <li><code class="highlighter-rouge">permission-offline</code>: support for “offline” refresh tokens (requested by <code class="highlighter-rouge">offline_access</code> scope)</li>
+  <li><code class="highlighter-rouge">permission-online</code>: support for “online” refresh tokens requested during EHR Launch (requested by <code class="highlighter-rouge">online_access</code> scope). This capability is deemed <em>experimental</em>, providing the input to a scope negotiation that could result in granting an online or offline refresh token (see <a href="./scopes-and-launch-context.html">Scopes and Launch Context</a>).</li>
+  <li><code class="highlighter-rouge">permission-patient</code>: support for patient-level scopes (e.g., <code class="highlighter-rouge">patient/Observation.rs</code>)</li>
+  <li><code class="highlighter-rouge">permission-user</code>: support for user-level scopes (e.g., <code class="highlighter-rouge">user/Appointment.rs</code>)</li>
+  <li><code class="highlighter-rouge">permission-v1</code>: support for SMARTv1 scope syntax (e.g., <code class="highlighter-rouge">patient/Observation.read</code>)</li>
+  <li><code class="highlighter-rouge">permission-v2</code>: support for SMARTv2 granular scope syntax (e.g., <code class="highlighter-rouge">patient/Observation.rs?category=http://terminology.hl7.org/CodeSystem/observation-category|vital-signs</code>)</li>
+</ul>
+
+<h5 id="app-state-experimental">App State (Experimental)</h5>
+
+<ul>
+  <li><code class="highlighter-rouge">smart-app-state</code>: support for managing <a href="./app-state.html">SMART App State</a></li>
+</ul>
+
+<h3 id="using-well-known">FHIR Authorization Endpoint and Capabilities Discovery using a Well-Known Uniform Resource Identifiers (URIs)</h3>
+
+<p>FHIR endpoints requiring authorization SHALL serve a JSON document at the
+location formed by appending <code class="highlighter-rouge">/.well-known/smart-configuration</code> to their base
+URL.  The server SHALL convey the FHIR OAuth authorization endpoints and any
+<em>optional</em> SMART Capabilities it supports using this “Well-Known Uniform
+Resource Identifiers (URIs)” JSON document (see <a href="https://datatracker.ietf.org/doc/html/rfc5785">RFC5785</a>).
+Contrary to RFC5785 Appendix B.4, the <code class="highlighter-rouge">.well-known</code> path component may be appended even if the FHIR
+endpoint already contains a path component.</p>
+
+<p>(In previous versions of SMART, some of these details were also conveyed in a server’s CapabilityStatement; this mechanism is now deprecated.)</p>
+
+<p>Responses for <code class="highlighter-rouge">/.well-known/smart-configuration</code> requests SHALL be JSON, regardless of <code class="highlighter-rouge">Accept</code> headers provided in the request.</p>
+
+<ul>
+  <li>clients MAY omit an <code class="highlighter-rouge">Accept</code> header</li>
+  <li>servers MAY ignore any client-supplied <code class="highlighter-rouge">Accept</code> headers</li>
+  <li>servers SHALL respond with <code class="highlighter-rouge">application/json</code></li>
+</ul>
+
+<p>All endpoint URLs in the response document SHALL be absolute URLs. Clients
+encountering relative endpoint URLs (e.g., in the context of legacy or
+non-conformant servers) SHOULD evaluate them relative to the FHIR Server Base
+URL following <a href="https://datatracker.ietf.org/doc/html/rfc1808#section-4">RFC1808</a>.
+For example, in a browser context the absolute URL could be determined via 
+<code class="highlighter-rouge">new URL(relativeUrl, fhirBaseUrl).toString()</code> .</p>
+
+<p><a id="example-request"></a></p>
+
+<h4 id="sample-request">Sample Request</h4>
+
+<p>Sample requests:</p>
+
+<h5 id="base-url-fhirehrexamplecom">Base URL “fhir.ehr.example.com”</h5>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>GET /.well-known/smart-configuration HTTP/1.1
+Host: fhir.ehr.example.com
+</code></pre></div></div>
+
+<h5 id="base-url-wwwehrexamplecomapisfhir">Base URL “www.ehr.example.com/apis/fhir”</h5>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>GET /apis/fhir/.well-known/smart-configuration HTTP/1.1
+Host: www.ehr.example.com
+</code></pre></div></div>
+
+<h4 id="response">Response</h4>
+
+<p>A JSON document must be returned using the <code class="highlighter-rouge">application/json</code> mime type.</p>
+
+<h5 id="metadata">Metadata</h5>
+<ul>
+  <li><code class="highlighter-rouge">issuer</code>: <strong>CONDITIONAL</strong>, String conveying this system’s OpenID Connect Issuer URL. Required if the server’s capabilities include <code class="highlighter-rouge">sso-openid-connect</code>; otherwise, omitted.</li>
+  <li><code class="highlighter-rouge">jwks_uri</code>: <strong>CONDITIONAL</strong>, String conveying this system’s JSON Web Key Set URL. Required if the server’s capabilities include <code class="highlighter-rouge">sso-openid-connect</code>; otherwise, optional.</li>
+  <li><code class="highlighter-rouge">authorization_endpoint</code>: <strong>CONDITIONAL</strong>, URL to the OAuth2 authorization endpoint. Required if server supports the <code class="highlighter-rouge">launch-ehr</code> or <code class="highlighter-rouge">launch-standalone</code> capability; otherwise, optional.</li>
+  <li><code class="highlighter-rouge">grant_types_supported</code>: <strong>REQUIRED</strong>, Array of grant types supported at the token endpoint. The options are “authorization_code” (when SMART App Launch is supported) and “client_credentials” (when SMART Backend Services is supported).</li>
+  <li><code class="highlighter-rouge">token_endpoint</code>: <strong>REQUIRED</strong>, URL to the OAuth2 token endpoint.</li>
+  <li><code class="highlighter-rouge">token_endpoint_auth_methods_supported</code>: <strong>OPTIONAL</strong>, array of client authentication methods supported by the token endpoint. The options are “client_secret_post”, “client_secret_basic”, and “private_key_jwt”.</li>
+  <li><code class="highlighter-rouge">registration_endpoint</code>: <strong>OPTIONAL</strong>, If available, URL to the OAuth2 dynamic registration endpoint for this FHIR server.</li>
+  <li><code class="highlighter-rouge">smart_app_state_endpoint</code>: <strong>OPTIONAL, DEPRECATED</strong>, URL to the EHR’s app state endpoint. Deprecated; use <code class="highlighter-rouge">associated_endpoints</code> with the <code class="highlighter-rouge">smart-app-state</code> capability instead.</li>
+  <li><code class="highlighter-rouge">associated_endpoints</code>: <strong>OPTIONAL</strong>, Array of objects for endpoints that share the same authorization mechanism as this FHIR endpoint, each with a “url” and “capabilities” array. This property is deemed <em>experimental</em>.</li>
+  <li><code class="highlighter-rouge">user_access_brand_bundle</code>: <strong>RECOMMENDED</strong>, URL for a Brand Bundle. See <a href="brands.html">User Access Brands</a>.</li>
+  <li><code class="highlighter-rouge">user_access_brand_identifier</code>: <strong>RECOMMENDED</strong>, Identifier for the primary entry in a Brand Bundle. See <a href="brands.html">User Access Brands</a>.</li>
+  <li><code class="highlighter-rouge">scopes_supported</code>: <strong>RECOMMENDED</strong>, Array of scopes a client may request. See <a href="scopes-and-launch-context.html#quick-start">scopes and launch context</a>. The server SHALL support all scopes listed here; additional scopes MAY be supported (so clients should not consider this an exhaustive list).</li>
+  <li><code class="highlighter-rouge">response_types_supported</code>: <strong>RECOMMENDED</strong>, Array of OAuth2 <code class="highlighter-rouge">response_type</code> values that are supported.  Implementers can refer to <code class="highlighter-rouge">response_type</code>s defined in OAuth 2.0 (<a href="https://datatracker.ietf.org/doc/html/rfc6749">RFC 6749</a>) and in <a href="https://openid.net/specs/openid-connect-core-1_0.html#Authentication">OIDC Core</a>.</li>
+  <li><code class="highlighter-rouge">management_endpoint</code>: <strong>RECOMMENDED</strong>, URL where an end-user can view which applications currently have access to data and can make adjustments to these access rights.</li>
+  <li><code class="highlighter-rouge">introspection_endpoint</code> :  <strong>RECOMMENDED</strong>, URL to a server’s introspection endpoint that can be used to validate a token.</li>
+  <li><code class="highlighter-rouge">revocation_endpoint</code> :  <strong>RECOMMENDED</strong>, URL to a server’s revoke endpoint that can be used to revoke a token.</li>
+  <li><code class="highlighter-rouge">capabilities</code>: <strong>REQUIRED</strong>, Array of strings representing SMART capabilities (e.g., <code class="highlighter-rouge">sso-openid-connect</code> or <code class="highlighter-rouge">launch-standalone</code>) that the server supports.</li>
+  <li><code class="highlighter-rouge">code_challenge_methods_supported</code>: <strong>REQUIRED</strong>, Array of PKCE code challenge methods supported. The <code class="highlighter-rouge">S256</code> method SHALL be included in this list, and the <code class="highlighter-rouge">plain</code> method SHALL NOT be included in this list.</li>
+</ul>
+
+<p><a id="example-response"></a></p>
+
+<h4 id="sample-response">Sample Response</h4>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "issuer": "https://ehr.example.com",
+  "jwks_uri": "https://ehr.example.com/.well-known/jwks.json",
+  "authorization_endpoint": "https://ehr.example.com/auth/authorize",
+  "token_endpoint": "https://ehr.example.com/auth/token",
+  "token_endpoint_auth_methods_supported": [
+    "client_secret_basic",
+    "private_key_jwt"
+  ],
+  "grant_types_supported": [
+    "authorization_code",
+    "client_credentials"
+  ],
+  "registration_endpoint": "https://ehr.example.com/auth/register",
+  "scopes_supported": ["openid", "profile", "launch", "launch/patient", "patient/*.rs", "user/*.rs", "offline_access"],
+  "response_types_supported": ["code"],
+  "management_endpoint": "https://ehr.example.com/user/manage",
+  "introspection_endpoint": "https://ehr.example.com/user/introspect",
+  "revocation_endpoint": "https://ehr.example.com/user/revoke",
+  "code_challenge_methods_supported": ["S256"],
+  "capabilities": [
+    "launch-ehr",
+    "permission-patient",
+    "permission-v2",
+    "client-public",
+    "client-confidential-symmetric",
+    "context-ehr-patient",
+    "sso-openid-connect"
+  ],
+  "associated_endpoints": [{
+    "url": "https://state.example.com",
+    "capabilities": ["smart-app-state"]
+  }]
+}
+</code></pre></div></div>
+
+<h3 id="http-headers">HTTP Headers</h3>
+
+<p>As described in the underlying HTTP specifications, <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers">header names are compared in a case-insensitive manner</a>.</p>
+
+
+
+</div>
+        </div>  <!-- /inner-wrapper -->
+      </div>  <!-- /row -->
+    </div>  <!-- /container -->
+  </div>  <!-- /segment-content -->
+
+  <script type="text/javascript" src="assets/js/jquery.js"> </script>     <!-- note keep space here, otherwise it will be transformed to empty tag -> fails -->
+  <script type="text/javascript" src="assets/js/jquery-ui.min.js"> </script>
+
+  <script type="text/javascript" src="assets/js/window-hash.js"> </script>
+  <a name="bottom"> </a>
+  <div id="segment-footer" igtool="footer" class="segment">  <!-- segment-footer -->
+    <div class="container">  <!-- container -->
+
+      <div class="inner-wrapper">
+        <p>
+          IG &#169; 2020+ <a style="color:var(--footer-hyperlink-text-color)" href="http://www.hl7.org/Special/committees/fiwg">HL7 International / FHIR Infrastructure</a> and <a style="color:var(--footer-hyperlink-text-color)" href="https://smarthealthit.org">Boston Children's Hospital</a>.  Package hl7.fhir.uv.smart-app-launch#2.2.0 based on <a style="color: var(--footer-hyperlink-text-color)" href="http://hl7.org/fhir/R4/">FHIR 4.0.1</a>. Generated <span title="Tue, Apr 30, 2024 19:24+0000">2024-04-30</span>
+          <br/>
+          <span style="color: var(--footer-highlight-text-color)">
+                      Links: <a style="color: var(--footer-hyperlink-text-color)" href="toc.html">Table of Contents</a> |
+                 <a style="color: var(--footer-hyperlink-text-color)" href="qa.html">QA Report</a>
+                 
+                
+                 | <a style="color: #81BEF7" target="_blank" href="http://hl7.org/fhir/smart-app-launch/history.html">Version History</a> |
+                 <a style="color: #81BEF7" rel="license" href="http://hl7.org/fhir/R4/license.html"><img style="border-style: none;" alt="CC0" src="cc0.png"/></a> |
+                 <!--<a style="color: #81BEF7" href="todo.html">Search</a> | --> 
+                 <a style="color: #81BEF7" target="_blank" href="http://hl7.org/fhir-issues">Propose a change</a>
+          </span>
+        </p>
+      </div>  <!-- /inner-wrapper -->
+    </div>  <!-- /container -->
+  </div>  <!-- /segment-footer -->
+  
+  <div id="segment-post-footer" class="segment hidden">  <!-- segment-post-footer -->
+    <div class="container">  <!-- container -->
+    </div>  <!-- /container -->
+  </div>  <!-- /segment-post-footer -->
+  
+  <!-- JS and analytics only. -->
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+  <script type="text/javascript" src="assets/js/bootstrap.min.js"> </script>
+  <script type="text/javascript" src="assets/js/respond.min.js"> </script>
+  <script type="text/javascript" src="assets/js/anchor.min.js"> </script>
+  <script type="text/javascript" src="assets/js/clipboard.min.js"> </script>
+  <script type="text/javascript" src="assets/js/clipboard-btn.js"> </script>
+  <script type="text/javascript" src="assets/js/anchor-hover.js"> </script>
+  
+  <!-- Analytics Below
+  ================================================== -->
+  </body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "description": "Retained copies of the four specification pages every finding cites, so that a generated explanation can be checked against the words of the specification rather than a model's memory. HL7 publishes FHIR and its implementation guides under Creative Commons CC0 (each page carries the CC0 mark in its footer); the pages are reproduced unmodified as evidence inputs, not project-authored work.",
+  "retrieved_on": "2026-08-21",
+  "sources": [
+    {
+      "source_id": "fhir-r4-http",
+      "label": "FHIR R4 RESTful API (http.html)",
+      "citation_urls": ["https://hl7.org/fhir/R4/http.html"],
+      "local_copy": "corpus/hl7/fhir-r4-http.html",
+      "format": "html",
+      "sha256": "cdcf4039ffa4c0c8aca35bdcb77532b8d892daf868d444ff7b191214d602be7e"
+    },
+    {
+      "source_id": "fhir-r4-capabilitystatement",
+      "label": "FHIR R4 CapabilityStatement resource (capabilitystatement.html)",
+      "citation_urls": ["https://hl7.org/fhir/R4/capabilitystatement.html"],
+      "local_copy": "corpus/hl7/fhir-r4-capabilitystatement.html",
+      "format": "html",
+      "sha256": "94004ea62a9421e8769630f59330026bfe81b71cffcb4fc17d02152fabdb987a"
+    },
+    {
+      "source_id": "smart-app-launch-conformance",
+      "label": "SMART App Launch: Conformance (conformance.html)",
+      "citation_urls": ["https://hl7.org/fhir/smart-app-launch/conformance.html"],
+      "local_copy": "corpus/hl7/smart-app-launch-conformance.html",
+      "format": "html",
+      "sha256": "d2a490ec28678209fce493337a71230ddb0482beff33201e9bd634e04b89ee90"
+    },
+    {
+      "source_id": "us-core-index",
+      "label": "US Core Implementation Guide: home page",
+      "citation_urls": ["https://hl7.org/fhir/us/core/"],
+      "local_copy": "corpus/hl7/us-core-index.html",
+      "format": "html",
+      "sha256": "e850adde4bbc7c3d3a4eb15b37a98d47b418e674d21dfe8c41dc04bd92404592",
+      "note": "The citation points at the guide's home page, which is what is retained; the guide's profile pages are not."
+    }
+  ],
+  "not_retained": []
+}

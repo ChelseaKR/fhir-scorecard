@@ -1,0 +1,2017 @@
+{
+  "run": {
+    "status": "recorded_live_run",
+    "kind": "narration_grounding",
+    "run_on": "2026-08-22",
+    "provider": "bedrock",
+    "model": "global.anthropic.claude-sonnet-4-6",
+    "prompt_version": "narrate-v1",
+    "commit": "f61589bf780970ca2b4dd085e79eda59e6c2415c",
+    "records_file": "site/scorecards.json",
+    "scoring": {
+      "claims_shown": "every cited quote occurs verbatim in the named committed document",
+      "claims_withheld": "at least one citation did not verify; the claim is not shown"
+    }
+  },
+  "summary": {
+    "records": 19,
+    "claims_generated": 138,
+    "claims_shown": 138,
+    "claims_withheld": 0,
+    "fraction_claims_with_verified_citations": 1.0,
+    "records_with_no_withheld_claims": 1.0,
+    "mean_claims_shown_per_record": 7.26
+  },
+  "records": [
+    {
+      "index": 0,
+      "endpoint_id": "cms-blue-button-2",
+      "name": "CMS Blue Button 2.0 (Medicare)",
+      "grade": "B",
+      "kind": "payer",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 8,
+      "claims_shown": 8,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint's /metadata path responded with an HTTP 2xx status code over HTTPS, confirming it serves a FHIR (Fast Healthcare Interoperability Resources) CapabilityStatement — a machine-readable description of what the server supports. This check earned a full 60 out of 60 points.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            },
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata endpoint responded in 397 milliseconds from a single test location (davis-ca/residential), earning 40 out of 40 points for response speed. Note that only one vantage point was used, so this is a single-location measurement, not a multi-region average.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#77",
+              "quote": "Capability statements can become quite large; servers are encouraged to support the _summary and _elements parameters on the capabilities interaction, though this is not required."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement declares FHIR version 4.0.1, satisfying the requirement for a fhirVersion field. The FHIR specification marks this field as mandatory (cardinality 1..1), meaning every CapabilityStatement must include it.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement includes both a software name and a software version. The FHIR specification provides dedicated fields for this information inside the software element, allowing clients to identify exactly which software build is running.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "Three resource types are declared, and all three fully document their supported interactions. The FHIR specification states that servers SHALL specify what resource types and operations are supported, so publishing interaction details for every declared resource meets this requirement.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#99",
+              "quote": "Operations supported by REST at the type or instance level."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No recognized interoperability profiles — such as US Core profiles, which define the minimum constraints on FHIR resources to promote interoperability — were declared in the CapabilityStatement. This finding caused the endpoint to score 0 out of 40 points on the I1 check and is the main reason the overall grade is a B rather than an A.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            },
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "Establishing the \"floor\" of standards to promote interoperability and adoption through common implementation allows for further standards development evolution for specific use cases."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "A SMART (Substitutable Medical Applications, Reusable Technologies) App Launch discovery document was found at the /.well-known/smart-configuration path and was assessed as complete, earning 35 out of 35 points. The SMART specification requires endpoints to serve this JSON document so that client applications can discover OAuth authorization details.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            },
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "The server SHALL convey the FHIR OAuth authorization endpoints and any optional SMART Capabilities it supports using this \"Well-Known Uniform Resource Identifiers (URIs)\" JSON document"
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The CapabilityStatement also declares an OAuth/SMART security service in its security section, earning 25 out of 25 points on the I3 check. The CapabilityStatement resource includes a service field that can list values such as SMART-on-FHIR to signal the security mechanism in use.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4505,
+      "output_tokens": 1224
+    },
+    {
+      "index": 1,
+      "endpoint_id": "humana",
+      "name": "Humana Patient Access API",
+      "grade": "A",
+      "kind": "payer",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 8,
+      "claims_shown": 8,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint is reachable: its /metadata path returned a successful HTTP 2xx response over HTTPS, satisfying the FHIR specification requirement that applications return a resource describing the server's functionality.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata response arrived in 850 ms from a single measurement point (davis-ca/residential), meaning the check did not run from multiple vantage points; only one data point was recorded.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement — the machine-readable document a FHIR (Fast Healthcare Interoperability Resources) server publishes to describe what it supports — declares FHIR version 4.0.1, which is the required field; the specification marks fhirVersion as mandatory (1..1).",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement does not include a software name or version; the specification defines a software block with a mandatory name element, and that block is absent from this endpoint's published document.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<software> <!-- 0..1 Software that is covered by this capability statement --> <name value=\"[string]\"/><!-- 1..1 A name the software is known by -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "All 22 declared resource types document their supported interactions, meeting the specification's guidance that servers SHALL specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The endpoint declares profiles from US Core, CARIN, and Da Vinci; US Core (the US Core Implementation Guide) defines minimum constraints on FHIR resources and the minimum RESTful interactions needed to access patient data.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "A SMART (Substitutable Medical Applications and Reusable Technologies) discovery document was found and is complete; FHIR endpoints requiring authorization must serve this document at the /.well-known/smart-configuration path so clients can discover OAuth authorization endpoints and supported capabilities.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The CapabilityStatement also declares an OAuth/SMART security service directly within it, using the service field that lists options such as SMART-on-FHIR to describe how security works.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4437,
+      "output_tokens": 898
+    },
+    {
+      "index": 2,
+      "endpoint_id": "aetna-demo",
+      "name": "Aetna Patient Access (public demo instance)",
+      "grade": "C",
+      "kind": "payer",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint is fully reachable: its /metadata path (the FHIR capabilities interaction) responded with an HTTP 2xx status over HTTPS in 881 milliseconds, earning full marks for reachability.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement — the machine-readable document a FHIR (Fast Healthcare Interoperability Resources) server returns at /metadata to describe what it supports — correctly declares FHIR version 4.0.1, satisfying the requirement that fhirVersion is a mandatory field.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 25 resource types and documents the supported interactions for all 25 of them; FHIR requires servers to specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement omits the software name and version fields; while those fields are optional in the schema, their absence means readers cannot identify which software product or version is running behind this endpoint.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<software> <!-- 0..1 Software that is covered by this capability statement --> <name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No recognized interoperability profiles are declared in the CapabilityStatement; US Core — the US Core Implementation Guide that \"defines the minimum constraints on the FHIR resources to create the US Core Profiles\" — was not detected, which is why this check failed and scored zero points.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The SMART App Launch well-known configuration document was absent or incomplete; SMART (Substitutable Medical Applications, Reusable Technologies) requires that \"FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL,\" so its absence means clients cannot automatically discover authorization endpoints.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "Although the SMART well-known document was not found, the CapabilityStatement does declare an OAuth/SMART security service in its rest.security block, which is a positive signal that the endpoint intends to use token-based authorization.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4504,
+      "output_tokens": 881
+    },
+    {
+      "index": 3,
+      "endpoint_id": "cigna-patientaccess",
+      "name": "Cigna Patient Access API",
+      "grade": "A",
+      "kind": "payer",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint is reachable: its /metadata path responded with an HTTP 2xx status code over HTTPS, satisfying the FHIR requirement that applications return a resource describing server functionality at that address.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata response arrived in 590 ms from a single residential test location in Davis, CA, indicating a fast response time for the capabilities interaction.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement — the FHIR document that describes what a server supports — declares FHIR version 4.0.1, which satisfies the requirement for a mandatory fhirVersion field.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement does not include a software name or version; the FHIR specification defines an optional software block that, when present, must carry a name, so its absence means clients cannot identify the underlying software from this document.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<software> <!-- 0..1 Software that is covered by this capability statement --> <name value=\"[string]\"/><!-- 1..1 A name the software is known by -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 28 resource types, and every one of those 28 resources documents its supported interactions, meeting the requirement that servers specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The endpoint declares US Core, CARIN, and Da Vinci profiles; US Core — an implementation guide based on FHIR R4 — defines the minimum constraints on FHIR resources to promote interoperability for accessing patient data.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "A SMART discovery document (the /.well-known/smart-configuration JSON file used by SMART App Launch to advertise OAuth authorization endpoints) was found and is complete, and the CapabilityStatement also declares an OAuth/SMART security service, consistent with the specification's requirement for FHIR endpoints requiring authorization.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL. The server SHALL convey the FHIR OAuth authorization endpoints and any optional SMART Capabilities it supports"
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4437,
+      "output_tokens": 870
+    },
+    {
+      "index": 4,
+      "endpoint_id": "bcbs-mn",
+      "name": "Blue Cross Blue Shield of Minnesota Patient Access API (preview)",
+      "grade": "A",
+      "kind": "payer",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint is reachable: its /metadata path responded with an HTTP 2xx status code over HTTPS, which is how FHIR (Fast Healthcare Interoperability Resources) servers expose their capabilities.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            },
+            {
+              "passage_id": "fhir-r4-http#14",
+              "quote": "all production exchange of healthcare data SHOULD use SSL and additional security as appropriate"
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata endpoint responded in 554 milliseconds from a single measurement point (davis-ca/residential), earning full marks for response speed.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The interaction is performed by an HTTP GET command as shown:\n\nGET [base]/metadata{?mode=[mode]} {&_format=[mime-type]}"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement (the machine-readable document a FHIR server publishes to describe what it supports) declares FHIR version 4.0.1, and also names the software and its version — both fields the specification defines for this purpose.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 26 resource types, and all 26 document their supported interactions — meeting the requirement that servers specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#99",
+              "quote": "Operations supported by REST at the type or instance level.\n\nRequired\n\nTypeRestfulInteraction"
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The CapabilityStatement declares profiles from US Core, CARIN, and Da Vinci. US Core is an implementation guide that \"defines the minimum constraints on the FHIR resources to create the US Core Profiles\" and establishes a floor of standards to promote interoperability.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "A SMART (Substitutable Medical Applications and Reusable Technologies) discovery document was found and judged complete. SMART App Launch requires that FHIR endpoints serve this document at a well-known URL so clients can discover authorization details.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The CapabilityStatement also declares an OAuth/SMART security service in its security section, which is where the specification defines the 'service' field listing values such as OAuth and SMART-on-FHIR.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4443,
+      "output_tokens": 948
+    },
+    {
+      "index": 5,
+      "endpoint_id": "healthpartners",
+      "name": "HealthPartners Patient Access API",
+      "grade": "A",
+      "kind": "payer",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 8,
+      "claims_shown": 8,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint successfully responds to a GET /metadata request with an HTTP 2xx status code over HTTPS, satisfying the standard mechanism for retrieving server capabilities.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports.\nThe interaction is performed by an HTTP GET command"
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata response arrived in 1018 milliseconds, showing the endpoint is reachable and responsive from the test vantage point.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#77",
+              "quote": "Capability statements can become quite large; servers are encouraged to support the\n_summary and _elements\nparameters on the capabilities interaction, though this is not required."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement — the machine-readable document that describes what a FHIR server supports — declares FHIR version 4.0.1, which satisfies the requirement that a server identify which FHIR version it implements.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement includes both a software name and version, fields the specification provides specifically to identify the software covered by the statement.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 146 resource types, and 145 of those 146 types document their supported interactions; the specification requires servers to specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also\nspecify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The endpoint declares profiles from US Core, CARIN, and Da Vinci; US Core is an implementation guide that defines minimum constraints on FHIR resources to promote interoperability for accessing patient data.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "A SMART App Launch discovery document — the JSON file at /.well-known/smart-configuration that advertises OAuth authorization endpoints and capabilities — was found and is complete; the specification requires this document to be present at that location.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the\nlocation formed by appending /.well-known/smart-configuration to their base\nURL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The CapabilityStatement also declares SMART-on-FHIR as a security service, which is one of the recognized security options a server may advertise in its capability document.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4439,
+      "output_tokens": 886
+    },
+    {
+      "index": 6,
+      "endpoint_id": "capital-bluecross",
+      "name": "Capital Blue Cross Patient Access API",
+      "grade": "F",
+      "kind": "payer",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T0",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 11,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The /metadata endpoint, which FHIR (Fast Healthcare Interoperability Resources) uses to expose server capabilities, could not be reached during this run because TLS certificate verification failed due to a self-signed certificate in the certificate chain; the grader notes this is likely a vantage-local network interception rather than a fault of the endpoint itself.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "Because the endpoint was unreachable, response latency could not be measured at all.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "A CapabilityStatement (the FHIR document that describes what resource types and interactions a server supports) could not be parsed because the server's response was not valid JSON; this means none of the server's declared capabilities could be read.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#2",
+              "quote": "The capability statement is a key part of the overall conformance framework in FHIR. It is used as a statement of the features of actual software, or of a set of rules for an application to provide."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "Because no CapabilityStatement could be read, the check for recognized interoperability profiles — such as those defined by US Core (the Implementation Guide that sets minimum constraints on FHIR resources for US patient data) — could not confirm any profiles were declared.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The SMART App Launch discovery document (a JSON file at /.well-known/smart-configuration that tells client applications where to find authorization endpoints) was absent or incomplete; SMART is the protocol layer that governs how apps obtain authorized access to FHIR data.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No OAuth security service was declared in the published documents; without this declaration, client applications cannot determine how to authenticate or obtain tokens before accessing patient data.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "The server SHALL convey the FHIR OAuth authorization endpoints and any optional SMART Capabilities it supports using this \"Well-Known Uniform Resource Identifiers (URIs)\" JSON document"
+            }
+          ]
+        },
+        {
+          "dimension": "overall",
+          "text": "Taken together, the three dimensions — reachability, capability transparency, and interoperability readiness — each scored 0 out of their available points, producing an overall grade of F for this run; because the endpoint was not reachable on this run, some checks could not execute and are recorded as not observed rather than confirmed failures of the endpoint itself.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#14",
+              "quote": "all production exchange of healthcare data SHOULD use SSL and additional security as appropriate"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 3337,
+      "output_tokens": 806
+    },
+    {
+      "index": 7,
+      "endpoint_id": "cigna-provider-directory",
+      "name": "Cigna Provider Directory API",
+      "grade": "A",
+      "kind": "payer_provider_directory",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint's /metadata path responds with an HTTP 2xx status code over HTTPS, satisfying the FHIR R4 requirement that applications return a resource describing server capabilities.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata response arrived in 538 milliseconds from a single vantage point (davis-ca/residential), indicating the endpoint is reachable and responsive.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement — the machine-readable document a FHIR (Fast Healthcare Interoperability Resources) server publishes to describe what it supports — declares fhirVersion 4.0.1, which is the required field identifying which version of the standard the server implements.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement does not include a software name or version; the FHIR specification defines a software element with a required name sub-field specifically to identify the software behind the endpoint, and that element is absent here.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<software> <!-- 0..1 Software that is covered by this capability statement --> <name value=\"[string]\"/><!-- 1..1 A name the software is known by -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 8 resource types, and all 8 document their supported interactions; the FHIR specification requires servers to specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The endpoint declares US Core, CARIN, and Da Vinci profiles, which are implementation guides — structured sets of rules built on top of FHIR — that promote interoperability across payer and provider systems.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#8",
+              "quote": "Profiles and Extensions: This page lists the US Core Profiles and Extensions defined in this guide to exchange quality data."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "SMART App Launch discovery and OAuth security checks were marked not applicable because a Provider Directory API is public by design; the SMART specification only requires a /.well-known/smart-configuration document at endpoints that require authorization.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4512,
+      "output_tokens": 756
+    },
+    {
+      "index": 8,
+      "endpoint_id": "va-lighthouse",
+      "name": "VA Lighthouse Patient Health API (production)",
+      "grade": "A",
+      "kind": "provider",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint is reachable: its /metadata path responded with an HTTP 2xx status code over HTTPS, satisfying the expectation that 'all production exchange of healthcare data SHOULD use SSL and additional security as appropriate.'",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#14",
+              "quote": "all production exchange of healthcare data SHOULD use SSL and additional security as appropriate"
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata response arrived in 387 ms from a single measurement point (davis-ca/residential), confirming the endpoint is live. The FHIR specification describes this as the 'capabilities interaction,' which 'retrieves the information about a server's capabilities - which portions of this specification it supports.'",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement (the machine-readable document a FHIR server publishes to describe what it supports) declares fhirVersion 4.0.1. The FHIR specification defines fhirVersion as a required field: 'fhirVersion … 1..1 … FHIR Version the system supports.'",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement does not include a software name or version. The specification defines an optional software block whose name child is required when the block is present: '<name value=\"[string]\"/><!-- 1..1 A name the software is known by -->' — omitting this block caused the software name/version check to fail, reducing the transparency score.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 19 resource types, and every one of them documents its supported interactions. The specification requires that 'Servers SHALL specify what resource types and operations are supported,' and the endpoint meets that requirement in full.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type"
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The endpoint declares US Core, CARIN, and Da Vinci profiles. US Core is 'based on FHIR Version R4' and 'defines the minimum constraints on the FHIR resources to create the US Core Profiles,' establishing a common interoperability floor for patient data exchange.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles"
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "A SMART App Launch discovery document was found and judged complete. SMART (Scalable and Mobile Applications for Health) is the authorization framework layered on top of OAuth. The specification states that 'FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL,' and the endpoint does so. Additionally, the OAuth/SMART security service is declared inside the CapabilityStatement itself, where the service options include 'OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates.'",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL"
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4439,
+      "output_tokens": 1007
+    },
+    {
+      "index": 9,
+      "endpoint_id": "epic-sandbox",
+      "name": "Epic on FHIR public sandbox",
+      "grade": "A",
+      "kind": "ehr",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint's /metadata URL returned an HTTP 2xx status code over HTTPS, confirming it responds to the capabilities interaction as defined in FHIR R4. FHIR (Fast Healthcare Interoperability Resources) is a standard for exchanging healthcare information electronically.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata response arrived in 496 ms from a single vantage point (davis-ca/residential), meaning the endpoint answered quickly enough to satisfy the speed check.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement (the machine-readable document a FHIR server publishes to describe what it supports) declares fhirVersion as '4.0.1', satisfying the requirement that a server identify which FHIR version it supports. The CapabilityStatement schema marks fhirVersion as a mandatory field.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement also includes a software name and version, which are optional but recommended fields that identify the software behind this specific endpoint.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<software> <!-- 0..1 Software that is covered by this capability statement --> <name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 59 resource types, and all 59 document their supported interactions. FHIR R4 rules state that servers SHALL specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also\nspecify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The endpoint declares profiles from US Core, CARIN, and Da Vinci implementation guides. US Core is an implementation guide that defines minimum constraints on FHIR resources to promote interoperability for accessing patient data in the United States.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "A SMART (Substitutable Medical Applications, Reusable Technologies) discovery document was found at the well-known URI, and the CapabilityStatement declares OAuth/SMART as its security service. FHIR endpoints requiring authorization must serve this JSON document so that clients can discover authorization endpoints and supported capabilities.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the\nlocation formed by appending /.well-known/smart-configuration to their base\nURL."
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4439,
+      "output_tokens": 899
+    },
+    {
+      "index": 10,
+      "endpoint_id": "oracle-health-open",
+      "name": "Oracle Health (Cerner) open sandbox",
+      "grade": "C",
+      "kind": "ehr",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint is reachable: its /metadata path — which FHIR (Fast Healthcare Interoperability Resources) uses to expose server capabilities — responded with an HTTP 2xx success code over HTTPS in 516 milliseconds.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement (the machine-readable document returned by /metadata) correctly declares FHIR version 4.0.1, satisfying the requirement that fhirVersion is a mandatory field.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement does not include a software name or version; the specification defines a software block with a required name element, and that information is absent from this endpoint's published document.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<software> <!-- 0..1 Software that is covered by this capability statement --> <name value=\"[string]\"/><!-- 1..1 A name the software is known by -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement declares 42 resource types, and every one of those 42 resources documents its supported interactions — meeting the expectation that servers SHALL specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The endpoint declares US Core, CARIN, and Da Vinci profiles. US Core (a FHIR Implementation Guide) defines minimum constraints on FHIR resources to promote interoperability and access to patient data in the United States.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The SMART App Launch well-known configuration document — the JSON file at /.well-known/smart-configuration that discloses OAuth authorization endpoints — was absent or incomplete. SMART (Substitutable Medical Applications and Reusable Technologies) requires that FHIR endpoints serving authorization SHALL publish this document.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No OAuth security service is declared in the CapabilityStatement. The specification provides a 'service' field where values such as 'OAuth' or 'SMART-on-FHIR' would normally appear to signal how the endpoint is secured; that field is not populated in this endpoint's published document.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4438,
+      "output_tokens": 840
+    },
+    {
+      "index": 11,
+      "endpoint_id": "medplum",
+      "name": "Medplum public API",
+      "grade": "A",
+      "kind": "ehr",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 8,
+      "claims_shown": 8,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint's /metadata path returned an HTTP 2xx status code over HTTPS, satisfying the FHIR requirement that applications return a resource describing server functionality when that path is called.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata response arrived in 516 ms from a single vantage point (davis-ca/residential), which is well within a usable range; FHIR encourages servers to support efficient retrieval of this document, though no specific response-time threshold is mandated.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#77",
+              "quote": "Capability statements can become quite large; servers are encouraged to support the _summary and _elements parameters on the capabilities interaction, though this is not required."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement — FHIR's machine-readable description of what a server supports — declares fhirVersion 4.0.1. The FHIR specification marks fhirVersion as a required field that every CapabilityStatement must include.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement includes both a software name and a version. The FHIR specification defines a software block with a mandatory name field and an optional version field for exactly this purpose.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 146 resource types, and every one of those 146 types documents its supported interactions. The FHIR specification states that servers SHALL specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The CapabilityStatement declares US Core, CARIN, and Da Vinci profiles. US Core is an implementation guide built on FHIR R4 that defines the minimum constraints on FHIR resources and establishes a floor of standards to promote interoperability.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "A SMART discovery document — the JSON file at /.well-known/smart-configuration that advertises OAuth authorization endpoints and optional SMART capabilities — was found and judged complete. The SMART App Launch specification requires FHIR endpoints that need authorization to serve this document.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The CapabilityStatement also declares an OAuth/SMART security service in its security block, which is where FHIR allows servers to signal supported security schemes such as SMART-on-FHIR.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4437,
+      "output_tokens": 948
+    },
+    {
+      "index": 12,
+      "endpoint_id": "inferno-reference",
+      "name": "ONC Inferno reference server (US Core / SMART)",
+      "grade": "A",
+      "kind": "reference",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint's /metadata URL responded with an HTTP 2xx status code over HTTPS, fully satisfying the reachability check. FHIR defines this as the 'capabilities interaction,' which retrieves information about a server's capabilities.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata response arrived in 286 milliseconds from a single vantage point (davis-ca/residential), earning the endpoint full marks for response speed.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement — the FHIR document a server publishes at /metadata to describe what it supports — declares fhirVersion '4.0.1', which meets the requirement for a 4.x version. The FHIR specification defines fhirVersion as a required field, noting it records the 'FHIR Version the system supports.'",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\nΣ\n1..1\ncode\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement does not include a software name or version. The FHIR specification provides an optional software element with a required name child: 'A name the software is known by.' Because this element is absent, the transparency check for software identity failed, costing 20 of 100 transparency points.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 26 resource types, and 25 of those 26 document their supported interactions. The FHIR specification states that servers 'SHALL specify what resource types and operations are supported,' so documenting interactions for nearly all declared resources is consistent with that requirement.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The CapabilityStatement declares US Core, CARIN, and Da Vinci profiles. US Core is an implementation guide based on FHIR R4 that 'defines the minimum constraints on the FHIR resources to create the US Core Profiles' and is designed to promote interoperability and adoption through common implementation.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "A SMART discovery document — the JSON file that SMART App Launch (an OAuth-based authorization layer for FHIR) requires at /.well-known/smart-configuration — was found and is complete. The SMART specification states that 'FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL.' In addition, the CapabilityStatement itself declares an OAuth/SMART security service, visible in the security section where supported services include 'OAuth | SMART-on-FHIR.'",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4444,
+      "output_tokens": 984
+    },
+    {
+      "index": 13,
+      "endpoint_id": "firely-public",
+      "name": "Firely public test server",
+      "grade": "B",
+      "kind": "reference",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint's /metadata path responded with an HTTP 2xx status code over HTTPS, earning full marks (60/60) for reachability. FHIR (Fast Healthcare Interoperability Resources) defines this as the 'capabilities interaction,' which retrieves information about a server's supported features.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata endpoint responded in 1,714 milliseconds from a single vantage point (davis-ca/residential), earning full marks (40/40) for response speed.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement (the machine-readable document a FHIR server publishes to describe itself) declares FHIR version 4.0.1. The specification requires exactly one fhirVersion field, and it was present and valid.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<fhirVersion value=\"[code]\"/><!-- 1..1 FHIR Version the system supports -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement includes both a software name and a version, satisfying the transparency check. These fields let clients identify exactly which software build is running.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 146 resource types, and every one of those 146 resources documents its supported interactions. The specification states that 'Servers SHALL specify what resource types and operations are supported,' so full documentation of all declared resources meets that requirement.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "US Core (a set of FHIR profiles defining minimum data requirements for US patient data interoperability), CARIN, and Da Vinci profiles are declared in the CapabilityStatement, earning full marks (40/40) for the interoperability profile check.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The SMART App Launch well-known configuration document was absent or incomplete. SMART (Substitutable Medical Applications and Reusable Technologies) App Launch requires that 'FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL.' This check did not pass, resulting in 0/35 points for that dimension. Additionally, no OAuth security service was declared in the CapabilityStatement's security section, which can list services such as 'OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates,' resulting in 0/25 points for that check.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4435,
+      "output_tokens": 966
+    },
+    {
+      "index": 14,
+      "endpoint_id": "hapi-fhir-r4",
+      "name": "HAPI FHIR public test server (R4)",
+      "grade": "C",
+      "kind": "reference",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 8,
+      "claims_shown": 8,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint is fully reachable: its /metadata path responded with an HTTP 2xx status code over HTTPS, earning 60 out of 60 reachability points.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "Response time was 1,702 ms from a single vantage point, which was fast enough to earn the remaining 40 reachability points.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#77",
+              "quote": "Capability statements can become quite large; servers are encouraged to support the _summary and _elements parameters on the capabilities interaction, though this is not required."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The endpoint's CapabilityStatement — the FHIR (Fast Healthcare Interoperability Resources) document that describes what a server supports — declares fhirVersion 4.0.1, which satisfies the transparency check for a 4.x version declaration.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement also declares the software name and version, fulfilling the structured fields provided for that purpose.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "All 146 declared resource types document their supported interactions, consistent with the specification requirement that servers SHALL specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No recognized interoperability profiles were declared in the CapabilityStatement; for example, the US Core Implementation Guide — which defines minimum constraints on FHIR R4 resources to promote interoperability — was not listed, resulting in 0 out of 25 interop points for that check.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The SMART (Substitutable Medical Applications and Reusable Technologies) App Launch discovery document at /.well-known/smart-configuration was absent or incomplete; the specification states that \"FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL,\" so its absence means clients cannot discover authorization endpoints automatically.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No OAuth security service was declared in the CapabilityStatement's security section; the security element supports values such as \"OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates,\" and its absence earned 0 out of 25 interop points for that check.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4499,
+      "output_tokens": 949
+    },
+    {
+      "index": 15,
+      "endpoint_id": "smart-health-it-r4",
+      "name": "SMART Health IT open sandbox (R4)",
+      "grade": "C",
+      "kind": "reference",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint's /metadata URL returned a successful HTTP 2xx response over HTTPS in 735 milliseconds, confirming it is reachable and that the capabilities interaction is working as specified.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement (the machine-readable document a FHIR — Fast Healthcare Interoperability Resources — server publishes to describe itself) declares FHIR version '4.0.0', satisfying the requirement for a fhirVersion field, which the specification marks as mandatory (cardinality 1..1).",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement includes both a software name and a version, which are optional fields the specification defines to identify the software covered by the statement.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 146 resource types and documents interactions for all 146 of them; the specification states that servers SHALL specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No recognized interoperability profiles were declared in the CapabilityStatement; the US Core Implementation Guide (a widely adopted FHIR profile set that defines minimum constraints for US patient data) defines two implementation modes — Profile Only Support and Profile Support + Interaction Support — neither of which appears to be declared here.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The SMART App Launch well-known endpoint (/.well-known/smart-configuration) was absent or incomplete; SMART (Substitutable Medical Applications and Reusable Technologies) is an authorization framework for FHIR, and the specification states that FHIR endpoints requiring authorization SHALL serve a JSON document at that location.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No OAuth security service was declared in the CapabilityStatement; the specification defines a 'service' field where values such as 'OAuth' or 'SMART-on-FHIR' can be stated to signal how the endpoint is secured.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4494,
+      "output_tokens": 852
+    },
+    {
+      "index": 16,
+      "endpoint_id": "hapi-fhir-r5",
+      "name": "HAPI FHIR public test server (R5)",
+      "grade": "B",
+      "kind": "reference",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint successfully answered an HTTP request to /metadata with a 2xx status code over HTTPS, and responded in 1930 milliseconds from a single measurement point in Davis, CA.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            },
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement — the machine-readable document a FHIR (Fast Healthcare Interoperability Resources) server publishes at /metadata to describe what it supports — declares fhirVersion 5.0.0, and also includes a software name and version, satisfying the fields the specification defines for those elements.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 158 resource types, and every one of those 158 resource types documents its supported interactions; the specification requires servers to specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#99",
+              "quote": "Operations supported by REST at the type or instance level."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The CapabilityStatement declares profiles from US Core, CARIN, and Da Vinci implementation guides; US Core is an implementation guide that defines minimum constraints on FHIR resources to promote interoperability.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "The US Core Implementation Guide is based on FHIR Version R4. It defines the minimum constraints on the FHIR resources to create the US Core Profiles."
+            },
+            {
+              "passage_id": "us-core-index#8",
+              "quote": "Profiles and Extensions: This page lists the US Core Profiles and Extensions defined in this guide to exchange quality data."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The check for a SMART App Launch well-known configuration document did not find a complete or present /.well-known/smart-configuration response; the SMART App Launch specification requires that FHIR endpoints needing authorization serve a JSON document at that location.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No OAuth security service was declared in the CapabilityStatement; the specification's security block allows a server to advertise services such as OAuth or SMART-on-FHIR, but that declaration was not found in this endpoint's published document.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        },
+        {
+          "dimension": "overall",
+          "text": "Because the SMART well-known document and OAuth security declaration were not found, the endpoint scored 40 out of 100 on interoperability readiness, resulting in an overall grade of B.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "The server SHALL convey the FHIR OAuth authorization endpoints and any optional SMART Capabilities it supports using this \"Well-Known Uniform Resource Identifiers (URIs)\" JSON document"
+            },
+            {
+              "passage_id": "fhir-r4-http#14",
+              "quote": "all production exchange of healthcare data SHOULD use SSL and additional security as appropriate."
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4443,
+      "output_tokens": 1031
+    },
+    {
+      "index": 17,
+      "endpoint_id": "firely-r5",
+      "name": "Firely public test server (R5)",
+      "grade": "C",
+      "kind": "reference",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint is reachable: its /metadata path responded with an HTTP 2xx status code over HTTPS, which is the standard way a FHIR server exposes its capabilities.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "reachability",
+          "text": "The /metadata response arrived in 1,632 milliseconds from a single measurement point (davis-ca/residential), confirming the endpoint answered within a practical time frame.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "The capabilities interaction retrieves the information about a server's capabilities - which portions of this specification it supports."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement — the machine-readable document a FHIR server publishes to describe what it supports — declares fhirVersion 5.0.0, satisfying the requirement that every CapabilityStatement carry a FHIR version field.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\n\nΣ\n\n1..1\n\ncode\n\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement also declares a software name and version; those fields exist specifically so a server can identify the software behind it.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 158 resource types and documents the supported interactions for every one of them; the specification states that servers SHALL specify what resource types and operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No recognized interoperability profiles were declared in the CapabilityStatement, and the SMART App Launch well-known discovery document — the JSON file at /.well-known/smart-configuration that FHIR endpoints requiring authorization SHALL serve — was absent or incomplete.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "Related to the missing SMART configuration, no OAuth security service was declared in the CapabilityStatement; the security section is where a server records options such as OAuth or SMART-on-FHIR.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4495,
+      "output_tokens": 765
+    },
+    {
+      "index": 18,
+      "endpoint_id": "smart-health-it-stu3",
+      "name": "SMART Health IT open sandbox (STU3)",
+      "grade": "C",
+      "kind": "reference",
+      "finding_codes": [
+        "R1",
+        "R2",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "offered_passages": 14,
+      "uncited_sources": [],
+      "claims_generated": 7,
+      "claims_shown": 7,
+      "claims_withheld": 0,
+      "withheld_reasons": [],
+      "claims": [
+        {
+          "dimension": "reachability",
+          "text": "The endpoint is fully reachable: its /metadata path returned an HTTP 2xx response over HTTPS and did so in 704 ms, earning the maximum 100 out of 100 points for reachability.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-http#75",
+              "quote": "Applications SHALL return a resource that describes the functionality of the server end-point."
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement — the machine-readable document a FHIR (Fast Healthcare Interoperability Resources) server publishes to describe what it supports — declares FHIR version 3.0.1, which is STU3, and also names the software and its version, satisfying the transparency checks for those fields.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#21",
+              "quote": "<name value=\"[string]\"/><!-- 1..1 A name the software is known by --> <version value=\"[string]\"/><!-- 0..1 Version covered by this statement -->"
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#13",
+              "quote": "fhirVersion\nΣ\n1..1\ncode\nFHIR Version the system supports"
+            }
+          ]
+        },
+        {
+          "dimension": "transparency",
+          "text": "The CapabilityStatement lists 117 resource types, and every one of those 117 types documents its supported interactions, which aligns with the specification requirement that servers declare what operations are supported.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#99",
+              "quote": "Operations supported by REST at the type or instance level."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No recognized interoperability profiles were declared in the CapabilityStatement; the US Core Implementation Guide (a widely used set of constraints on FHIR resources to promote interoperability) requires profiles to be identified, but none were found here.",
+          "citations": [
+            {
+              "passage_id": "us-core-index#3",
+              "quote": "It defines the minimum constraints on the FHIR resources to create the US Core Profiles. The elements, extensions, vocabularies, and value sets that SHALL be present are identified, and how they are used is defined."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "The SMART App Launch well-known configuration document — a JSON file at /.well-known/smart-configuration that SMART-on-FHIR (a standard for authorizing apps to access health data) uses to advertise OAuth endpoints — was absent or incomplete.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "FHIR endpoints requiring authorization SHALL serve a JSON document at the location formed by appending /.well-known/smart-configuration to their base URL."
+            }
+          ]
+        },
+        {
+          "dimension": "interop",
+          "text": "No OAuth security service was declared in the CapabilityStatement; the specification defines a 'service' field where values such as 'OAuth' or 'SMART-on-FHIR' should appear to signal how the server is secured.",
+          "citations": [
+            {
+              "passage_id": "fhir-r4-capabilitystatement#31",
+              "quote": "\"service\" : [{ CodeableConcept }], // OAuth | SMART-on-FHIR | NTLM | Basic | Kerberos | Certificates"
+            }
+          ]
+        },
+        {
+          "dimension": "overall",
+          "text": "Because both interoperability checks (profiles and SMART/OAuth security) received zero points, the endpoint scores 0 out of 100 on interop readiness, which pulls the overall grade down to a C despite perfect scores on reachability and transparency.",
+          "citations": [
+            {
+              "passage_id": "smart-app-launch-conformance#11",
+              "quote": "The server SHALL convey the FHIR OAuth authorization endpoints and any optional SMART Capabilities it supports using this \"Well-Known Uniform Resource Identifiers (URIs)\" JSON document"
+            },
+            {
+              "passage_id": "fhir-r4-capabilitystatement#103",
+              "quote": "Servers SHALL specify what resource types and operations are supported, and SHOULD also specify profiles for each resource type."
+            }
+          ]
+        }
+      ],
+      "input_tokens": 4495,
+      "output_tokens": 997
+    }
+  ],
+  "errors": []
+}

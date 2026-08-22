@@ -41,7 +41,7 @@ def test_initialize_and_tools_list(site: Path) -> None:
     tools = handle(site, {"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
     assert tools is not None
     names = {t["name"] for t in tools["result"]["tools"]}
-    assert names == {"list_endpoints", "get_endpoint", "grading_method"}
+    assert names == {"list_endpoints", "get_endpoint", "cited_passages", "grading_method"}
 
 
 def test_list_filters_and_carries_the_comparability_caveat(site: Path) -> None:

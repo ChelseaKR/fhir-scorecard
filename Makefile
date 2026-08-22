@@ -23,7 +23,7 @@ lock-check:
 
 # Install exactly what uv.lock pins, refusing if the lock is stale.
 sync:
-	uv sync --locked
+	uv sync --locked --all-extras
 
 verify: lock-check lint format typecheck test audit
 	@echo "make verify: all gates passed."
@@ -58,7 +58,7 @@ test:
 # has already established that the lock is current.
 audit:
 	@mkdir -p .cache
-	uv export --frozen --no-emit-project --no-hashes --output-file .cache/locked-requirements.txt
+	uv export --frozen --all-extras --no-emit-project --no-hashes --output-file .cache/locked-requirements.txt
 	$(PYTHON) -m pip_audit --strict --requirement .cache/locked-requirements.txt
 
 site:

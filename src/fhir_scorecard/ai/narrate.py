@@ -7,6 +7,15 @@ record's own findings cite, it must quote them verbatim for every claim, and a
 claim whose quote does not occur in the named page is withheld and counted.
 The output is labeled AI-generated, describes findings rather than the
 organization, and says what the verification does and does not establish.
+
+A record with nothing to narrate is refused before the model is called. Every
+claim must quote an offered passage, so a record that offers none (no graded
+dimensions, no findings, or findings whose cited pages are not retained) can
+only produce claims that are all withheld. Calling the model would spend
+tokens to say nothing; instead ``narrate`` returns a ``Narration`` whose
+``status`` is ``not_narrated``, whose ``not_narrated_reason`` names which of
+the three it was, and whose ``model_called`` is ``False`` with zero tokens, so
+the receipt records that the model was never invoked.
 """
 
 from __future__ import annotations
@@ -25,6 +34,15 @@ MAX_OUTPUT_TOKENS = 4000
 PASSAGES_PER_FINDING = 2
 MAX_PASSAGES = 14
 LANGUAGES = ("en", "es")
+STATUS_NARRATED = "narrated"
+STATUS_NOT_NARRATED = "not_narrated"
+# The reasons a record is refused before the model is called, in the order they
+# are checked. Each is a superset of the next: no dimensions means no findings
+# means no passages, and the most specific applicable reason is the one recorded.
+REASON_NO_DIMENSIONS = "no dimensions"
+REASON_NO_FINDINGS = "no findings"
+REASON_NO_PASSAGES = "no passages offered"
+NOT_NARRATED_REASONS = (REASON_NO_DIMENSIONS, REASON_NO_FINDINGS, REASON_NO_PASSAGES)
 LABEL = {
     "en": (
         "AI-generated narration of a deterministic scorecard. The grade and findings were "
@@ -94,6 +112,13 @@ class Narration:
     prompt_version: str
     input_tokens: int
     output_tokens: int
+    # ``narrated`` when the model was called and its claims verified;
+    # ``not_narrated`` when the record offered nothing to cite and the model
+    # was never invoked. ``model_called`` is the receipt for that: it is False
+    # exactly when the tokens are zero because no request was made.
+    status: str = STATUS_NARRATED
+    not_narrated_reason: str | None = None
+    model_called: bool = True
 
     @property
     def withheld_count(self) -> int:
@@ -310,6 +335,30 @@ def _verify(raw: Any, offered: Mapping[str, Passage], corpus: CorpusIndex) -> Cl
     return Claim(text, dimension if isinstance(dimension, str) else None, tuple(citations))
 
 
+def not_narratable_reason(
+    record: Mapping[str, Any],
+    findings: Sequence[Mapping[str, Any]],
+    offered: Mapping[str, Passage],
+) -> str | None:
+    """Why the model must not be called for this record, or None if it may be.
+
+    The rule is that every claim must cite an offered passage. With none
+    offered, every claim the model could write would be withheld, so the call
+    would spend tokens to show nothing. The three reasons are reported
+    separately because they mean different things to the reader: a record with
+    no dimensions is not a graded scorecard; one with dimensions but no
+    findings had nothing checked; one with findings but no passages cites
+    pages the corpus does not retain.
+    """
+    if not any(isinstance(d, Mapping) for d in record.get("dimensions", [])):
+        return REASON_NO_DIMENSIONS
+    if not findings:
+        return REASON_NO_FINDINGS
+    if not offered:
+        return REASON_NO_PASSAGES
+    return None
+
+
 def narrate(
     record: Mapping[str, Any],
     *,
@@ -317,7 +366,11 @@ def narrate(
     provider: Provider,
     language: str = "en",
 ) -> Narration:
-    """Explain one published scorecard record."""
+    """Explain one published scorecard record.
+
+    Returns a ``not_narrated`` Narration, without calling the model, when the
+    record offers no passage a claim could cite (see :func:`not_narratable_reason`).
+    """
     if language not in LANGUAGES:
         raise NarrationError(f"language must be one of {', '.join(LANGUAGES)}")
     if "dimensions" not in record or "grade" not in record:
@@ -325,6 +378,29 @@ def narrate(
     findings = _findings(record)
     passages, unresolved = grounding_passages(findings, corpus)
     offered = {p.passage_id: p for p in passages}
+    reason = not_narratable_reason(record, findings, offered)
+    if reason is not None:
+        return Narration(
+            language=language,
+            endpoint_id=str(record.get("endpoint_id", "")),
+            name=str(record.get("name", "")),
+            grade=str(record.get("grade", "")),
+            kind=str(record.get("kind", "")),
+            finding_codes=tuple(str(f.get("code")) for f in findings),
+            claims=(),
+            withheld=(),
+            offered_passage_ids=(),
+            uncited_sources=tuple(unresolved),
+            label=LABEL[language],
+            provider=provider.name,
+            model=provider.model,
+            prompt_version=PROMPT_VERSION,
+            input_tokens=0,
+            output_tokens=0,
+            status=STATUS_NOT_NARRATED,
+            not_narrated_reason=reason,
+            model_called=False,
+        )
     completion = provider.complete_json(
         system=_SYSTEM_PROMPT,
         user=_user_prompt(record, findings, passages, corpus, language),

@@ -266,8 +266,13 @@ It explains one published scorecard in plain language. The grade and findings ar
 cannot change; every sentence it prints quotes a passage of the cited page that was verified
 against the retained copy, and a sentence whose quote does not verify is withheld and counted.
 The output is labeled AI-generated, describes what the endpoint published rather than the
-organization, and is not on the site. `python -m fhir_scorecard.ai.eval` measures the grounding
-rate; the recorded runs are in `evals/ai/results/`.
+organization, and is not on the site. A record that offers no passage a claim could cite (no
+graded dimensions, no findings, or findings whose cited page is not retained) is refused before
+the model is called: the result is `status: not_narrated` with the reason, `model_called:
+false`, and zero tokens, rather than a narration whose every claim was withheld.
+`python -m fhir_scorecard.ai.eval` measures the grounding rate; the recorded runs are in
+`evals/ai/results/`, and refused records are counted there as `records_not_narrated`, outside
+the grounding fractions.
 
 ## Status
 

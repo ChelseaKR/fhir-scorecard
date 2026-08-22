@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-08-22 00:00 UTC",
+  "note": "Records that offer nothing a narration claim could cite (issue #47). The first is the exact shape Gauntlet submitted on 2026-08-22, with an endpoint_id so the CLI can address it. None of these is a published scorecard; grading never emits a grade without dimensions.",
+  "scorecards": [
+    {
+      "endpoint_id": "fixture-no-dimensions",
+      "name": "Fixture: no dimensions",
+      "kind": "payer",
+      "reachable": true,
+      "dimensions": [],
+      "grade": "A"
+    },
+    {
+      "endpoint_id": "fixture-no-findings",
+      "name": "Fixture: dimensions without findings",
+      "kind": "payer",
+      "reachable": true,
+      "dimensions": [
+        {"key": "reachability", "title": "Reachability", "score": null, "findings": []}
+      ],
+      "grade": "F"
+    },
+    {
+      "endpoint_id": "fixture-no-passages",
+      "name": "Fixture: findings citing a page the corpus does not retain",
+      "kind": "payer",
+      "reachable": true,
+      "dimensions": [
+        {
+          "key": "reachability",
+          "title": "Reachability",
+          "score": 100,
+          "findings": [
+            {
+              "citation": "https://example.test/not-retained",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            }
+          ]
+        }
+      ],
+      "grade": "B"
+    }
+  ]
+}

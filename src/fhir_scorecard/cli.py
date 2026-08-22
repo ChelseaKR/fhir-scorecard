@@ -506,6 +506,17 @@ def _cmd_narrate(args: argparse.Namespace) -> int:
         print(json.dumps(narration.to_dict(), indent=2, ensure_ascii=False))
         return 0
     print(f"{narration.name} ({narration.endpoint_id}): grade {narration.grade}")
+    if not narration.model_called:
+        # The documented outcome for a record with nothing to cite: the model
+        # was never invoked, and the receipt says so rather than showing a
+        # narration whose every claim was withheld.
+        print(
+            f"Not narrated: {narration.not_narrated_reason}. The record offers no "
+            "specification passage a claim could cite, so the model was not called "
+            "(0 input tokens, 0 output tokens)."
+        )
+        print(f"Provider: {narration.provider}. Prompt version: {narration.prompt_version}.")
+        return 0
     print(narration.label)
     print()
     for number, claim in enumerate(narration.claims, start=1):

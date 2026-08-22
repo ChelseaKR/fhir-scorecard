@@ -36,6 +36,18 @@ Merged changes land here until the next tag.
 
 ### Changed
 
+- **`narrate` refuses, before calling the model, a record that offers nothing to cite
+  (#47).** Every claim must cite an offered passage, so a record with no graded dimensions, no
+  findings, or findings whose cited page the corpus does not retain could only produce claims
+  that are all withheld; Gauntlet observed exactly that on 2026-08-22, with 802 input tokens
+  spent per language to show nothing. `narrate()` now returns a `Narration` with
+  `status: not_narrated`, the reason (`no dimensions`, `no findings`, or `no passages
+  offered`), `model_called: false`, and zero tokens, and the CLI prints that outcome. The eval
+  records such records under `not_narrated` with `records_not_narrated` in the summary and
+  keeps them out of the grounding fractions, since zero claims generated is the absence of a
+  narration, not a perfectly grounded one. `tests/fixtures/ai/not-narratable.json` holds the
+  three shapes, the first being the record Gauntlet submitted.
+
 - **The site is styled by the U.S. Web Design System, vendored and served same-origin.**
   USWDS 3.14.0 - the stylesheet, its fonts and icons, and the two scripts its header needs -
   ships inside the package (`src/fhir_scorecard/assets/uswds/`, provenance and trim rule in its

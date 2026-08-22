@@ -42,7 +42,8 @@ from fhir_scorecard.cli import main
 from fhir_scorecard.mcp import call_tool
 
 ROOT = Path(__file__).resolve().parents[1]
-SCORECARDS = ROOT / "site" / "scorecards.json"
+# A snapshot of the published dataset; site/ is a build output and is not checked in.
+SCORECARDS = ROOT / "tests" / "fixtures" / "ai" / "scorecards.json"
 CORPUS = CorpusIndex.load(ROOT)
 RECORDS = json.loads(SCORECARDS.read_text(encoding="utf-8"))["scorecards"]
 CITATIONS = sorted({f["citation"] for r in RECORDS for d in r["dimensions"] for f in d["findings"]})
@@ -255,12 +256,18 @@ def test_narration_in_spanish_and_error_paths() -> None:
 # --- MCP passages tool (no model) -------------------------------------------
 
 
-def test_mcp_cited_passages_returns_spec_text_without_a_model() -> None:
+def test_mcp_cited_passages_returns_spec_text_without_a_model(tmp_path: Path) -> None:
     endpoint_id = RECORDS[0]["endpoint_id"]
+    site = tmp_path / "site"
+    (site / "api" / "endpoint").mkdir(parents=True)
+    record = {**RECORDS[0], "endpoint": {"endpoint_id": endpoint_id, "grade": RECORDS[0]["grade"]}}
+    (site / "api" / "endpoint" / f"{endpoint_id}.json").write_text(
+        json.dumps(record), encoding="utf-8"
+    )
     payload = json.loads(
-        call_tool(ROOT / "site", "cited_passages", {"endpoint_id": endpoint_id}, root=ROOT)[
-            "content"
-        ][0]["text"]
+        call_tool(site, "cited_passages", {"endpoint_id": endpoint_id}, root=ROOT)["content"][0][
+            "text"
+        ]
     )
     assert payload["endpoint_id"] == endpoint_id
     assert payload["findings"] and all(f["passages"] for f in payload["findings"])
@@ -268,13 +275,13 @@ def test_mcp_cited_passages_returns_spec_text_without_a_model() -> None:
     assert CORPUS.verify_quote(first["passage_id"].split("#")[0], first["text"][:200])
     assert "retrieval matches, not a determination" in payload["note"]
     denied = json.loads(
-        call_tool(ROOT / "site", "cited_passages", {"endpoint_id": "../x"})["content"][0]["text"]
+        call_tool(site, "cited_passages", {"endpoint_id": "../x"})["content"][0]["text"]
     )
     assert "bare identifier" in denied["error"]
     missing = json.loads(
-        call_tool(ROOT / "site", "cited_passages", {"endpoint_id": endpoint_id}, root=Path("/"))[
-            "content"
-        ][0]["text"]
+        call_tool(site, "cited_passages", {"endpoint_id": endpoint_id}, root=tmp_path)["content"][
+            0
+        ]["text"]
     )
     assert missing["error"].startswith("corpus unavailable")
 

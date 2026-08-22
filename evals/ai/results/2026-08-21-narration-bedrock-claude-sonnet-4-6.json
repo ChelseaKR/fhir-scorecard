@@ -7,11 +7,12 @@
     "model": "global.anthropic.claude-sonnet-4-6",
     "prompt_version": "narrate-v1",
     "commit": "f61589bf780970ca2b4dd085e79eda59e6c2415c",
-    "records_file": "site/scorecards.json",
+    "records_file": "site/scorecards.json (published dataset; snapshot at tests/fixtures/ai/scorecards.json)",
     "scoring": {
       "claims_shown": "every cited quote occurs verbatim in the named committed document",
       "claims_withheld": "at least one citation did not verify; the claim is not shown"
-    }
+    },
+    "dataset_generated_at": "2026-08-05 01:59 UTC"
   },
   "summary": {
     "records": 19,

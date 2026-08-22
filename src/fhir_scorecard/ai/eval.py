@@ -33,6 +33,13 @@ def load_records(path: Path, *, limit: int = 0) -> list[dict[str, Any]]:
     return records[:limit] if limit else records
 
 
+def dataset_generated_at(path: Path) -> str | None:
+    """The publication timestamp of the dataset, which is what a run is traceable to."""
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    value = payload.get("generated_at") if isinstance(payload, dict) else None
+    return str(value) if value else None
+
+
 def score_record(
     record: Mapping[str, Any], *, corpus: CorpusIndex, provider: Provider
 ) -> dict[str, Any]:
@@ -127,6 +134,7 @@ def metadata(provider: Provider, root: Path, records_path: Path) -> dict[str, An
         "prompt_version": PROMPT_VERSION,
         "commit": git_commit(root),
         "records_file": str(records_path),
+        "dataset_generated_at": dataset_generated_at(records_path),
         "scoring": {
             "claims_shown": "every cited quote occurs verbatim in the named committed document",
             "claims_withheld": "at least one citation did not verify; the claim is not shown",

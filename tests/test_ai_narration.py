@@ -24,10 +24,15 @@ from fhir_scorecard.ai.corpus import (
 from fhir_scorecard.ai.narrate import (
     CODE_HINTS,
     LABEL,
+    NOT_NARRATED_REASONS,
+    PROMPT_VERSION,
+    STATUS_NARRATED,
+    STATUS_NOT_NARRATED,
     NarrationError,
     grounding_passages,
     narrate,
     narration_schema,
+    not_narratable_reason,
 )
 from fhir_scorecard.ai.provider import (
     ProviderError,
@@ -44,8 +49,12 @@ from fhir_scorecard.mcp import call_tool
 ROOT = Path(__file__).resolve().parents[1]
 # A snapshot of the published dataset; site/ is a build output and is not checked in.
 SCORECARDS = ROOT / "tests" / "fixtures" / "ai" / "scorecards.json"
+# Records with nothing to cite: no dimensions, no findings, or findings whose cited page is
+# not retained. The first is the exact record Gauntlet submitted in issue #47.
+NOT_NARRATABLE = ROOT / "tests" / "fixtures" / "ai" / "not-narratable.json"
 CORPUS = CorpusIndex.load(ROOT)
 RECORDS = json.loads(SCORECARDS.read_text(encoding="utf-8"))["scorecards"]
+EMPTY_RECORDS = json.loads(NOT_NARRATABLE.read_text(encoding="utf-8"))["scorecards"]
 CITATIONS = sorted({f["citation"] for r in RECORDS for d in r["dimensions"] for f in d["findings"]})
 
 
@@ -237,6 +246,60 @@ def test_narration_keeps_verified_claims_and_withholds_the_rest() -> None:
     assert "never characterize the organization" in call.system
 
 
+def test_narrated_record_carries_the_model_called_receipt() -> None:
+    record = RECORDS[0]
+    offered = [p.passage_id for p in grounding_passages(_findings(record), CORPUS)[0]]
+    narration = narrate(record, corpus=CORPUS, provider=ScriptedProvider([_reply(offered)]))
+    assert narration.status == STATUS_NARRATED and narration.model_called
+    assert narration.not_narrated_reason is None
+    payload = narration.to_dict()
+    assert payload["status"] == "narrated" and payload["model_called"] is True
+    passages = grounding_passages(_findings(record), CORPUS)[0]
+    assert (
+        not_narratable_reason(record, _findings(record), {p.passage_id: p for p in passages})
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    ("record", "reason"), list(zip(EMPTY_RECORDS, NOT_NARRATED_REASONS, strict=True))
+)
+def test_record_with_nothing_to_cite_is_refused_before_the_model_call(
+    record: dict[str, Any], reason: str
+) -> None:
+    """Issue #47: every claim must cite an offered passage, so a record that offers none can
+    only produce withheld claims. The model is not called, and the receipt says so."""
+    provider = ScriptedProvider([])  # any call would raise "no response left"
+    for language in ("en", "es"):
+        narration = narrate(record, corpus=CORPUS, provider=provider, language=language)
+        assert provider.calls == []
+        assert narration.status == STATUS_NOT_NARRATED
+        assert narration.not_narrated_reason == reason
+        assert narration.model_called is False
+        assert (narration.input_tokens, narration.output_tokens) == (0, 0)
+        assert narration.claims == () and narration.withheld == ()
+        assert narration.offered_passage_ids == ()
+        assert narration.grade == record["grade"] and narration.endpoint_id == record["endpoint_id"]
+        assert narration.label == LABEL[language]
+        assert (narration.provider, narration.model) == (provider.name, provider.model)
+        assert narration.prompt_version == PROMPT_VERSION
+        payload = narration.to_dict()
+        assert payload["status"] == "not_narrated" and payload["model_called"] is False
+        assert payload["not_narrated_reason"] == reason and payload["withheld_count"] == 0
+    if reason == "no passages offered":
+        assert narration.uncited_sources == ("https://example.test/not-retained",)
+        assert narration.finding_codes == ("R1",)
+    else:
+        assert narration.uncited_sources == () and narration.finding_codes == ()
+
+
+def test_not_narratable_reason_is_the_most_specific_one() -> None:
+    assert not_narratable_reason({"dimensions": []}, [], {}) == "no dimensions"
+    assert not_narratable_reason({"dimensions": ["junk"]}, [], {}) == "no dimensions"
+    assert not_narratable_reason({"dimensions": [{"key": "r"}]}, [], {}) == "no findings"
+    assert not_narratable_reason({"dimensions": [{"key": "r"}]}, [{}], {}) == "no passages offered"
+
+
 def test_narration_in_spanish_and_error_paths() -> None:
     record = RECORDS[0]
     spanish = narrate(
@@ -389,7 +452,27 @@ def test_eval_scores_records_and_records_provenance(tmp_path: Path) -> None:
     assert (result["summary"]["claims_generated"], result["summary"]["claims_shown"]) == (6, 1)
     assert result["summary"]["fraction_claims_with_verified_citations"] == round(1 / 6, 4)
     assert result["errors"] == [{"index": "1", "error": "the model did not return JSON"}]
+    assert result["not_narrated"] == [] and result["summary"]["records_not_narrated"] == 0
+    assert result["records"][0]["status"] == "narrated"
+    assert result["records"][0]["model_called"] is True
     assert eval_module.summarize([])["records"] == 0
+    # A record refused before the model call is recorded with its reason and zero tokens, and
+    # stays out of the grounding fractions: it is not a perfectly grounded narration.
+    refused = eval_module.run(
+        [*records[:1], *EMPTY_RECORDS], corpus=CORPUS, provider=ScriptedProvider([_reply(offered)])
+    )
+    assert refused["summary"]["records"] == 1
+    assert refused["summary"]["records_not_narrated"] == 3
+    assert refused["summary"]["records_with_no_withheld_claims"] == 1.0
+    assert refused["summary"]["fraction_claims_with_verified_citations"] == 1.0
+    assert [r["not_narrated_reason"] for r in refused["not_narrated"]] == list(NOT_NARRATED_REASONS)
+    assert all(
+        r["model_called"] is False and r["input_tokens"] == 0 and r["status"] == "not_narrated"
+        for r in refused["not_narrated"]
+    )
+    assert [r["index"] for r in refused["not_narrated"]] == [1, 2, 3]
+    assert refused["errors"] == []
+    assert "records_not_narrated" in eval_module.metadata(provider, ROOT, SCORECARDS)["scoring"]
     meta = eval_module.metadata(provider, ROOT, SCORECARDS)
     assert meta["status"] == "recorded_live_run" and len(meta["commit"]) == 40
     assert eval_module.git_commit(tmp_path) == "unknown"
@@ -431,6 +514,20 @@ def test_narrate_cli_prints_claims_and_reports_errors(
     assert payload["withheld_count"] == 0 and payload["claims"][0]["text"] == "Supported claim."
     assert main([*base, "--endpoint", "nope"]) == 2
     assert "unknown endpoint" in capsys.readouterr().err
+    # Issue #47: a record with nothing to cite prints the documented outcome and never calls.
+    monkeypatch.setattr(
+        "fhir_scorecard.ai.provider.provider_from_env", lambda: ScriptedProvider([])
+    )
+    empty = ["narrate", "--scorecards", str(NOT_NARRATABLE), "--root", str(ROOT)]
+    assert main([*empty, "--endpoint", "fixture-no-dimensions"]) == 0
+    out = capsys.readouterr().out
+    assert "Not narrated: no dimensions." in out and "the model was not called" in out
+    assert "Prompt version: narrate-v1" in out and "withheld" not in out
+    assert main([*empty, "--endpoint", "fixture-no-passages", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "not_narrated" and payload["model_called"] is False
+    assert payload["not_narrated_reason"] == "no passages offered"
+    assert payload["input_tokens"] == 0 and payload["claims"] == []
     assert main(["narrate", "--scorecards", str(tmp_path / "x.json"), "--endpoint", "e"]) == 2
     assert "cannot read" in capsys.readouterr().err
     monkeypatch.setattr(

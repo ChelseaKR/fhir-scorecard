@@ -50,6 +50,9 @@ def score_record(
         "name": narration.name,
         "grade": narration.grade,
         "kind": narration.kind,
+        "status": narration.status,
+        "not_narrated_reason": narration.not_narrated_reason,
+        "model_called": narration.model_called,
         "finding_codes": list(narration.finding_codes),
         "offered_passages": len(narration.offered_passage_ids),
         "uncited_sources": list(narration.uncited_sources),
@@ -72,11 +75,21 @@ def score_record(
     }
 
 
-def summarize(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+def summarize(
+    rows: Sequence[Mapping[str, Any]], not_narrated: Sequence[Mapping[str, Any]] = ()
+) -> dict[str, Any]:
+    """Grounding figures over the records the model narrated.
+
+    ``rows`` are the narrated records only. Records refused before the model
+    call are counted separately as ``records_not_narrated`` and never enter
+    the grounding fractions: a record with zero claims generated and zero
+    withheld is not a perfectly grounded narration, it is the absence of one.
+    """
     generated = sum(int(r["claims_generated"]) for r in rows)
     shown = sum(int(r["claims_shown"]) for r in rows)
     return {
         "records": len(rows),
+        "records_not_narrated": len(not_narrated),
         "claims_generated": generated,
         "claims_shown": shown,
         "claims_withheld": generated - shown,
@@ -96,15 +109,35 @@ def run(
     records: Sequence[Mapping[str, Any]], *, corpus: CorpusIndex, provider: Provider
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
+    not_narrated: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
     for position, record in enumerate(records):
         try:
-            rows.append(
-                {"index": position, **score_record(record, corpus=corpus, provider=provider)}
-            )
+            row = {"index": position, **score_record(record, corpus=corpus, provider=provider)}
         except (NarrationError, ProviderError) as exc:
             errors.append({"index": str(position), "error": str(exc)})
-    return {"summary": summarize(rows), "records": rows, "errors": errors}
+            continue
+        if row["model_called"]:
+            rows.append(row)
+        else:
+            not_narrated.append(
+                {
+                    "index": position,
+                    "endpoint_id": row["endpoint_id"],
+                    "name": row["name"],
+                    "status": row["status"],
+                    "not_narrated_reason": row["not_narrated_reason"],
+                    "model_called": False,
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                }
+            )
+    return {
+        "summary": summarize(rows, not_narrated),
+        "records": rows,
+        "not_narrated": not_narrated,
+        "errors": errors,
+    }
 
 
 def git_commit(root: Path) -> str:
@@ -138,6 +171,10 @@ def metadata(provider: Provider, root: Path, records_path: Path) -> dict[str, An
         "scoring": {
             "claims_shown": "every cited quote occurs verbatim in the named committed document",
             "claims_withheld": "at least one citation did not verify; the claim is not shown",
+            "records_not_narrated": (
+                "the record offered no passage a claim could cite; the model was not called "
+                "and the record is outside the grounding fractions"
+            ),
         },
     }
 

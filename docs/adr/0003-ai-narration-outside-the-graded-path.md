@@ -70,6 +70,10 @@ and is kept outside the graded path by construction:
   misreadings. No person has reviewed the prompt, the passages it selects, or the Spanish
   output.
 - Narration is non-deterministic run to run. Grades are not.
+- *Amended 2026-08-22 (#47).* A record that offers no passage a claim could cite is refused
+  before the model is called and reported as `not_narrated` with its reason and
+  `model_called: false`. The verifier would have withheld every claim anyway; the refusal
+  spends nothing to reach the same outcome and records that no request was made.
 
 ## Alternatives considered
 

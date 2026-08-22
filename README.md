@@ -248,7 +248,26 @@ fhir-scorecard mcp --site site
 It reads only the published dataset files. There is deliberately no tool that probes an endpoint:
 a model deciding to fetch arbitrary URLs is a much larger security surface than one reading a
 file this project already publishes. Its `grading_method` tool returns the documented limits, so
-an assistant can be told what the numbers do not mean.
+an assistant can be told what the numbers do not mean. Its `cited_passages` tool returns, for
+one endpoint, each finding with the verbatim passages of the specification page it cites, quoted
+from the copies retained under [`corpus/`](corpus/SOURCES.json); no model is called, and an
+assistant that explains a grade can quote the specification rather than recall it.
+
+The one command that does call a model is `narrate`
+([ADR 0003](docs/adr/0003-ai-narration-outside-the-graded-path.md)):
+
+```bash
+uv sync --all-extras                                     # adds the `ai` extra: the public anthropic SDK
+FHIR_AI_PROVIDER=bedrock FHIR_AI_MODEL=global.anthropic.claude-sonnet-4-6 \
+  fhir-scorecard narrate --endpoint cms-blue-button-2 --language es
+```
+
+It explains one published scorecard in plain language. The grade and findings are inputs it
+cannot change; every sentence it prints quotes a passage of the cited page that was verified
+against the retained copy, and a sentence whose quote does not verify is withheld and counted.
+The output is labeled AI-generated, describes what the endpoint published rather than the
+organization, and is not on the site. `python -m fhir_scorecard.ai.eval` measures the grounding
+rate; the recorded runs are in `evals/ai/results/`.
 
 ## Status
 
@@ -283,7 +302,7 @@ are no blank rows and no silent skips.
 | Observability | Applies (scoped): scheduled batch publisher, not a hosted runtime; run health is visible in Actions, and availability/drift history accrues on the `capability-history` branch, one commit per day on which something changed (the copy on `main` is the seed the first run started from, and is no longer updated) |
 | Accessibility | Applies: static semantic HTML pages; formal assistive-technology review not yet performed (tracked in `docs/RESPONSIBLE-TECH-AUDITS.md` E) |
 | Internationalization | N/A: findings quote English normative spec text for a specialist audience; no civic public-service workflow. `docs/I18N.md` |
-| AI Evaluation | N/A: no LLM or model component; grading is deterministic and the MCP server only reads published files |
+| AI Evaluation | Applies to the optional narration layer only ([ADR 0003](docs/adr/0003-ai-narration-outside-the-graded-path.md)): grading, the site, the Action, and the MCP server's tools call no model; `fhir-scorecard narrate` explains a published scorecard with claims that must quote the retained copies of the cited specification pages (`corpus/`), withholding any claim whose quote does not verify; `evals/ai/results/` records the measured grounding rate with provider, model, prompt version, date, and commit. A verified citation proves the passage exists, not that the sentence reads it correctly; no person has reviewed the prompt or the Spanish output |
 | Documentation | Applies: README, ROADMAP, CONTRIBUTING, SECURITY, CHANGELOG, CITATION.cff, ADRs (`docs/adr/`) |
 | Quality & Metrics | Applies: deterministic findings tied to cited spec text; coverage floor enforced in CI; drift tracked across runs |
 | Release & Versioning | Applies: the composite Action in `action.yml` is consumed as `ChelseaKR/fhir-scorecard@<tag>`, so a tag is a shipped interface. Releases are cut by dispatching `.github/workflows/release.yml` with an existing SSH-signed annotated SemVer tag; the shared authorize workflow verifies the signature against `.github/allowed_signers` and that the commit is an ancestor of `main`, `make verify` and the full-history secret scan re-run at that commit, and the build is attested (SLSA provenance) and attached to a GitHub Release whose notes are the matching CHANGELOG section. Tag, `pyproject.toml` and CHANGELOG versions must agree or the release fails. `docs/adr/0002-release-versioning-applies-action-export.md` supersedes `docs/adr/0001-release-versioning-na.md`; the site and dataset are still published daily from `main` and are not what a version names |

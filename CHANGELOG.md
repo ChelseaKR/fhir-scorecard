@@ -12,6 +12,28 @@ distribution behind it, which consumers pin by tag
 
 Merged changes land here until the next tag.
 
+### Added
+
+- **AI narration outside the graded path (ADR 0003, 2026-08-21).** `fhir-scorecard narrate
+  --endpoint <id> [--language es]` explains one published scorecard in plain language. The
+  grade and findings are inputs the model cannot change; it is shown only passages from the
+  specification page each finding cites, every claim must quote them verbatim, and
+  `fhir_scorecard.ai.corpus` verifies each quote against the retained copy before the claim is
+  shown, withholding and counting the rest. The prompt forbids characterizing the organization
+  or naming regulators, and the output label says what the verification does and does not
+  establish. `corpus/SOURCES.json` retains the four cited HL7 pages (FHIR R4 `http.html` and
+  `capabilitystatement.html`, SMART App Launch conformance, US Core home; CC0) with hashes and
+  retrieval dates. The `anthropic` SDK arrives as an optional `ai` extra that only this layer
+  imports; `make sync` and `make audit` cover it. The MCP server gains one deterministic tool,
+  `cited_passages`, returning each finding with the verbatim passages of its cited page; it
+  still calls no model. `python -m fhir_scorecard.ai.eval` measures grounding; the recorded
+  run on Amazon Bedrock `global.anthropic.claude-sonnet-4-6` over all 19 published scorecards
+  produced 138 claims, 138 shown with verified citations, 0 withheld
+  (`evals/ai/results/`). A verified citation proves the passage exists, not that the sentence
+  reads it correctly; no person has reviewed the prompt or the Spanish output. `README.md` and
+  `docs/RESPONSIBLE-TECH-AUDITS.md` now say that grading, the site, the Action, and the MCP
+  tools call no model, rather than that the project has "no LLM or model component".
+
 ### Changed
 
 - **The site is styled by the U.S. Web Design System, vendored and served same-origin.**

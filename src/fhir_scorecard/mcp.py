@@ -47,6 +47,20 @@ _TOOLS = [
         },
     },
     {
+        "name": "cited_passages",
+        "description": (
+            "For one endpoint, each finding together with the passages of the FHIR, "
+            "SMART App Launch, or US Core specification page it cites, quoted verbatim "
+            "from the copies retained under corpus/. No model is called; use these "
+            "passages to explain a finding in the specification's own words."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"endpoint_id": {"type": "string"}},
+            "required": ["endpoint_id"],
+        },
+    },
+    {
         "name": "grading_method",
         "description": (
             "How grades are computed, what each finding code checks, and the "
@@ -109,7 +123,9 @@ def _text(payload: object) -> dict[str, Any]:
     return {"content": [{"type": "text", "text": json.dumps(payload, indent=2)}]}
 
 
-def call_tool(site_dir: Path, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+def call_tool(
+    site_dir: Path, name: str, arguments: dict[str, Any], *, root: Path | None = None
+) -> dict[str, Any]:
     if name == "grading_method":
         return _text(_METHOD_NOTE)
 
@@ -132,7 +148,7 @@ def call_tool(site_dir: Path, name: str, arguments: dict[str, Any]) -> dict[str,
             }
         )
 
-    if name == "get_endpoint":
+    if name in {"get_endpoint", "cited_passages"}:
         endpoint_id = str(arguments.get("endpoint_id") or "").strip()
         # Path traversal guard: only a bare identifier ever becomes a filename.
         if not endpoint_id or "/" in endpoint_id or "\\" in endpoint_id or ".." in endpoint_id:
@@ -140,12 +156,70 @@ def call_tool(site_dir: Path, name: str, arguments: dict[str, Any]) -> dict[str,
         path = site_dir / "api" / "endpoint" / f"{endpoint_id}.json"
         if not path.is_file():
             return _text({"error": f"unknown endpoint {endpoint_id!r}"})
-        return _text(json.loads(path.read_text(encoding="utf-8")))
+        record = json.loads(path.read_text(encoding="utf-8"))
+        if name == "get_endpoint":
+            return _text(record)
+        return _text(cited_passages(record, site_dir.parent if root is None else root))
 
     return _text({"error": f"unknown tool {name!r}"})
 
 
-def handle(site_dir: Path, request: dict[str, Any]) -> dict[str, Any] | None:
+def cited_passages(record: dict[str, Any], root: Path) -> dict[str, Any]:
+    """Each finding with the verbatim specification passages its citation points at.
+
+    Deterministic: lexical retrieval over the retained pages under ``corpus/``;
+    no model is involved. The passages are the specification's own words, so a
+    client that explains a finding can quote rather than recall.
+    """
+    from fhir_scorecard.ai.corpus import CorpusError, CorpusIndex
+    from fhir_scorecard.ai.narrate import _findings, grounding_passages
+
+    try:
+        corpus = CorpusIndex.load(root)
+    except CorpusError as exc:
+        return {"error": f"corpus unavailable: {exc}"}
+    findings = _findings(record)
+    rows = []
+    for finding in findings:
+        passages, unresolved = grounding_passages([finding], corpus)
+        rows.append(
+            {
+                "code": finding.get("code"),
+                "dimension": finding.get("dimension"),
+                "ok": finding.get("ok"),
+                "observed": finding.get("observed", True),
+                "message": finding.get("message"),
+                "citation": finding.get("citation"),
+                "passages": [
+                    {
+                        "passage_id": p.passage_id,
+                        "source": corpus.documents[p.source_id].label,
+                        "heading": p.heading,
+                        "text": p.text,
+                    }
+                    for p in passages
+                ],
+                "citation_not_retained": unresolved,
+            }
+        )
+    # The per-endpoint API file nests identity under "endpoint"; scorecards.json does not.
+    nested = record.get("endpoint")
+    endpoint: dict[str, Any] = nested if isinstance(nested, dict) else record
+    return {
+        "endpoint_id": endpoint.get("endpoint_id"),
+        "grade": endpoint.get("grade"),
+        "findings": rows,
+        "note": (
+            "Passages are quoted verbatim from retained copies of the cited pages "
+            "(corpus/SOURCES.json). They are retrieval matches, not a determination; "
+            "the finding message is the graded fact."
+        ),
+    }
+
+
+def handle(
+    site_dir: Path, request: dict[str, Any], *, root: Path | None = None
+) -> dict[str, Any] | None:
     method = request.get("method")
     request_id = request.get("id")
     if method == "initialize":
@@ -159,7 +233,7 @@ def handle(site_dir: Path, request: dict[str, Any]) -> dict[str, Any] | None:
     elif method == "tools/call":
         params = request.get("params") or {}
         arguments = params.get("arguments") or {}
-        result = call_tool(site_dir, str(params.get("name") or ""), arguments)
+        result = call_tool(site_dir, str(params.get("name") or ""), arguments, root=root)
     elif request_id is None:
         return None  # a notification we do not act on
     else:
@@ -174,7 +248,13 @@ def handle(site_dir: Path, request: dict[str, Any]) -> dict[str, Any] | None:
     return {"jsonrpc": "2.0", "id": request_id, "result": result}
 
 
-def serve(site_dir: Path, stdin: TextIO | None = None, stdout: TextIO | None = None) -> int:
+def serve(
+    site_dir: Path,
+    stdin: TextIO | None = None,
+    stdout: TextIO | None = None,
+    *,
+    root: Path | None = None,
+) -> int:
     source = stdin if stdin is not None else sys.stdin
     sink = stdout if stdout is not None else sys.stdout
     for line in source:
@@ -197,7 +277,7 @@ def serve(site_dir: Path, stdin: TextIO | None = None, stdout: TextIO | None = N
             sink.flush()
             continue
         try:
-            response = handle(site_dir, request if isinstance(request, dict) else {})
+            response = handle(site_dir, request if isinstance(request, dict) else {}, root=root)
         except Exception as exc:  # a bad request must not kill the server
             response = {
                 "jsonrpc": "2.0",

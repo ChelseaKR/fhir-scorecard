@@ -1,0 +1,1998 @@
+{
+  "disclaimer": "Observational snapshot of public, unauthenticated FHIR discovery surfaces. Not an audit, a ranking of care quality, or a statement about any organization's regulatory compliance.",
+  "generated_at": "2026-08-05 01:59 UTC",
+  "generator": "fhir-scorecard",
+  "scorecards": [
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 397 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "3 resource types declared (narrow but fully documented)",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "3/3 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "no recognized interoperability profiles declared",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART discovery document present and complete",
+              "ok": true,
+              "points": 35
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "OAuth/SMART security service declared in CapabilityStatement",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "interop",
+          "score": 60,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "cms-blue-button-2",
+      "grade": "B",
+      "kind": "payer",
+      "name": "CMS Blue Button 2.0 (Medicare)",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 850 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name/version missing",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "22 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "22/22 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 80,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART discovery document present and complete",
+              "ok": true,
+              "points": 35
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "OAuth/SMART security service declared in CapabilityStatement",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "interop",
+          "score": 100,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "humana",
+      "grade": "A",
+      "kind": "payer",
+      "name": "Humana Patient Access API",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 881 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name/version missing",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "25 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "25/25 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 80,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "no recognized interoperability profiles declared",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART .well-known/smart-configuration absent or incomplete",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "OAuth/SMART security service declared in CapabilityStatement",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "interop",
+          "score": 25,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "aetna-demo",
+      "grade": "C",
+      "kind": "payer",
+      "name": "Aetna Patient Access (public demo instance)",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 590 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name/version missing",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "28 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "28/28 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 80,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART discovery document present and complete",
+              "ok": true,
+              "points": 35
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "OAuth/SMART security service declared in CapabilityStatement",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "interop",
+          "score": 100,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "cigna-patientaccess",
+      "grade": "A",
+      "kind": "payer",
+      "name": "Cigna Patient Access API",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 554 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "26 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "26/26 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART discovery document present and complete",
+              "ok": true,
+              "points": 35
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "OAuth/SMART security service declared in CapabilityStatement",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "interop",
+          "score": 100,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "bcbs-mn",
+      "grade": "A",
+      "kind": "payer",
+      "name": "Blue Cross Blue Shield of Minnesota Patient Access API (preview)",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 1018 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "146 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "145/146 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART discovery document present and complete",
+              "ok": true,
+              "points": 35
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "OAuth/SMART security service declared in CapabilityStatement",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "interop",
+          "score": 100,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "healthpartners",
+      "grade": "A",
+      "kind": "payer",
+      "name": "HealthPartners Patient Access API",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 0 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata unreachable: TLS certificate verification failed (self-signed certificate in certificate chain); likely a vantage-local interception, not an endpoint fault",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "latency unmeasured: endpoint unreachable",
+              "ok": false,
+              "points": 0
+            }
+          ],
+          "key": "reachability",
+          "score": 0,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T0",
+              "max_points": 100,
+              "message": "CapabilityStatement unparseable: not JSON: JSONDecodeError",
+              "ok": false,
+              "points": 0
+            }
+          ],
+          "key": "transparency",
+          "score": 0,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "no recognized interoperability profiles declared",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART .well-known/smart-configuration absent or incomplete",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "no OAuth security service declared",
+              "ok": false,
+              "points": 0
+            }
+          ],
+          "key": "interop",
+          "score": 0,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "capital-bluecross",
+      "grade": "F",
+      "kind": "payer",
+      "name": "Capital Blue Cross Patient Access API",
+      "observed_since": "2026-08-05",
+      "reachable": false,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 538 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name/version missing",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "8 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "8/8 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 80,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 0,
+              "message": "SMART discovery not applicable: a Provider Directory API is public by design",
+              "ok": true,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 0,
+              "message": "OAuth security not applicable: a Provider Directory API is public by design",
+              "ok": true,
+              "points": 0
+            }
+          ],
+          "key": "interop",
+          "score": 100,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "cigna-provider-directory",
+      "grade": "A",
+      "kind": "payer_provider_directory",
+      "name": "Cigna Provider Directory API",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 387 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name/version missing",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "19 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "19/19 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 80,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART discovery document present and complete",
+              "ok": true,
+              "points": 35
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "OAuth/SMART security service declared in CapabilityStatement",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "interop",
+          "score": 100,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "va-lighthouse",
+      "grade": "A",
+      "kind": "provider",
+      "name": "VA Lighthouse Patient Health API (production)",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 496 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "59 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "59/59 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART discovery document present and complete",
+              "ok": true,
+              "points": 35
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "OAuth/SMART security service declared in CapabilityStatement",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "interop",
+          "score": 100,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "epic-sandbox",
+      "grade": "A",
+      "kind": "ehr",
+      "name": "Epic on FHIR public sandbox",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 516 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name/version missing",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "42 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "42/42 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 80,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART .well-known/smart-configuration absent or incomplete",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "no OAuth security service declared",
+              "ok": false,
+              "points": 0
+            }
+          ],
+          "key": "interop",
+          "score": 40,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "oracle-health-open",
+      "grade": "C",
+      "kind": "ehr",
+      "name": "Oracle Health (Cerner) open sandbox",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 516 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "146 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "146/146 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART discovery document present and complete",
+              "ok": true,
+              "points": 35
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "OAuth/SMART security service declared in CapabilityStatement",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "interop",
+          "score": 100,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "medplum",
+      "grade": "A",
+      "kind": "ehr",
+      "name": "Medplum public API",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 286 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name/version missing",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "26 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "25/26 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 80,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART discovery document present and complete",
+              "ok": true,
+              "points": 35
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "OAuth/SMART security service declared in CapabilityStatement",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "interop",
+          "score": 100,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "inferno-reference",
+      "grade": "A",
+      "kind": "reference",
+      "name": "ONC Inferno reference server (US Core / SMART)",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 1714 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "146 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "146/146 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART .well-known/smart-configuration absent or incomplete",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "no OAuth security service declared",
+              "ok": false,
+              "points": 0
+            }
+          ],
+          "key": "interop",
+          "score": 40,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "firely-public",
+      "grade": "B",
+      "kind": "reference",
+      "name": "Firely public test server",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 1702 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.1' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "146 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "146/146 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "no recognized interoperability profiles declared",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART .well-known/smart-configuration absent or incomplete",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "no OAuth security service declared",
+              "ok": false,
+              "points": 0
+            }
+          ],
+          "key": "interop",
+          "score": 0,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "hapi-fhir-r4",
+      "grade": "C",
+      "kind": "reference",
+      "name": "HAPI FHIR public test server (R4)",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 735 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '4.0.0' (expected 4.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "146 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "146/146 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "no recognized interoperability profiles declared",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART .well-known/smart-configuration absent or incomplete",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "no OAuth security service declared",
+              "ok": false,
+              "points": 0
+            }
+          ],
+          "key": "interop",
+          "score": 0,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "smart-health-it-r4",
+      "grade": "C",
+      "kind": "reference",
+      "name": "SMART Health IT open sandbox (R4)",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 1930 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '5.0.0' (expected 5.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "158 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "158/158 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "US Core / CARIN / Da Vinci profiles declared",
+              "ok": true,
+              "points": 40
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART .well-known/smart-configuration absent or incomplete",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "no OAuth security service declared",
+              "ok": false,
+              "points": 0
+            }
+          ],
+          "key": "interop",
+          "score": 40,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "hapi-fhir-r5",
+      "grade": "B",
+      "kind": "reference",
+      "name": "HAPI FHIR public test server (R5)",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 1632 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '5.0.0' (expected 5.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "158 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "158/158 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "no recognized interoperability profiles declared",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART .well-known/smart-configuration absent or incomplete",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "no OAuth security service declared",
+              "ok": false,
+              "points": 0
+            }
+          ],
+          "key": "interop",
+          "score": 0,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "firely-r5",
+      "grade": "C",
+      "kind": "reference",
+      "name": "Firely public test server (R5)",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    },
+    {
+      "availability": "answered 1 of 1 checks so far; availability is reported once 14 observations exist",
+      "dimensions": [
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R1",
+              "max_points": 60,
+              "message": "/metadata answers with HTTP 2xx over HTTPS",
+              "ok": true,
+              "points": 60
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/http.html",
+              "code": "R2",
+              "max_points": 40,
+              "message": "/metadata responded in 704 ms (single vantage point: davis-ca/residential)",
+              "ok": true,
+              "points": 40
+            }
+          ],
+          "key": "reachability",
+          "score": 100,
+          "title": "Reachability"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T1",
+              "max_points": 30,
+              "message": "fhirVersion declared: '3.0.1' (expected 3.x)",
+              "ok": true,
+              "points": 30
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T2",
+              "max_points": 20,
+              "message": "software name and version declared",
+              "ok": true,
+              "points": 20
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T3",
+              "max_points": 25,
+              "message": "117 resource types declared",
+              "ok": true,
+              "points": 25
+            },
+            {
+              "citation": "https://hl7.org/fhir/R4/capabilitystatement.html",
+              "code": "T4",
+              "max_points": 25,
+              "message": "117/117 declared resources document their interactions",
+              "ok": true,
+              "points": 25
+            }
+          ],
+          "key": "transparency",
+          "score": 100,
+          "title": "Capability transparency"
+        },
+        {
+          "findings": [
+            {
+              "citation": "https://hl7.org/fhir/us/core/",
+              "code": "I1",
+              "max_points": 40,
+              "message": "no recognized interoperability profiles declared",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I2",
+              "max_points": 35,
+              "message": "SMART .well-known/smart-configuration absent or incomplete",
+              "ok": false,
+              "points": 0
+            },
+            {
+              "citation": "https://hl7.org/fhir/smart-app-launch/conformance.html",
+              "code": "I3",
+              "max_points": 25,
+              "message": "no OAuth security service declared",
+              "ok": false,
+              "points": 0
+            }
+          ],
+          "key": "interop",
+          "score": 0,
+          "title": "Interop readiness"
+        }
+      ],
+      "drift_events": [],
+      "endpoint_id": "smart-health-it-stu3",
+      "grade": "C",
+      "kind": "reference",
+      "name": "SMART Health IT open sandbox (STU3)",
+      "observed_since": "2026-08-05",
+      "reachable": true,
+      "vantage_note": ""
+    }
+  ],
+  "vantage": "davis-ca/residential"
+}

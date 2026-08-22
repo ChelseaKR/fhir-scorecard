@@ -12,6 +12,11 @@ license = { text = "Apache-2.0" }
 authors = [{ name = "Chelsea Kelly-Reif" }]
 dependencies = []
 
+# AI narration outside the graded path (ADR 0003): the public Anthropic SDK only. Nothing in
+# grading, the report, the site, the Action, or the MCP server's existing tools imports it.
+[project.optional-dependencies]
+ai = ["anthropic[bedrock]>=0.125"]
+
 # PEP 735 dependency group rather than an optional-dependencies extra, so the linters and
 # type-checker are never installable as `fhir-scorecard[dev]` from a wheel. There are no
 # runtime dependencies, so this group is the whole dependency surface `make audit` scans.

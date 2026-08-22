@@ -15,8 +15,13 @@ code and published on the site.
 - **D Transparency:** applies (findings below)
 - **E Accessibility:** applies (published static site; formal review not yet performed)
 - **F Security:** applies (declarations below)
-- **AI-EVAL:** N/A - no LLM or model component. Grading is deterministic; the MCP server is a
-  read-only file reader over the published dataset and calls no model.
+- **AI-EVAL:** applies to the optional narration layer only (ADR 0003). Grading is
+  deterministic and calls no model; the MCP server is a read-only file reader over the published
+  dataset and the retained specification pages and calls no model. `fhir-scorecard narrate`
+  explains one published scorecard: every claim must quote the cited page and is withheld if the
+  quote does not verify, the prompt forbids characterizing the organization or naming
+  regulators, the output is labeled AI-generated and is not on the site, and
+  `evals/ai/results/` records the measured grounding rate with provider, model, and commit.
 - **I18N:** N/A - see `docs/I18N.md`.
 
 ## A. Ethics

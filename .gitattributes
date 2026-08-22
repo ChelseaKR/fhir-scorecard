@@ -23,3 +23,8 @@ data/history.json merge=union
 # stay out of the archive the same way the dataset does. A checkout has them; the archive is
 # the Action runtime, bounded on purpose.
 /src/fhir_scorecard/assets export-ignore
+
+# Retained specification pages are evidence: keep their bytes exactly as fetched so the
+# SHA-256 values in corpus/SOURCES.json stay true on every checkout. They serve the optional
+# narration layer, not the Action runtime, so they stay out of the archive with the dataset.
+/corpus/** -text

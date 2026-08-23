@@ -315,6 +315,63 @@ def test_blocked_vantage_grades_on_borrowed_documents(tmp_path: Path) -> None:
     assert int(detail["endpoint"]["transparency_score"]) > 0
 
 
+def test_blocked_vantage_with_empty_borrowed_body_is_graded_not_hidden(tmp_path: Path) -> None:
+    """The borrowed-document path owes the same duty as a direct probe: a peer vantage that
+    actually retrieved an empty body must be graded as an unparseable document, not treated as
+    though nothing had been retrieved and published as "not observed"."""
+    from fhir_scorecard.vantage import VantageProbe, write_probes
+
+    registry = tmp_path / "registry.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "endpoints": [
+                    {
+                        "id": "blocked-empty",
+                        "name": "Blocked Empty Health",
+                        "kind": "payer",
+                        "base_url": "https://blocked-empty.test/r4",
+                        "verification": {"method": "fixture", "date": "2026-08-05"},
+                    }
+                ]
+            }
+        )
+    )
+    peer = tmp_path / "peer.json"
+    write_probes(
+        peer,
+        "peer-vantage",
+        {"blocked-empty": VantageProbe("peer-vantage", True, 400, capability="", smart="")},
+    )
+    out = tmp_path / "site"
+    # No fixture directory for "blocked-empty", so the local probe fails and the borrowed
+    # (peer) document is the only one this run has.
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(registry),
+                "--offline",
+                "--fixtures",
+                str(tmp_path / "none"),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+                "--probes-in",
+                str(peer),
+            ]
+        )
+        == 0
+    )
+    card = json.loads((out / "scorecards.json").read_text())["scorecards"][0]
+    assert card["reachable"] is True
+    assert card["grade"] != "not observed"
+    t0 = next(f for d in card["dimensions"] for f in d["findings"] if f["code"] == "T0")
+    assert "unparseable" in t0["message"]
+
+
 def test_from_probes_grades_without_probing_and_counts_each_vantage_once(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -482,6 +539,63 @@ def test_from_probes_with_no_report_for_an_endpoint_is_not_a_measurement(
         f for d in cards["beta-dark"]["dimensions"] for f in d["findings"] if f["code"] == "R1"
     )
     assert "no vantage reported" in r1["message"]
+
+
+def test_from_probes_empty_body_is_graded_not_hidden_as_not_observed(tmp_path: Path) -> None:
+    """A server that answers /metadata with HTTP 2xx and an empty body has been measured, not
+    missed, and must publish as an unparseable-document finding rather than "not observed".
+
+    ``reconcile()`` used to pick a borrowed document by truthiness, so three vantages that each
+    genuinely retrieved an empty body collapsed to no borrowed document at all, and the
+    publishing run then read that the same as no vantage having retrieved anything.
+    """
+    from fhir_scorecard.vantage import VantageProbe, write_probes
+
+    registry = tmp_path / "registry.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "endpoints": [
+                    {
+                        "id": "silent",
+                        "name": "Silent Health",
+                        "kind": "payer",
+                        "base_url": "https://silent.test/r4",
+                        "verification": {"method": "fixture", "date": "2026-08-06"},
+                    }
+                ]
+            }
+        )
+    )
+    probes = tmp_path / "probes.json"
+    write_probes(
+        probes,
+        "ci",
+        {"silent": VantageProbe("ci", True, 90, capability="", smart="")},
+    )
+    out = tmp_path / "site"
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(registry),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+                "--from-probes",
+                "--probes-in",
+                str(probes),
+            ]
+        )
+        == 0
+    )
+    card = json.loads((out / "scorecards.json").read_text())["scorecards"][0]
+    assert card["reachable"] is True
+    assert card["grade"] != "not observed"
+    t0 = next(f for d in card["dimensions"] for f in d["findings"] if f["code"] == "T0")
+    assert "unparseable" in t0["message"]
 
 
 def test_probes_out_records_this_runs_observations(tmp_path: Path) -> None:

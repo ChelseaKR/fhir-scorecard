@@ -75,6 +75,13 @@ def _grade_from_probes(
     probes = other_probes.get(endpoint.endpoint_id, [])
     consensus = reconcile(probes) if probes else None
     reachable = consensus is not None and consensus.reachable
+    # ``is not None``, not truthiness: a vantage that reached the endpoint and got back an
+    # empty body retrieved a document, just an empty one. Gating on the encoded body's
+    # truthiness treated that the same as no vantage having retrieved anything, so an endpoint
+    # that genuinely answered with nothing published as "not observed" instead of the
+    # unparseable-document finding a directly-probed run gives the same response.
+    capability_retrieved = consensus is not None and consensus.capability is not None
+    smart_retrieved = consensus is not None and consensus.smart is not None
     capability_body = (consensus.capability or "").encode("utf-8") if consensus else b""
     smart_body = (consensus.smart or "").encode("utf-8") if consensus else b""
     metadata = FetchResult(
@@ -87,8 +94,8 @@ def _grade_from_probes(
         if reachable
         else (consensus.detail if consensus is not None else "no vantage reported"),
     )
-    facts = parse_capability(capability_body) if capability_body else NO_CAPABILITY_RETRIEVED
-    smart_facts = parse_smart(smart_body) if smart_body else NO_SMART_RETRIEVED
+    facts = parse_capability(capability_body) if capability_retrieved else NO_CAPABILITY_RETRIEVED
+    smart_facts = parse_smart(smart_body) if smart_retrieved else NO_SMART_RETRIEVED
     drift = observe(history, endpoint.endpoint_id, facts, today, reachable=reachable)
     # Name the vantages that did report, so a single-vantage merge does not attribute the
     # measurement to a run that never made one.
@@ -150,12 +157,17 @@ def _grade_endpoint(
         # This run reached the host, so it did ask for the SMART document: a failed SMART fetch
         # is an observation that it is absent or unusable, and grades as one.
         smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
-    elif consensus is not None and consensus.capability:
+    elif consensus is not None and consensus.capability is not None:
         # This vantage was blocked but another retrieved the documents: grade their content
-        # rather than scoring zero for material we simply never received.
+        # rather than scoring zero for material we simply never received. ``is not None``, not
+        # truthiness: a peer vantage that reached the endpoint and got back an empty body
+        # retrieved a document, just an empty one, and that must still be graded rather than
+        # falling through to "nothing was retrieved by anyone".
         facts = parse_capability(consensus.capability.encode("utf-8"))
         smart_facts = (
-            parse_smart(consensus.smart.encode("utf-8")) if consensus.smart else NO_SMART_RETRIEVED
+            parse_smart(consensus.smart.encode("utf-8"))
+            if consensus.smart is not None
+            else NO_SMART_RETRIEVED
         )
     else:
         # Nothing was retrieved by anyone. The content dimensions are not scored, because every

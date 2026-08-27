@@ -117,8 +117,16 @@ def collapse_by_vantage(probes: list[VantageProbe]) -> list[VantageProbe]:
                     reachable=True,
                     elapsed_ms=_median([p.elapsed_ms for p in reached]),
                     error=None,
-                    capability=next((p.capability for p in reached if p.capability), None),
-                    smart=next((p.smart for p in reached if p.smart), None),
+                    # ``is not None``, not truthiness: a sample that reached the endpoint and
+                    # got back an empty body has *retrieved* a document, just an empty one, and
+                    # that is a different fact from a sample that retrieved nothing at all. A
+                    # bare truthiness check treated an empty string the same as "no document",
+                    # which let a reachable, genuinely-empty response fall back to a later
+                    # sample's None and disappear.
+                    capability=next(
+                        (p.capability for p in reached if p.capability is not None), None
+                    ),
+                    smart=next((p.smart for p in reached if p.smart is not None), None),
                 )
             )
         else:
@@ -197,7 +205,12 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
     else:
         detail = f"reachable from {probes[0].vantage}"
 
-    borrowed = next((p for p in reached if p.capability), None)
+    # ``is not None``, not truthiness: a vantage that reached the endpoint and got back an
+    # empty body has retrieved a document, just an empty one, which is a different fact from a
+    # vantage that retrieved nothing. A bare truthiness check skipped the first kind of vantage
+    # looking for a "real" document and landed on ``None`` if no other vantage had one, which
+    # then read downstream as nothing having been retrieved at all.
+    borrowed = next((p for p in reached if p.capability is not None), None)
     return Consensus(
         reachable=True,
         elapsed_ms=median,

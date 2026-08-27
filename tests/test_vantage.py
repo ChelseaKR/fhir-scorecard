@@ -190,3 +190,33 @@ def test_consensus_borrows_documents_from_a_reaching_vantage() -> None:
 def test_no_documents_to_borrow_leaves_them_unset() -> None:
     c = reconcile([VantageProbe("a", True, 10), VantageProbe("b", False, 0, "boom")])
     assert c.reachable and c.capability is None
+
+
+def test_an_empty_but_retrieved_document_is_not_treated_as_no_document() -> None:
+    """A vantage that reached the endpoint and got back an empty body has retrieved a document,
+    just an empty one - a different fact from a vantage that retrieved nothing. Gating on
+    truthiness instead of ``is not None`` conflated the two and let a genuinely empty response
+    fall back to "no document was borrowed", which downstream read as nothing having been
+    retrieved at all."""
+    c = reconcile(
+        [
+            VantageProbe("a", True, 10, capability="", smart=""),
+            VantageProbe("b", False, 0, "boom"),
+        ]
+    )
+    assert c.reachable
+    assert c.capability == ""
+    assert c.smart == ""
+
+
+def test_duplicate_vantage_with_empty_body_keeps_it_rather_than_losing_it() -> None:
+    """Two samples of the same vantage, both genuinely empty, must collapse to an empty
+    document, not to no document."""
+    c = reconcile(
+        [
+            VantageProbe("ci", True, 100, capability=""),
+            VantageProbe("ci", True, 100, capability=""),
+        ]
+    )
+    assert c.reachable
+    assert c.capability == ""

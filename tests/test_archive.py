@@ -295,3 +295,143 @@ def test_the_dataclass_rejects_nothing_it_was_given() -> None:
     record = Record("x", "X", (), None, None)
     assert record.summary() == "no observations recorded yet"
     assert record.rate_percent is None
+
+
+# --- the declaration timeline (ROADMAP phase 5) ---
+
+
+def _with_events(endpoint_id: str, events: list[dict], alternations: list[dict] | None = None):
+    entry: dict[str, object] = {
+        "first_seen": "2026-08-01",
+        "observations": [{"date": "2026-08-01", "up": True}],
+        "events": events,
+    }
+    if alternations is not None:
+        entry["alternations"] = alternations
+    return {endpoint_id: entry}
+
+
+THREE_RELEASES = [
+    {"date": "2026-08-07", "changes": ["software_version: '2.259.0' -> '2.260.0'"]},
+    {"date": "2026-08-12", "changes": ["software_version: '2.260.0' -> '2.262.0'"]},
+    {"date": "2026-08-19", "changes": ["software_version: '2.262.0' -> '2.264.0'"]},
+]
+
+ONE_RETURN = [
+    {
+        "digest": "b4924cf854242db6",
+        "first_return": "2026-08-08",
+        "last_return": "2026-08-26",
+        "returns": 9,
+        "state_first_seen": "2026-08-08",
+        "changes": ["software_version: '5.4.1.11_edfx' -> '5.4.1.13_edfx'"],
+    }
+]
+
+
+def test_every_recorded_change_appears_in_the_order_it_was_recorded() -> None:
+    (record,) = records(_with_events("acme", THREE_RELEASES), [_card("acme")])
+    body = record_page(record, DEFAULT_ORIGIN).body
+    assert [change.date for change in record.changes] == [
+        "2026-08-07",
+        "2026-08-12",
+        "2026-08-19",
+    ]
+    assert body.index("2026-08-07") < body.index("2026-08-12") < body.index("2026-08-19")
+    assert "3 recorded changes" in _text(body)
+
+
+def test_the_timeline_carries_nothing_the_history_does_not() -> None:
+    """The load-bearing negative for a timeline: it may summarise, never supply. Every date and
+    every change string on the page has to be findable in the source entry."""
+    history = _with_events("acme", THREE_RELEASES, ONE_RETURN)
+    (record,) = records(history, [_card("acme")])
+    source = json.dumps(history)
+    for change in record.changes:
+        assert change.date in source
+        for one in change.changes:
+            assert one in source
+    for item in record.returns:
+        assert item.first_return in source and item.last_return in source
+        assert str(item.times) in source
+
+
+def test_an_endpoint_that_never_changed_says_so_rather_than_showing_an_empty_list() -> None:
+    (record,) = records(_history("acme", days=20, answered=20), [_card("acme")])
+    body = record_page(record, DEFAULT_ORIGIN).body
+    assert "No change to what this endpoint declares has been recorded" in _text(body)
+    assert 'class="drift-timeline"' not in body
+    assert "Declarations this endpoint returns to" not in body
+
+
+def test_an_endpoint_never_observed_says_that_instead_of_never_changed() -> None:
+    """Two different facts. "Nothing changed" over no observations would be a claim about an
+    endpoint made from no evidence."""
+    (record,) = records({}, [_card("acme")])
+    assert "Nothing has been observed for this endpoint yet" in _text(
+        record_page(record, DEFAULT_ORIGIN).body
+    )
+
+
+def test_a_return_reads_as_a_return_and_is_never_counted_as_a_change() -> None:
+    (record,) = records(_with_events("acme", [], ONE_RETURN), [_card("acme")])
+    assert record.changes == ()
+    assert len(record.returns) == 1
+    assert record.returns[0].times == 9
+    body = _text(record_page(record, DEFAULT_ORIGIN).body)
+    assert "returned 9 times to a declaration first observed 2026-08-08" in body
+    assert "Declarations this endpoint returns to" in body
+    assert "recorded changes to what this endpoint declares" not in body
+
+
+def test_a_single_return_is_worded_as_once_and_dated_as_one_day() -> None:
+    single = [dict(ONE_RETURN[0], returns=1, last_return="2026-08-08")]
+    (record,) = records(_with_events("acme", [], single), [_card("acme")])
+    assert record.returns[0].window == "2026-08-08"
+    assert "returned once to a declaration" in _text(record_page(record, DEFAULT_ORIGIN).body)
+
+
+def test_the_json_keeps_changes_and_returns_in_separate_arrays() -> None:
+    (record,) = records(_with_events("acme", THREE_RELEASES, ONE_RETURN), [_card("acme")])
+    payload = json.loads(history_json(record, "2026-08-27"))
+    assert len(payload["declaration_changes"]) == 3
+    assert len(payload["declaration_returns"]) == 1
+    assert payload["declaration_returns"][0]["times"] == 9
+    dates = {entry["date"] for entry in payload["declaration_changes"]}
+    assert "2026-08-08" not in dates, "a return must never appear as a change"
+
+
+def test_an_undated_or_malformed_event_is_dropped_rather_than_dated_unknown() -> None:
+    history = _with_events(
+        "acme",
+        [{"changes": ["no date"]}, "not a dict", {"date": "2026-08-09", "changes": ["kept"]}],
+        ["not a dict", {"first_return": "2026-08-01"}],
+    )
+    (record,) = records(history, [_card("acme")])
+    assert [change.date for change in record.changes] == ["2026-08-09"]
+    assert record.returns == ()
+
+
+def test_a_change_recorded_without_detail_still_appears_with_its_date() -> None:
+    """The date is the fact worth keeping. Dropping an event because its detail is missing
+    would remove a change that was really observed."""
+    (record,) = records(_with_events("acme", [{"date": "2026-08-09"}]), [_card("acme")])
+    body = _text(record_page(record, DEFAULT_ORIGIN).body)
+    assert "2026-08-09" in body
+    assert "recorded as a change with no detail on the record" in body
+
+
+def test_the_index_counts_declaration_changes_per_endpoint() -> None:
+    history = _with_events("acme", THREE_RELEASES) | _with_events("quiet", [])
+    built = records(history, [_card("acme", "Acme"), _card("quiet", "Quiet Plan")])
+    text = _text(index_page(built, DEFAULT_ORIGIN).body)
+    assert "Declaration changes" in text
+    assert [len(record.changes) for record in built] == [3, 0]
+
+
+def test_the_record_page_of_an_endpoint_with_both_shows_both_sections() -> None:
+    (record,) = records(_with_events("acme", THREE_RELEASES, ONE_RETURN), [_card("acme")])
+    body = _text(record_page(record, DEFAULT_ORIGIN).body)
+    assert "3 recorded changes" in body
+    assert "Declarations this endpoint returns to" in body
+    assert body.index("3 recorded changes") < body.index("Declarations this endpoint returns to")

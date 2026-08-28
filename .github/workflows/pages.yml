@@ -132,6 +132,17 @@ jobs:
               --origin "https://fhir.chelseakr.com" \
               --vantage "github-actions/ubuntu-latest"
           fi
+      - name: Audit the built site against its contract
+        # The site contract (src/fhir_scorecard/audit.py): every page in the sitemap and every
+        # sitemap entry answered, one correct canonical per page, structured data that parses
+        # and carries what this site promises, no internal link to a path the build did not
+        # write, and no page nothing links to. The test suite runs the same audit against a
+        # site built from fixtures; this runs it against the real one, which is the only build
+        # that carries organization pages, cohort pages, and forty-five endpoints. A site that
+        # fails here is not published: the deploy job needs this one.
+        run: >
+          python -m fhir_scorecard.cli audit-site site
+          --origin "https://fhir.chelseakr.com"
       - name: Persist drift and availability history
         # History is data this run observed, not source, and it lives on a branch of
         # its own. It used to be pushed straight to main, which could never work: main

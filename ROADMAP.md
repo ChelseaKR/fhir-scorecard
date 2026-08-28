@@ -106,8 +106,12 @@ read.*
       URLs they were written with
 - [ ] **Lighthouse and accessibility budgets** as merge gates, matching the 100-accessibility bar
       held elsewhere in the portfolio
-- [ ] **SEO config validation** in CI: sitemap completeness, canonical correctness, JSON-LD
-      validity, no orphan pages
+- [x] **SEO config validation** in CI: sitemap completeness, canonical correctness, JSON-LD
+      validity, no orphan pages. Built as `fhir-scorecard audit-site`
+      (`src/fhir_scorecard/audit.py`), run by the test suite against a site built from
+      fixtures and by the publish workflow against the real build before it is uploaded.
+      Its first run against a site carrying an organization page found twelve published,
+      sitemapped `/org/` pages that nothing linked to
 - [~] **Multi-vantage probing** so availability is not one network's opinion. This is now a known
       real failure: a live payer endpoint was recorded as dead because of TLS interception on the
       probing network. The reconciliation is built and each vantage is counted once, but the

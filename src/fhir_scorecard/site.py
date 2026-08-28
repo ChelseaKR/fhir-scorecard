@@ -284,7 +284,22 @@ def _findings_html(card: Scorecard) -> str:
     return "".join(out)
 
 
-def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) -> Page:
+def endpoint_page(
+    card: Scorecard,
+    base_url: str,
+    verified: str,
+    origin: str,
+    organization: tuple[str, str] | None = None,
+) -> Page:
+    """One endpoint's page.
+
+    ``organization`` is ``(display name, slug)`` when this endpoint is one of several surfaces
+    the same organization publishes, and ``None`` when it is the only one. It is what puts the
+    /org/ page in the breadcrumb, and it is not decoration: organization pages were built and
+    listed in the sitemap while no page on the site linked to one, so twelve published pages
+    were reachable only by reading the sitemap. ``tests/test_site_audit.py`` now fails on an
+    orphan, which is how that would be caught next time rather than by inspection.
+    """
     kind_label = _KIND_LABELS.get(card.kind, card.kind)
     summary = _status_words(card)
     unobserved = card.grade == NOT_OBSERVED
@@ -319,6 +334,14 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
         "provider": {"@type": "Organization", "name": card.name},
         "isAccessibleForFree": True,
     }
+    org_crumb = ""
+    if organization is not None:
+        org_name, org_path = organization
+        org_crumb = (
+            '<li class="usa-breadcrumb__list-item">'
+            f'<a href="/org/{org_path}/" class="usa-breadcrumb__link">'
+            f"<span>{html.escape(org_name)}</span></a></li>"
+        )
     body = f"""
 <nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list">
 <li class="usa-breadcrumb__list-item">
@@ -326,6 +349,7 @@ def endpoint_page(card: Scorecard, base_url: str, verified: str, origin: str) ->
 <li class="usa-breadcrumb__list-item">
 <a href="/{_KIND_SLUGS.get(card.kind, "reference-servers")}/" class="usa-breadcrumb__link">
 <span>{html.escape(kind_label)}</span></a></li>
+{org_crumb}
 <li class="usa-breadcrumb__list-item usa-current" aria-current="page">
 <span>{html.escape(card.name)}</span></li>
 </ol></nav>

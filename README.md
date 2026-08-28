@@ -220,7 +220,16 @@ Neither is a compliance determination, and both say so.
 
 Every endpoint, organization, category, and cohort gets its own indexable page with a canonical URL,
 description, and structured data, plus a sitemap and a methodology page that every finding links
-into. The pages are styled with the [U.S. Web Design System](https://designsystem.digital.gov/),
+into. What the site promises about itself is checked rather than asserted. `fhir-scorecard
+audit-site site/` reads a built directory and reports every page the sitemap omits, every
+sitemap entry no file answers, every missing or misaddressed canonical, every structured-data
+block that does not parse or omits a field this site promises, every internal link pointing at
+a path the build never wrote, and every page no path of internal links reaches. The publish
+workflow runs it before the artifact is uploaded, so a site that fails the contract is not
+deployed. Its first run against a site carrying an organization page found twelve published,
+sitemapped `/org/` pages that nothing on the site linked to.
+
+The pages are styled with the [U.S. Web Design System](https://designsystem.digital.gov/),
 vendored at a pinned version and served entirely from the site's own origin; this is an
 independent open-source project, not a government website, and the site's own footer says so on
 every page. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and,

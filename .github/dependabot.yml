@@ -11,3 +11,18 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      # `security.yml` pins github/codeql-action/init and github/codeql-action/analyze to
+      # the same commit, and CodeQL refuses to run when the two disagree: "Loaded a
+      # configuration file for version X, but running version Y". Dependabot treats the two
+      # actions as separate dependencies, so ungrouped it opens one PR per action and each
+      # one, in isolation, makes the versions disagree. Both PRs are then born red through
+      # no fault of their own, and whichever merges first leaves `main` red until the other
+      # follows. That happened on the 4.37.6 to 4.37.7 bump (#43 merged before #41) and
+      # again on 4.37.7 to 4.37.8 (#51, #52).
+      #
+      # Grouping them means one PR moves both pins together, which is the only state CodeQL
+      # accepts.
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"

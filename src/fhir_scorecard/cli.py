@@ -33,6 +33,7 @@ from fhir_scorecard.drift import ensure_mode, load_history, observe, save_histor
 from fhir_scorecard.fetch import TIMEOUT_S, FetchResult, fetch_json
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
 from fhir_scorecard.grading import Scorecard, build_scorecard
+from fhir_scorecard.leaderboard import page as availability_page
 from fhir_scorecard.registry import EXPECTS, KINDS, Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import render_html, to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
@@ -754,6 +755,7 @@ def _write_site(
     pages = [home_page(scorecards, origin, cohorts), how_we_grade_page(origin), claim_page(origin)]
     archive = records(history or {}, scorecards)
     pages.append(index_page(archive, origin, mode_of(history or {})))
+    pages.append(availability_page(archive, origin))
     pages.extend(record_page(record, origin) for record in archive)
     cards_by_id = {card.endpoint_id: card for card in scorecards}
     pages.extend(cohort_page(cohort, cards_by_id, origin) for cohort in cohorts)

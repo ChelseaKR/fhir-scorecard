@@ -140,7 +140,13 @@ read.*
 
 *Goal: say something nobody else is saying.*
 
-- [ ] **Availability leaderboard** once the 14-observation floor is met across the registry
+- [x] **Availability leaderboard**, at `/availability/`. The floor is applied per endpoint
+      rather than across the registry, because a registry-wide floor never arrives: each
+      curation wave adds endpoints at zero observations and resets it. Measured on the
+      live record on 2026-08-27, the floor puts 30 of 45 endpoints in the tables and
+      names the other 15 with their counts. Ordering happens within a kind and never
+      across one. See
+      [ADR 0005](docs/adr/0005-a-leaderboard-that-publishes-what-meets-the-floor.md)
 - [x] **Drift timeline** per endpoint: when did this payer change what it declares. On each
       endpoint's observation record at `/history/<id>/`, and in
       `api/history/<id>.json` as `declaration_changes`. Declarations an endpoint returns

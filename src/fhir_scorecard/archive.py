@@ -84,6 +84,9 @@ class Record:
 
     endpoint_id: str
     name: str
+    #: The registry kind this endpoint belongs to. Carried because availability is only
+    #: compared within a kind; see ADR 0005.
+    kind: str
     observations: tuple[Observation, ...]
     first_seen: str | None
     last_seen: str | None
@@ -152,6 +155,7 @@ def records(history: dict[str, Any], cards: list[Scorecard]) -> list[Record]:
             Record(
                 endpoint_id=card.endpoint_id,
                 name=card.name,
+                kind=card.kind,
                 observations=observations,
                 first_seen=entry.get("first_seen"),
                 last_seen=entry.get("last_seen"),

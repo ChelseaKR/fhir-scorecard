@@ -227,6 +227,14 @@ with no observations says so; it does not render a zero. No rate is published be
 observations, on the same ground the grades use: a percentage off two data points is noise
 dressed as a metric.
 
+`/availability/` orders the endpoints that have enough recorded observations to state a share,
+within each kind and never across one, and names the endpoints that do not with their counts
+and how many more observations each needs. On the live record on 2026-08-27 that is 30
+endpoints ordered and 15 named. A position orders one measurement - whether a public address
+answered a request for its `/metadata` document, from three hosts on one provider's network,
+over the recorded window - and the page says so where the numbers are. It is not a
+service-level measurement and not a statement about an organization.
+
 Each record also carries the endpoint's declaration timeline: every recorded change to what its
 CapabilityStatement says about itself, dated and in order, with the declarations it has *gone
 back to* listed separately and counted rather than repeated. One hostname in front of two

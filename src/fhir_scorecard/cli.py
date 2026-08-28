@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from fhir_scorecard.accessibility import audit_accessibility
 from fhir_scorecard.audit import audit_site
 from fhir_scorecard.capability import (
     NO_CAPABILITY_RETRIEVED,
@@ -45,6 +46,7 @@ from fhir_scorecard.site import (
     write_page,
 )
 from fhir_scorecard.vantage import VantageProbe, load_probe_files, reconcile, write_probes
+from fhir_scorecard.weight import audit_weight
 
 
 def _offline_fetch(fixtures: Path, endpoint_id: str, filename: str, url: str) -> FetchResult:
@@ -414,8 +416,10 @@ def _build_parser() -> argparse.ArgumentParser:
     check.add_argument("--timeout", type=float, default=TIMEOUT_S)
     audit = sub.add_parser(
         "audit-site",
-        help="check a built site against the contract in fhir_scorecard.audit: sitemap "
-        "completeness, canonical correctness, structured data, internal links, and orphans",
+        help="check a built site: the contract in fhir_scorecard.audit (sitemap completeness, "
+        "canonical correctness, structured data, internal links, orphans), the mechanical "
+        "accessibility rules in fhir_scorecard.accessibility, and the transfer-size budgets "
+        "in fhir_scorecard.weight",
     )
     audit.add_argument("directory", metavar="DIR", type=Path, help="a built site directory")
     audit.add_argument(
@@ -503,7 +507,12 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
 
 
 def _cmd_audit_site(args: argparse.Namespace) -> int:
-    """Report every way a built site breaks the contract, and exit nonzero if it does.
+    """Report every way a built site breaks its contract, and exit nonzero if it does.
+
+    Three families run, and all three run every time: the site contract (sitemap, canonical,
+    structured data, links, orphans), the mechanical accessibility rules, and the transfer-size
+    budgets. They are not separately switchable on purpose - a publish that could skip one is a
+    publish that will.
 
     Exit 2 is reserved for "there was nothing to audit", which is a usage error and must not
     read as a clean site. Exit 1 means the site was read and found wanting.
@@ -511,13 +520,17 @@ def _cmd_audit_site(args: argparse.Namespace) -> int:
     if not args.directory.is_dir():
         print(f"audit error: {args.directory} is not a directory", file=sys.stderr)
         return 2
-    findings = audit_site(args.directory, args.origin.rstrip("/"))
-    for finding in findings:
+    findings = (
+        audit_site(args.directory, args.origin.rstrip("/"))
+        + audit_accessibility(args.directory)
+        + audit_weight(args.directory)
+    )
+    for finding in sorted(findings, key=lambda f: (f.where, f.code, f.detail)):
         print(finding)
     if findings:
-        print(f"{len(findings)} site contract finding(s) against {args.origin}", file=sys.stderr)
+        print(f"{len(findings)} site finding(s) against {args.origin}", file=sys.stderr)
         return 1
-    print(f"site contract: clean against {args.origin}")
+    print(f"site contract, accessibility and weight budgets: clean against {args.origin}")
     return 0
 
 

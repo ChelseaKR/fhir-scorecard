@@ -14,6 +14,30 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **The site contract, and a gate that enforces it (ROADMAP phase 6).**
+  `fhir-scorecard audit-site <dir> [--origin]` reads a built site and reports every way it
+  breaks the properties this project publishes about it: a page the sitemap omits, a sitemap
+  entry no file answers, a sitemap entry off this origin, a missing or duplicated or
+  misaddressed canonical, structured data that does not parse or omits a field this site
+  promises for its `@type`, a link or subresource pointing at a path the build never wrote,
+  a page no path of internal links reaches, and a `robots.txt` that does not name this
+  sitemap. Twelve codes, each documented in `audit.FINDING_CODES`, each with a test that
+  builds a real site, breaks exactly that property, and asserts the rule fires. The publish
+  workflow runs it against the real build before the artifact is uploaded, so a site that
+  fails the contract is not deployed; the deploy job depends on the job that audits.
+
+### Fixed
+
+- **Twelve organization pages were published, listed in the sitemap, and linked from nowhere.**
+  `/org/<slug>/` pages are built for every organization with more than one surface, and no
+  page on the site carried a link to one: confirmed on the live site, whose sitemap lists
+  twelve of them while the home, category, endpoint, cohort and method pages contain zero
+  `href="/org/`. A crawler that follows links never reached them, which is the definition of
+  the orphan the roadmap asked to rule out. An endpoint belonging to a multi-surface
+  organization now carries that organization in its breadcrumb, so every organization page is
+  reachable from each of its own endpoints. Found by the new audit on its first run against a
+  site containing an organization page.
+
 - **AI narration outside the graded path (ADR 0003, 2026-08-21).** `fhir-scorecard narrate
   --endpoint <id> [--language es]` explains one published scorecard in plain language. The
   grade and findings are inputs the model cannot change; it is shown only passages from the

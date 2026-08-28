@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from fhir_scorecard.audit import audit_site
 from fhir_scorecard.capability import (
     NO_CAPABILITY_RETRIEVED,
     NO_SMART_RETRIEVED,
@@ -411,6 +412,18 @@ def _build_parser() -> argparse.ArgumentParser:
         "latency or reachability difference must not be read as a server change",
     )
     check.add_argument("--timeout", type=float, default=TIMEOUT_S)
+    audit = sub.add_parser(
+        "audit-site",
+        help="check a built site against the contract in fhir_scorecard.audit: sitemap "
+        "completeness, canonical correctness, structured data, internal links, and orphans",
+    )
+    audit.add_argument("directory", metavar="DIR", type=Path, help="a built site directory")
+    audit.add_argument(
+        "--origin",
+        default=DEFAULT_ORIGIN,
+        help="the origin the site was built for; canonical URLs and sitemap entries are "
+        "checked against it, so auditing a build under the wrong origin fails",
+    )
     return parser
 
 
@@ -484,7 +497,28 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
         return serve(args.site, root=args.root)
     if args.command == "narrate":
         return _cmd_narrate(args)
+    if args.command == "audit-site":
+        return _cmd_audit_site(args)
     return None
+
+
+def _cmd_audit_site(args: argparse.Namespace) -> int:
+    """Report every way a built site breaks the contract, and exit nonzero if it does.
+
+    Exit 2 is reserved for "there was nothing to audit", which is a usage error and must not
+    read as a clean site. Exit 1 means the site was read and found wanting.
+    """
+    if not args.directory.is_dir():
+        print(f"audit error: {args.directory} is not a directory", file=sys.stderr)
+        return 2
+    findings = audit_site(args.directory, args.origin.rstrip("/"))
+    for finding in findings:
+        print(finding)
+    if findings:
+        print(f"{len(findings)} site contract finding(s) against {args.origin}", file=sys.stderr)
+        return 1
+    print(f"site contract: clean against {args.origin}")
+    return 0
 
 
 def _cmd_narrate(args: argparse.Namespace) -> int:
@@ -661,6 +695,28 @@ def _verification_sentence(entry: Endpoint | None) -> str:
     )
 
 
+def _organizations(
+    scorecards: list[Scorecard],
+) -> tuple[dict[str, list[Scorecard]], dict[str, tuple[str, str]]]:
+    """Endpoints grouped by organization, and the org page each endpoint should link to.
+
+    The second mapping covers only organizations with more than one surface, which are the
+    only ones that get an /org/ page. It is computed before the endpoint pages are built, not
+    after: building the pages first and the groups afterwards is how twelve /org/ pages came to
+    be published and listed in the sitemap with no page on the site linking to any of them.
+    """
+    by_org: dict[str, list[Scorecard]] = {}
+    for card in scorecards:
+        by_org.setdefault(org_slug(card.name), []).append(card)
+    org_of: dict[str, tuple[str, str]] = {}
+    for slug, cards in by_org.items():
+        if len(cards) > 1:
+            display = org_display_name([c.name for c in cards])
+            for card in cards:
+                org_of[card.endpoint_id] = (display, slug)
+    return by_org, org_of
+
+
 def _write_site(
     scorecards: list[Scorecard],
     endpoints: list[Endpoint],
@@ -676,6 +732,7 @@ def _write_site(
     cards_by_id = {card.endpoint_id: card for card in scorecards}
     pages.extend(cohort_page(cohort, cards_by_id, origin) for cohort in cohorts)
 
+    by_org, org_of = _organizations(scorecards)
     for card in scorecards:
         entry = by_id.get(card.endpoint_id)
         pages.append(
@@ -684,6 +741,7 @@ def _write_site(
                 base_url=entry.base_url if entry else "",
                 verified=_verification_sentence(entry),
                 origin=origin,
+                organization=org_of.get(card.endpoint_id),
             )
         )
 
@@ -694,9 +752,6 @@ def _write_site(
 
     # Organization pages only where an organization actually has more than one surface;
     # a page that duplicates a single endpoint page is thin content, not a search surface.
-    by_org: dict[str, list[Scorecard]] = {}
-    for card in scorecards:
-        by_org.setdefault(org_slug(card.name), []).append(card)
     for cards in by_org.values():
         if len(cards) > 1:
             pages.append(org_page(org_display_name([c.name for c in cards]), cards, origin))

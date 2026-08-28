@@ -139,6 +139,199 @@ read.*
 
 ---
 
+## The next three years
+
+Phases 1 through 5 named the destination. This section is the route: the unchecked and
+partial items above, sequenced into phases that each say what they deliver, what they wait
+on, and what would tell a reader they are finished. It is written the way the rest of this
+document is written - the items are the ones already argued for above, not new ambitions -
+and it inherits every constraint stated there, including the one that governs: registry
+growth is gated on payers publishing base URLs, and no phase below pretends otherwise.
+
+Three years is the honest horizon because two of the phases cannot be hurried. A
+conformance-over-time report needs time to have passed, and the frame's remaining states
+need a person with a browser. Where a phase is blocked on something this project does not
+control, it says so under its own heading rather than being dropped, so a later reader can
+see the whole shape and not just the reachable part.
+
+Each phase is one pull request. `make verify` is the gate for all of them.
+
+### Phase 6: the site is a contract, and the contract is checked
+
+*Delivers:* the **SEO config validation** item from phase 4, built as a first-class command
+rather than a CI script. `fhir-scorecard audit-site <dir>` walks a built site and fails on:
+a page the sitemap does not list; a sitemap entry no page answers; a canonical that does not
+resolve to the page it sits on; a JSON-LD block that does not parse or that omits the fields
+its `@type` promises; an internal link to a path the build never wrote; and a page no other
+page links to. `make verify` runs it over a site built from committed fixtures, so a
+generator change that orphans a page fails the build rather than the crawl.
+
+*Depends on:* nothing.
+
+*Done when:* every defect class above has a test that builds a site carrying exactly that
+defect and asserts the audit fails on it, and the audit passes on the real offline build.
+A check that cannot be shown failing does not ship.
+
+### Phase 7: accessibility and page weight, as gates rather than intentions
+
+*Delivers:* the **accessibility budget** half of phase 4, and the transfer-size budget the
+README's Performance row currently declines to claim. Both run over the built site in the
+same walk phase 6 established. The accessibility gate checks the mechanically checkable
+subset - document language, one `h1`, no skipped heading level, alt text on every image,
+labels for every control, `aria-*` that references an id present on the page, unique ids,
+a skip link whose target exists, and unique page titles - with each check naming the WCAG
+2.2 success criterion it implements. It does not replace the assistive-technology review,
+which stays open in `docs/RESPONSIBLE-TECH-AUDITS.md`, and the ADR says which parts of an
+axe or Lighthouse run it does not reproduce, so nobody reads a green gate as a full audit.
+
+*Depends on:* phase 6, for the site walk and the fixture-built site.
+
+*Done when:* each check fails against a page carrying its defect and passes on the real
+build; the page-weight budget is a committed number measured from the current build rather
+than a round figure; and `docs/RESPONSIBLE-TECH-AUDITS.md` section E states exactly which
+half of it this closed.
+
+### Phase 8: the archive surface
+
+*Delivers:* the open half of phase 2's **historical archive**. The `capability-history`
+branch has accrued one commit per day on which an observation changed since 2026-08-05;
+none of it is browsable. This phase renders it: an archive index, a per-endpoint
+availability record with its observation dates, and `api/history/<id>.json` beside the
+existing per-endpoint API file, all built from the same `history.json` the daily run
+writes.
+
+*Depends on:* phase 6, so the new pages enter the sitemap, canonical and orphan checks the
+moment they exist.
+
+*Done when:* an endpoint with observations renders them; an endpoint with none says so in
+words rather than rendering an empty record; the archive pages pass the phase 6 and phase 7
+gates; and every figure on them is recomputed from `history.json` by a test.
+
+### Phase 9: the drift timeline
+
+*Delivers:* phase 5's **drift timeline**. `drift.py` already records what changed, when it
+was first seen, and when a declaration returned to a state it held before. The endpoint page
+shows the latest state and nothing else. This phase publishes the sequence: what this
+publisher declared, when it changed, and what changed, on the endpoint page and in the
+archive.
+
+*Depends on:* phase 8.
+
+*Done when:* an endpoint whose declarations have changed shows every recorded event in
+order; an endpoint with no events says that rather than showing an empty list; a returned
+state reads as a return and not as a new change; and no timeline entry exists that
+`history.json` does not carry.
+
+### Phase 10: the availability leaderboard, floored
+
+*Delivers:* phase 5's **availability leaderboard**, under the condition phase 5 attached to
+it: the 14-observation floor. The floor is not met across the registry today and will not be
+met by writing code, so this phase builds the mechanism and the honest empty state together.
+An endpoint below the floor is named as below the floor and never given a rate; the
+population below the floor is published beside the ranked one and never merged into it.
+
+*Depends on:* phase 8.
+
+*Done when:* with the committed history the page ranks exactly the endpoints at or above the
+floor and names the rest; a fixture in which nothing meets the floor renders the empty state
+instead of a one-row leaderboard; and a test asserts no rate is ever printed for an endpoint
+below the floor.
+
+### Phase 11: the coverage tracker
+
+*Delivers:* the open page of phase 5's **coverage tracker**. The denominator exists: 176
+state-issuer organizations across 30 states under `data/frames/`, with per-state review
+status in `docs/SAMPLING-FRAME.md`. The page counts four populations and never merges any
+two of them: publishes a base URL this project verified; publishes one that does not answer;
+publishes none that a review could find; and not yet reviewed, which is a fact about this
+project rather than about an issuer.
+
+*Depends on:* the committed frame and cohort files, which exist.
+
+*Done when:* every number on the page is recomputed from `data/frames/` and `data/cohorts/`
+by a test rather than typed; a test fails if a reviewed and an unreviewed population are
+ever summed into one figure; and the page states the reviewed fraction of the frame in the
+same breath as any rate it prints.
+
+### Phase 12: conformance over time
+
+*Delivers:* phase 5's **conformance-over-time report**, in the half a program can produce:
+the computed sections of a dated report - what the graded population looked like at the
+start of the window, what it looks like now, which endpoints changed grade, which changed
+what they declare, and what share of the registry was observable throughout. The editorial
+front door phase 5 asks for is the maintainer's to write; this phase delivers the numbers it
+would be written around, and says in the document that the prose is not generated.
+
+*Depends on:* phases 8 and 9.
+
+*Done when:* the report generator produces a dated report from `history.json` and the graded
+payload with no figure typed by hand; a window containing no change says so rather than
+printing an empty table; and the report is regenerable byte-for-byte from committed inputs.
+
+### Phase 13: dated dataset snapshots, and the signature that is not this project's to make
+
+*Delivers:* the deterministic half of phase 2's **monthly dated dataset release**: a
+snapshot builder that assembles the published dataset for a stated date into one dated
+directory with a manifest of content hashes, reproducible from committed inputs.
+
+*Blocked, and it stays blocked here:* the release itself. `.github/workflows/release.yml`
+publishes from an SSH-signed annotated tag verified against `.github/allowed_signers`. Only
+the holder of that key can sign one. A workflow written to publish an unsigned snapshot
+would be a release path that skips the control every other release in this repository
+passes, so this phase stops at the artifact and leaves the signing and the tag to the
+maintainer.
+
+*Done when:* the snapshot is byte-identical across two runs from the same inputs, its
+manifest hashes verify, and the release step is documented as a maintainer action rather
+than automated around.
+
+### Phase 14: an independent vantage
+
+*Blocked on hardware this project does not have.* Phase 4 already states the cost of the gap
+and the exact thing that closes it: one runner on a network that is not the CI provider's,
+posting a `probes-*.json` the publishing run can read. The reconciliation is built and each
+vantage is counted once; what is missing is a machine. No amount of code changes the
+sentence the site publishes, and until such a runner exists the published wording stays
+"one network."
+
+*Unblocked by:* a residential or other-provider host, however irregular its schedule, and a
+decision about how it authenticates its artifact.
+
+### Phase 15: the frame, reviewed a state at a time
+
+*Blocked on curation, which is a person's work by design.* 146 of the frame's 176
+state-issuer organizations are not yet reviewed. `docs/SAMPLING-FRAME.md` and
+`CONTRIBUTING.md` both require that an entry rest on a document a person retrieved and read,
+with the publisher established from the organization's own materials; the same documents
+record that guessed hostnames produced 0 verified endpoints out of 18 probes. Automating
+this would produce plausible, wrong entries, which is the one failure this project cannot
+absorb.
+
+*Unblocked by:* maintainer curation waves, one state at a time, at the pace
+`data/CANDIDATES.md` already documents.
+
+### Sequencing
+
+| Order | Phase | Depends on | Done when |
+|---|---|---|---|
+| 1 | 6, site contract audit | nothing | every defect class fails the audit in a test |
+| 2 | 7, accessibility and weight budgets | 6 | each check shown failing; budget measured, not guessed |
+| 3 | 8, archive surface | 6 | history browsable; empty history says so |
+| 4 | 9, drift timeline | 8 | every event rendered in order; returns read as returns |
+| 5 | 10, availability leaderboard | 8 | floor enforced; below-floor population never given a rate |
+| 6 | 11, coverage tracker | frame data | four populations, none merged, all recomputed |
+| 7 | 12, conformance over time | 8, 9 | dated report regenerable byte-for-byte |
+| 8 | 13, dataset snapshots | 12 | snapshot reproducible; release left to the key holder |
+| - | 14, independent vantage | a runner off this network | blocked; not scheduled |
+| - | 15, frame review | maintainer curation | blocked; proceeds a state at a time |
+
+Phases 6 and 7 are infrastructure for everything after them and come first for that reason,
+not because they are the most interesting. Phases 8 through 12 are the ones that make the
+project worth citing, and each is worth less without the gates in front of it: a history
+page nobody can find and no gate checks is not an archive.
+
+---
+
 ## Explicitly not doing
 
 - **Authenticated probing.** Registering for API access to check conformance would produce better
@@ -159,3 +352,7 @@ Phases 1 and 2 are mostly mechanical and can proceed now. Phase 3 only pays off 
 makes the site worth landing on. Phase 4's multi-vantage work is the highest-value item in the
 whole document, because it fixes a measurement error already known to have produced a wrong
 public claim. Phase 5 needs calendar time to accumulate observations and cannot be rushed.
+
+What remains unchecked in phases 2, 4 and 5 is sequenced into dated phases under
+[The next three years](#the-next-three-years), which also names the two items that are
+blocked on something outside this repository and says what would unblock each.

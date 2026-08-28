@@ -227,6 +227,13 @@ with no observations says so; it does not render a zero. No rate is published be
 observations, on the same ground the grades use: a percentage off two data points is noise
 dressed as a metric.
 
+`/over-time/` reports what changed across the record, one section per calendar month, computed
+on every publish from the observation record and stored nowhere. It says who was observed, who
+answered every check, and what changed in what they declare. It does **not** report grade
+changes, and says why on the page: the record retains availability and a capability fingerprint
+and has never retained a grade, so no run can look up last month's letter, and deriving one
+from the fingerprint would invent a measurement nobody took.
+
 `/coverage/` answers the question the frame was built for: how much of the federal marketplace
 has a publicly checkable FHIR endpoint at all. Every one of the 176 state-issuer organizations
 lands in exactly one of four populations, and no two of them are ever added together: publishes

@@ -152,7 +152,17 @@ read.*
       `api/history/<id>.json` as `declaration_changes`. Declarations an endpoint returns
       to are a separate list and a separate JSON array, never merged into the changes:
       one hostname in front of two backends is not a run of releases
-- [ ] **Conformance-over-time report**, published monthly, with the write-up as its front door
+- [~] **Conformance-over-time report** at `/over-time/`, partitioned by calendar month and
+      recomputed from the observation record on every publish, so it needs no new stored
+      state. Per month: who was observed, who entered the record, who answered every check
+      and who missed one, what changed in what they declare, and what they returned to. A
+      month with no change says so rather than printing an empty table. **Two halves stay
+      open, both deliberately.** The write-up front door is a piece of writing and is not
+      generated. And the report cannot say whether grades moved: `history.json` retains
+      availability and a capability fingerprint and has never retained a grade, so no run
+      can look up last month's letter. Deriving one from the fingerprint would invent a
+      measurement nobody took. Recording a grade per run would be a change to the data
+      the daily workflow persists and is an owner decision, not one to take here
 - [x] **Coverage tracker**, at `/coverage/`: which CMS-regulated payers have a *publicly
       checkable* endpoint at all, with the "documented but unreachable" and "no public URL
       found" populations counted separately and never merged, and *not yet reviewed* kept apart

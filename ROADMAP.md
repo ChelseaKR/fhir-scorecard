@@ -84,7 +84,17 @@ read.*
       observation with its date, and `api/history/<id>.json` beside it. An endpoint with no
       observations says so rather than rendering a zero, and no rate is published below the
       14-observation floor
-- [ ] A monthly dated dataset release, signed
+- [~] A monthly dated dataset release, signed. **The artifact is built; the signature is
+      not, and cannot be from here.** `fhir-scorecard snapshot <site> --out <dir> --date
+      <date>` copies the machine-readable dataset of one build into a dated directory
+      with a SHA-256 manifest, byte-identical across two builds of the same site, and
+      `fhir-scorecard verify-snapshot <dir>` checks a snapshot against that manifest in
+      both directions. What stays blocked is the release: `.github/workflows/release.yml`
+      publishes only from an SSH-signed annotated tag verified against
+      `.github/allowed_signers`, and only the holder of that key can make one. A workflow
+      written to publish an unsigned snapshot would be a release path that skips the
+      control every other release here passes, so this stops at the artifact and the tag
+      is left to the maintainer
 
 ## Phase 3: participation
 

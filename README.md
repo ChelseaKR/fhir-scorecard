@@ -286,6 +286,21 @@ and registry size is gated on payers publishing base URLs.
 | `scorecards.json` | The complete graded payload in one file |
 | `badge/<id>.svg` | Embeddable current-grade badge linking back to the endpoint evidence |
 
+A dated copy of the dataset, with a manifest a reader can check with `sha256sum`:
+
+```bash
+fhir-scorecard snapshot site/ --out snapshots/2026-08-27 --date 2026-08-27
+fhir-scorecard verify-snapshot snapshots/2026-08-27
+```
+
+The snapshot holds the machine-readable files and not the pages, because a page is a rendering
+that changes when the templates do and the dataset is what somebody would cite. Two builds of
+one site produce byte-identical output. `verify-snapshot` fails on a changed byte, a changed
+length, a deleted file, a file added after the fact, and a manifest that is missing, unreadable,
+or records nothing. Signing and tagging a snapshot as a release is deliberately not automated:
+releases here are cut only from an SSH-signed tag verified against `.github/allowed_signers`,
+and a path that published an unsigned artifact would skip that control.
+
 A read-only MCP server exposes the same data to an assistant:
 
 ```bash

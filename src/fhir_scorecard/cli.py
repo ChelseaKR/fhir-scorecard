@@ -58,6 +58,9 @@ from fhir_scorecard.site import (
     write_assets,
     write_page,
 )
+from fhir_scorecard.snapshot import MANIFEST_NAME
+from fhir_scorecard.snapshot import build as build_snapshot
+from fhir_scorecard.snapshot import verify as verify_snapshot
 from fhir_scorecard.vantage import VantageProbe, load_probe_files, reconcile, write_probes
 from fhir_scorecard.weight import audit_weight
 
@@ -441,6 +444,26 @@ def _build_parser() -> argparse.ArgumentParser:
         help="the origin the site was built for; canonical URLs and sitemap entries are "
         "checked against it, so auditing a build under the wrong origin fails",
     )
+    snapshot = sub.add_parser(
+        "snapshot",
+        help="copy a built site's machine-readable dataset files into a dated directory with a "
+        "SHA-256 manifest. Writes an artifact and nothing else: it does not tag, sign, or "
+        "publish, because a release here is cut only from an SSH-signed tag",
+    )
+    snapshot.add_argument("site", metavar="SITE", type=Path, help="a built site directory")
+    snapshot.add_argument("--out", type=Path, required=True, help="the dated snapshot directory")
+    snapshot.add_argument(
+        "--date",
+        required=True,
+        help="the date this snapshot is of, recorded in the manifest. Stated rather than taken "
+        "from the clock: a snapshot of yesterday's build built today is dated by the build",
+    )
+    check_snapshot = sub.add_parser(
+        "verify-snapshot",
+        help="check a snapshot against its own manifest: every file present, at the recorded "
+        "size and digest, and nothing present the manifest does not name",
+    )
+    check_snapshot.add_argument("snapshot", metavar="DIR", type=Path, help="a snapshot directory")
     return parser
 
 
@@ -516,7 +539,42 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
         return _cmd_narrate(args)
     if args.command == "audit-site":
         return _cmd_audit_site(args)
+    if args.command == "snapshot":
+        return _cmd_snapshot(args)
+    if args.command == "verify-snapshot":
+        return _cmd_verify_snapshot(args)
     return None
+
+
+def _cmd_snapshot(args: argparse.Namespace) -> int:
+    """Write one dated snapshot. Exit 2 for a usage error, never a partial artifact."""
+    if not args.site.is_dir():
+        print(f"snapshot error: {args.site} is not a directory", file=sys.stderr)
+        return 2
+    try:
+        manifest = build_snapshot(args.site, args.out, args.date)
+    except (FileExistsError, ValueError, OSError) as exc:
+        print(f"snapshot error: {exc}", file=sys.stderr)
+        return 2
+    print(f"snapshot {args.date}: {len(manifest.files)} files under {args.out}")
+    if manifest.missing:
+        print(f"  not in this build, recorded in the manifest: {', '.join(manifest.missing)}")
+    return 0
+
+
+def _cmd_verify_snapshot(args: argparse.Namespace) -> int:
+    """Check a snapshot against its manifest. Exit 1 if it disagrees, 2 if unreadable."""
+    if not args.snapshot.is_dir():
+        print(f"verify error: {args.snapshot} is not a directory", file=sys.stderr)
+        return 2
+    mismatches = verify_snapshot(args.snapshot)
+    for mismatch in mismatches:
+        print(mismatch)
+    if mismatches:
+        print(f"{len(mismatches)} snapshot mismatch(es)", file=sys.stderr)
+        return 1
+    print(f"snapshot verifies against {MANIFEST_NAME}")
+    return 0
 
 
 def _cmd_audit_site(args: argparse.Namespace) -> int:

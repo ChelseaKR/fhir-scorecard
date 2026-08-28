@@ -14,6 +14,23 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **Dated dataset snapshots (ROADMAP phase 13).** `fhir-scorecard snapshot <site> --out <dir>
+  --date <date>` copies a build's machine-readable dataset - `dataset.csv`,
+  `dataset.schema.json`, `scorecards.json`, `api/index.json`, and the per-endpoint and
+  per-history API files - into a dated directory with a manifest recording every file's size and
+  SHA-256. Not the pages: a page is a rendering that changes when the templates do, and the
+  dataset is what somebody would cite. Two builds of one site are byte-identical, a dated
+  directory is written once rather than overwritten, and a dataset file the build did not carry
+  is named in the manifest's `missing` list rather than silently skipped.
+  `fhir-scorecard verify-snapshot <dir>` checks a snapshot against its manifest in both
+  directions and fails on a changed byte, a changed length, a deleted file, a file added after
+  the fact, and a manifest that is missing, unreadable, or records nothing. The manifest is
+  plain JSON of relative path to size and digest, checkable with `sha256sum`. **Signing and
+  tagging remain a maintainer action and are deliberately not automated**: releases here are cut
+  only from an SSH-signed annotated tag verified against `.github/allowed_signers`, and a
+  workflow that published an unsigned snapshot would be a release path skipping the control
+  every other release passes.
+
 - **The conformance-over-time report (ROADMAP phase 12).** `/over-time/` partitions the
   observation record by calendar month and reports, for each: who was observed, who entered the
   record, who answered every check and who missed at least one, what changed in what they

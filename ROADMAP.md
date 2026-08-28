@@ -77,10 +77,13 @@ read.*
 - [x] **MCP server** (`fhir-scorecard mcp`), read-only over the published dataset, with a
       `grading_method` tool that returns the documented limits so an assistant can be told what
       the numbers do not mean
-- [~] **Historical archive**: dated snapshots so availability and drift can be studied over time,
-      which is the part nobody else has. The `capability-history` branch now accrues one dated
-      commit per day on which an observation changed; a browsable archive surface on the site is
-      still open
+- [x] **Historical archive**: dated snapshots so availability and drift can be studied over time,
+      which is the part nobody else has. The `capability-history` branch accrues one dated
+      commit per day on which an observation changed, and the record is now browsable at
+      `/history/`: an index with the window it covers, one page per endpoint listing every
+      observation with its date, and `api/history/<id>.json` beside it. An endpoint with no
+      observations says so rather than rendering a zero, and no rate is published below the
+      14-observation floor
 - [ ] A monthly dated dataset release, signed
 
 ## Phase 3: participation

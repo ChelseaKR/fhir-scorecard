@@ -156,7 +156,9 @@ def org_display_name(names: Sequence[str]) -> str:
     return " ".join(common) or " ".join(stripped[0])
 
 
-def _json_ld(payload: dict[str, object]) -> str:
+def json_ld(payload: dict[str, object]) -> str:
+    """A structured-data block. Public so pages built outside this module emit the same shape,
+    which is what the site contract checks."""
     """Serialize JSON-LD safely inside a <script> block.
 
     ``json.dumps`` will happily emit a literal ``</script>`` from any string it is given, which
@@ -304,6 +306,11 @@ def endpoint_page(
     summary = _status_words(card)
     unobserved = card.grade == NOT_OBSERVED
     dimensions = "".join(_dimension_meter(dim.title, dim.score) for dim in card.dimensions)
+    record_link = (
+        f'<p><a href="/history/{html.escape(card.endpoint_id)}/">'
+        "Every observation on record for this endpoint</a>, with the dates it answered and the "
+        "dates it did not.</p>"
+    )
     drift = ""
     if card.drift_events:
         events = "".join(f"<li>{html.escape(e)}</li>" for e in card.drift_events)
@@ -407,8 +414,9 @@ alt="FHIR Scorecard: {html.escape(_badge_alt(card))}"&gt;&lt;/a&gt;</code></div>
 <p class="usa-alert__text">This is an observational snapshot of a public, unauthenticated surface. It is
 not an audit, a ranking of care quality, or a statement about anyone's regulatory compliance.
 See <a href="/how-we-grade/">how we grade</a>.</p>
+{record_link}
 </div></div>
-{_json_ld(jsonld)}
+{json_ld(jsonld)}
 """
     return Page(
         path=f"endpoint/{card.endpoint_id}",
@@ -778,6 +786,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <ul class="usa-nav__primary usa-accordion">
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/#registry"><span>Registry</span></a></li>
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/how-we-grade/"><span>Method</span></a></li>
+<li class="usa-nav__primary-item"><a class="usa-nav-link" href="/history/"><span>Record</span></a></li>
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/dataset.csv"><span>Data</span></a></li>
 <li class="usa-nav__primary-item">
 <a class="usa-nav-link" href="/claim/"><span>Correct a record</span></a></li>
@@ -994,7 +1003,7 @@ the research note and its corrections →</a></div>
 <p class="usa-alert__text">Observational snapshots of public surfaces. Not audits, not rankings of care
 quality, not statements about anyone's regulatory compliance.</p>
 </div></div>
-{_json_ld(jsonld)}
+{json_ld(jsonld)}
 """
     return Page(
         path="",

@@ -220,7 +220,14 @@ Neither is a compliance determination, and both say so.
 
 Every endpoint, organization, category, and cohort gets its own indexable page with a canonical URL,
 description, and structured data, plus a sitemap and a methodology page that every finding links
-into. What the site promises about itself is checked rather than asserted. `fhir-scorecard
+into. Every endpoint's observation record is browsable at `/history/`: an index saying what window
+the record covers and how many endpoints are still below the reporting floor, and one page per
+endpoint listing every observation with its date and whether the endpoint answered. An endpoint
+with no observations says so; it does not render a zero. No rate is published below fourteen
+observations, on the same ground the grades use: a percentage off two data points is noise
+dressed as a metric.
+
+What the site promises about itself is checked rather than asserted. `fhir-scorecard
 audit-site site/` reads a built directory and reports every page the sitemap omits, every
 sitemap entry no file answers, every missing or misaddressed canonical, every structured-data
 block that does not parse or omits a field this site promises, every internal link pointing at
@@ -246,6 +253,7 @@ and registry size is gated on payers publishing base URLs.
 | `dataset.schema.json` | Column names, types, and meanings |
 | `api/index.json` | Every endpoint with links to its detail and its page |
 | `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift |
+| `api/history/<id>.json` | Every recorded observation for one endpoint, with its date and whether it answered. `answered_percent` is `null`, never `0`, below the 14-observation reporting floor |
 | `scorecards.json` | The complete graded payload in one file |
 | `badge/<id>.svg` | Embeddable current-grade badge linking back to the endpoint evidence |
 

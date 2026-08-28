@@ -14,6 +14,19 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **The observation record, made browsable (ROADMAP phase 8).** `/history/` publishes what the
+  `capability-history` branch has been accruing since 2026-08-05 and nothing derived beyond
+  counting: an index with the window the record covers, one page per endpoint listing every
+  observation with its date and whether the endpoint answered, and `api/history/<id>.json`
+  beside each. Two refusals are enforced in `fhir_scorecard.archive` rather than left to the
+  templates. An endpoint with no observations says so and renders no table, no zero and no
+  percent. A rate is published only at or above `drift.MIN_OBSERVATIONS_TO_REPORT`, which is
+  fourteen; below it the raw counts appear with how many more observations the record needs,
+  and `answered_percent` in the JSON is `null` rather than `0`, so a consumer cannot read
+  "not enough observations" as a real zero. The index names the below-floor population instead
+  of dropping it, because an endpoint missing from a table reads as an endpoint nobody watched.
+  A record written by a fixture run is labelled as such on the page.
+
 - **Accessibility and transfer-size budgets as merge gates (ROADMAP phase 7, ADR 0004).**
   `fhir_scorecard.accessibility` runs twelve mechanical rules over every built page, each
   naming the WCAG 2.2 Level A success criterion it implements: language of page (SC 3.1.1),

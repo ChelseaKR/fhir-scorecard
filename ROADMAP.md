@@ -153,12 +153,14 @@ read.*
       to are a separate list and a separate JSON array, never merged into the changes:
       one hostname in front of two backends is not a run of releases
 - [ ] **Conformance-over-time report**, published monthly, with the write-up as its front door
-- [~] **Coverage tracker**: which CMS-regulated payers have a *publicly checkable* endpoint at
-      all, with the "documented but unreachable" and "no public URL found" populations counted
-      separately and never merged. The denominator now exists - the national federal-marketplace
-      roster under `data/frames/` (176 state-issuer organizations, 30 states) with per-state
-      review status in `docs/SAMPLING-FRAME.md` - and adds a third population those two must
-      never be merged with: *not yet reviewed*. The tracker page itself is still open
+- [x] **Coverage tracker**, at `/coverage/`: which CMS-regulated payers have a *publicly
+      checkable* endpoint at all, with the "documented but unreachable" and "no public URL
+      found" populations counted separately and never merged, and *not yet reviewed* kept apart
+      from both. Over the national federal-marketplace roster under `data/frames/` (176
+      state-issuer organizations, 30 states): 13 verified, 2 documented but unreachable, 15
+      reviewed with no public URL found, 146 not yet reviewed. Frame rows are joined on
+      `(state, issuer name)` from the committed cohort roster CSVs, and `publishing_rate`
+      raises rather than divide by a set containing an unreviewed organization
 
 ---
 

@@ -28,6 +28,8 @@ from fhir_scorecard.capability import (
     parse_smart,
 )
 from fhir_scorecard.cohort import Cohort, load_cohort_dir
+from fhir_scorecard.coverage import classify, read_frame, read_reviewed_rows
+from fhir_scorecard.coverage import page as coverage_page
 from fhir_scorecard.dataset import write_dataset
 from fhir_scorecard.drift import ensure_mode, load_history, observe, save_history
 from fhir_scorecard.fetch import TIMEOUT_S, FetchResult, fetch_json
@@ -39,6 +41,7 @@ from fhir_scorecard.report import render_html, to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
 from fhir_scorecard.site import (
     DEFAULT_ORIGIN,
+    Page,
     claim_page,
     cohort_page,
     endpoint_page,
@@ -676,7 +679,16 @@ def main(argv: list[str] | None = None) -> int:
     (args.out / "index.html").write_text(
         render_html(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
     )
-    _write_site(scorecards, endpoints, args.out, args.origin, generated_at, cohorts, history)
+    _write_site(
+        scorecards,
+        endpoints,
+        args.out,
+        args.origin,
+        generated_at,
+        cohorts,
+        history,
+        cohorts_path,
+    )
     write_dataset(
         args.out,
         scorecards,
@@ -739,6 +751,31 @@ def _organizations(
     return by_org, org_of
 
 
+#: The national frame the coverage tracker measures against, found beside the cohort directory.
+FRAME_CSV_NAME = "qhp-landscape-py2026-individual-medical.csv"
+
+
+def _coverage_page(
+    cohorts_dir: Path | None,
+    cohorts: tuple[Cohort, ...],
+    endpoints: list[Endpoint],
+    origin: str,
+) -> Page | None:
+    """The coverage tracker, or None when this build has no frame to track coverage against.
+
+    Absent rather than empty on purpose. A coverage page whose denominator is missing would
+    report zero organizations in every population, which reads as a measured result and is not
+    one. An offline fixture build has no frame; the published build does.
+    """
+    if cohorts_dir is None or not cohorts:
+        return None
+    frame_csv = cohorts_dir.parent / "frames" / FRAME_CSV_NAME
+    if not frame_csv.is_file():
+        return None
+    orgs = classify(read_frame(frame_csv), cohorts, endpoints, read_reviewed_rows(cohorts_dir))
+    return coverage_page(orgs, origin) if orgs else None
+
+
 def _write_site(
     scorecards: list[Scorecard],
     endpoints: list[Endpoint],
@@ -747,15 +784,23 @@ def _write_site(
     generated_at: str,
     cohorts: tuple[Cohort, ...] = (),
     history: dict[str, Any] | None = None,
+    cohorts_dir: Path | None = None,
 ) -> None:
     """One indexable page per endpoint, organization, category, cohort and observation
     record, plus the sitemap and the machine-readable copies of each."""
     origin = origin.rstrip("/")
     by_id = {e.endpoint_id: e for e in endpoints}
-    pages = [home_page(scorecards, origin, cohorts), how_we_grade_page(origin), claim_page(origin)]
+    coverage = _coverage_page(cohorts_dir, cohorts, endpoints, origin)
+    pages = [
+        home_page(scorecards, origin, cohorts, coverage_link=coverage is not None),
+        how_we_grade_page(origin),
+        claim_page(origin),
+    ]
     archive = records(history or {}, scorecards)
     pages.append(index_page(archive, origin, mode_of(history or {})))
     pages.append(availability_page(archive, origin))
+    if coverage is not None:
+        pages.append(coverage)
     pages.extend(record_page(record, origin) for record in archive)
     cards_by_id = {card.endpoint_id: card for card in scorecards}
     pages.extend(cohort_page(cohort, cards_by_id, origin) for cohort in cohorts)

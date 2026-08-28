@@ -14,6 +14,19 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **The availability page (ROADMAP phase 10, ADR 0005).** `/availability/` orders the endpoints
+  with at least `drift.MIN_OBSERVATIONS_TO_REPORT` recorded observations by measured answered
+  share, within each registry kind and never across one, and names the endpoints below the
+  floor with their counts and how many more observations each needs. The floor is applied per
+  endpoint rather than across the registry, because the roadmap's registry-wide condition never
+  arrives: each curation wave adds endpoints at zero observations and resets it. The exclusion
+  is measured on both sides rather than asserted - 30 of 45 endpoints above the floor on the
+  live record on 2026-08-27, and every one of the 19 endpoints in the committed seed below it,
+  which a test asserts against the committed file. A below-floor endpoint is never given a
+  share and never given a position; with nothing above the floor the page says nothing is
+  ordered yet rather than ranking a two-day record. Position is a property of the table and is
+  not stored on a record, so an endpoint that leaves the table takes no position with it.
+
 - **The declaration timeline (ROADMAP phase 9).** Each observation record now shows when the
   endpoint changed what it declares and what changed, dated and in the order `history.json`
   recorded it, with the count on the archive index and the same data in

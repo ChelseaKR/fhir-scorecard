@@ -14,6 +14,18 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **The declaration timeline (ROADMAP phase 9).** Each observation record now shows when the
+  endpoint changed what it declares and what changed, dated and in the order `history.json`
+  recorded it, with the count on the archive index and the same data in
+  `api/history/<id>.json` as `declaration_changes`. Declarations an endpoint has returned to
+  are a separate section and a separate JSON array, `declaration_returns`, carrying how many
+  times and over what window; they are never merged into the changes, because a consumer that
+  concatenated them would read one backend alternating as nine releases. An endpoint that has
+  never changed says so, and an endpoint that has never been observed says *that* instead,
+  because "nothing changed" over no observations is a claim made from no evidence. An event
+  with no date is dropped rather than dated "unknown": a timeline row that cannot say when is
+  filling space.
+
 - **The observation record, made browsable (ROADMAP phase 8).** `/history/` publishes what the
   `capability-history` branch has been accruing since 2026-08-05 and nothing derived beyond
   counting: an index with the window the record covers, one page per endpoint listing every

@@ -227,6 +227,12 @@ with no observations says so; it does not render a zero. No rate is published be
 observations, on the same ground the grades use: a percentage off two data points is noise
 dressed as a metric.
 
+Each record also carries the endpoint's declaration timeline: every recorded change to what its
+CapabilityStatement says about itself, dated and in order, with the declarations it has *gone
+back to* listed separately and counted rather than repeated. One hostname in front of two
+backends produces a return every time a probe lands on the other one, and listing those as
+releases would bury the releases that are real.
+
 What the site promises about itself is checked rather than asserted. `fhir-scorecard
 audit-site site/` reads a built directory and reports every page the sitemap omits, every
 sitemap entry no file answers, every missing or misaddressed canonical, every structured-data
@@ -253,7 +259,7 @@ and registry size is gated on payers publishing base URLs.
 | `dataset.schema.json` | Column names, types, and meanings |
 | `api/index.json` | Every endpoint with links to its detail and its page |
 | `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift |
-| `api/history/<id>.json` | Every recorded observation for one endpoint, with its date and whether it answered. `answered_percent` is `null`, never `0`, below the 14-observation reporting floor |
+| `api/history/<id>.json` | Every recorded observation for one endpoint, with its date and whether it answered, plus its declaration timeline. `answered_percent` is `null`, never `0`, below the 14-observation reporting floor, and `declaration_returns` is never merged into `declaration_changes` |
 | `scorecards.json` | The complete graded payload in one file |
 | `badge/<id>.svg` | Embeddable current-grade badge linking back to the endpoint evidence |
 

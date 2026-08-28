@@ -14,6 +14,24 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **Accessibility and transfer-size budgets as merge gates (ROADMAP phase 7, ADR 0004).**
+  `fhir_scorecard.accessibility` runs twelve mechanical rules over every built page, each
+  naming the WCAG 2.2 Level A success criterion it implements: language of page (SC 3.1.1),
+  page titled (SC 2.4.2), a top-level heading and no skipped level (SC 1.3.1), alt text present
+  on every image (SC 1.1.1), an accessible name on every control and link (SC 4.1.2, SC 2.4.4),
+  id references and same-page fragments that resolve (SC 1.3.1, SC 2.4.1), and a main landmark.
+  Two rules are this project's own rather than a criterion and say so where they are defined:
+  unique page titles, and no duplicated id. `fhir_scorecard.weight` enforces two transfer-size
+  budgets, one on each page's own bytes and one on the subresources more than one page links,
+  counted once; both numbers were measured from the published site on 2026-08-27 rather than
+  chosen. Both families run inside `audit-site`, so both gate a merge and a publish.
+  ADR 0004 records why a Lighthouse score is not the gate - it is a weighted average of a
+  moving rule set, it is not deterministic, and it needs a browser and an npm toolchain in a
+  package with no runtime dependencies - and lists what a browser would catch that this cannot:
+  contrast as rendered, focus order, visible focus, computed ARIA roles, reflow, and whether an
+  accessible name is any good. The assistive-technology review stays open;
+  `docs/RESPONSIBLE-TECH-AUDITS.md` section E now says which half of it this closed.
+
 - **The site contract, and a gate that enforces it (ROADMAP phase 6).**
   `fhir-scorecard audit-site <dir> [--origin]` reads a built site and reports every way it
   breaks the properties this project publishes about it: a page the sitemap omits, a sitemap

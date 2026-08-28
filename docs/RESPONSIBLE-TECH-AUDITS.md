@@ -107,8 +107,17 @@ is the bias surface. Mitigations in place:
 ## E. Accessibility
 
 **Findings:** the published site is static, semantic HTML with no client-side framework.
-No formal assistive-technology review or automated accessibility gate exists yet; that remains
-open and is the honest state of this section. Tracked in `ROADMAP.md`.
+
+Half of what this section used to record as open is now closed, and the half that is still open
+is the more important half. An automated gate exists: `fhir_scorecard.accessibility` runs twelve
+mechanical rules over every built page, each naming the WCAG 2.2 Level A success criterion it
+implements, and it blocks both a merge and a publish. **No formal assistive-technology review has
+been performed.** That is still open, and the gate does not stand in for it: it decides only what
+a static reader can decide from markup, and
+[ADR 0004](adr/0004-accessibility-and-weight-gates-without-a-browser.md) lists what it cannot see
+- colour contrast as rendered, focus order, visible focus, computed ARIA roles, reflow, and
+whether an accessible name is any good. A page can satisfy every rule and be unusable with a
+screen reader. Tracked in `ROADMAP.md`.
 
 ## F. Security
 

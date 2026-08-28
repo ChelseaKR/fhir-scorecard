@@ -838,11 +838,19 @@ government website, and affiliated with no government agency.</p>
     return document
 
 
-def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] = ()) -> Page:
+def home_page(
+    cards: list[Scorecard],
+    origin: str,
+    cohorts: tuple[Cohort, ...] = (),
+    coverage_link: bool = False,
+) -> Page:
     """Landing page: what this is, what it found, where to go next.
 
     ``cohorts`` is empty when no cohort curation was loaded, and the section is then omitted
-    entirely rather than rendered as an empty list or a dead link.
+    entirely rather than rendered as an empty list or a dead link. ``coverage_link`` is the
+    same rule for the coverage tracker: the caller says whether that page was built, because a
+    build without a frame does not have one and a link to it would be dead. It is not inferred
+    from ``cohorts`` being non-empty, since the tracker also needs the frame CSV.
     """
     by_kind: dict[str, list[Scorecard]] = {}
     for c in cards:
@@ -922,6 +930,13 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
         "isAccessibleForFree": True,
     }
     cohort_section = ""
+    coverage_note = (
+        '<p><a href="/coverage/">How much of the federal marketplace frame has a publicly '
+        "checkable endpoint</a>, with the organizations nobody has reviewed yet counted "
+        "separately from the ones that publish nothing.</p>"
+        if coverage_link
+        else ""
+    )
     if cohorts:
         items = "".join(
             f'<li><a href="/{c.cohort_id}/">{html.escape(c.name)}</a>: '
@@ -935,6 +950,7 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
 <h2>Curated cohorts</h2></div>
 <p>Fixed public rosters make missing endpoints visible instead of silently dropping them.</p></div>
 <ul class="cards cohort-list">{items}</ul>
+{coverage_note}
 </section>
 """
     body = f"""

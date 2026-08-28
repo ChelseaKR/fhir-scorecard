@@ -14,6 +14,20 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **The coverage tracker (ROADMAP phase 11).** `/coverage/` assigns every one of the 176
+  state-issuer organizations on CMS's QHP Landscape PY2026 Individual Medical frame to exactly
+  one of four populations and never adds two of them together: publishes a base URL a
+  CapabilityStatement was retrieved from (13), publishes one that did not answer (2), was
+  reviewed and publishes none a stranger could read (15), and not yet reviewed (146). The
+  fourth is a fact about this project's progress, never about an issuer, and the rule is
+  enforced rather than trusted: `coverage.publishing_rate` raises if handed a set containing an
+  unreviewed organization instead of dividing by it. Frame rows are joined on
+  `(state, issuer name)`, read from the committed cohort roster CSVs, because the frame's unit
+  is a state-issuer: joining on the issuer name alone credited 23 states with a review that
+  only Texas and Florida received. `CohortMember` gains `roster_name`, the join key, kept
+  verbatim as the roster's publisher prints it. A build with no frame omits the page and its
+  link entirely rather than publishing zero in every population.
+
 - **The availability page (ROADMAP phase 10, ADR 0005).** `/availability/` orders the endpoints
   with at least `drift.MIN_OBSERVATIONS_TO_REPORT` recorded observations by measured answered
   share, within each registry kind and never across one, and names the endpoints below the

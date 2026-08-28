@@ -59,6 +59,12 @@ class CohortMember:
     programs: tuple[str, ...]
     endpoint_ids: tuple[str, ...] = ()
     exclusion: Exclusion | None = None
+    #: The name the roster's publisher prints for this organization, where the cohort is drawn
+    #: from a committed roster file. It is the join key back to that roster, and it is kept
+    #: verbatim: a cohort whose members were matched to a frame on this project's own
+    #: normalisation of a name would have a denominator only this project could reproduce.
+    #: Empty where the cohort's roster is not a committed CSV, as California's is not.
+    roster_name: str = ""
 
 
 @dataclass(frozen=True)
@@ -169,12 +175,20 @@ def _parse_member(
             "carry one or the other"
         )
 
+    roster_name = item.get("roster_name", "")
+    if not isinstance(roster_name, str) or (("roster_name" in item) and not roster_name.strip()):
+        raise ValueError(
+            f"{where}.roster_name must be the non-empty name the roster's publisher prints, "
+            "or absent where the cohort has no committed roster file"
+        )
+
     return CohortMember(
         member_id=member_id,
         name=_require_str(where, item, "name"),
         programs=programs,
         endpoint_ids=endpoint_ids,
         exclusion=_parse_exclusion(where, excluded_raw) if excluded_raw is not None else None,
+        roster_name=roster_name.strip(),
     )
 
 

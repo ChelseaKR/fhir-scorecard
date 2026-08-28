@@ -227,6 +227,14 @@ with no observations says so; it does not render a zero. No rate is published be
 observations, on the same ground the grades use: a percentage off two data points is noise
 dressed as a metric.
 
+`/coverage/` answers the question the frame was built for: how much of the federal marketplace
+has a publicly checkable FHIR endpoint at all. Every one of the 176 state-issuer organizations
+lands in exactly one of four populations, and no two of them are ever added together: publishes
+a base URL a conformance document was retrieved from (13), publishes one that did not answer
+(2), was reviewed and publishes none a stranger can read (15), and not yet reviewed (146). The
+fourth is a fact about this project's progress, never about an issuer, and `publishing_rate`
+raises rather than compute a rate over a set that contains one.
+
 `/availability/` orders the endpoints that have enough recorded observations to state a share,
 within each kind and never across one, and names the endpoints that do not with their counts
 and how many more observations each needs. On the live record on 2026-08-27 that is 30

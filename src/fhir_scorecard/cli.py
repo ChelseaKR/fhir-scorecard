@@ -12,6 +12,14 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from fhir_scorecard.accessibility import audit_accessibility
+from fhir_scorecard.archive import (
+    ARCHIVE_PATH,
+    history_json,
+    index_page,
+    mode_of,
+    record_page,
+    records,
+)
 from fhir_scorecard.audit import audit_site
 from fhir_scorecard.capability import (
     NO_CAPABILITY_RETRIEVED,
@@ -667,7 +675,7 @@ def main(argv: list[str] | None = None) -> int:
     (args.out / "index.html").write_text(
         render_html(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
     )
-    _write_site(scorecards, endpoints, args.out, args.origin, generated_at, cohorts)
+    _write_site(scorecards, endpoints, args.out, args.origin, generated_at, cohorts, history)
     write_dataset(
         args.out,
         scorecards,
@@ -737,11 +745,16 @@ def _write_site(
     origin: str,
     generated_at: str,
     cohorts: tuple[Cohort, ...] = (),
+    history: dict[str, Any] | None = None,
 ) -> None:
-    """One indexable page per endpoint, organization, category, and cohort, plus sitemap."""
+    """One indexable page per endpoint, organization, category, cohort and observation
+    record, plus the sitemap and the machine-readable copies of each."""
     origin = origin.rstrip("/")
     by_id = {e.endpoint_id: e for e in endpoints}
     pages = [home_page(scorecards, origin, cohorts), how_we_grade_page(origin), claim_page(origin)]
+    archive = records(history or {}, scorecards)
+    pages.append(index_page(archive, origin, mode_of(history or {})))
+    pages.extend(record_page(record, origin) for record in archive)
     cards_by_id = {card.endpoint_id: card for card in scorecards}
     pages.extend(cohort_page(cohort, cards_by_id, origin) for cohort in cohorts)
 
@@ -775,6 +788,12 @@ def _write_site(
     badge_dir.mkdir(parents=True, exist_ok=True)
     for card in scorecards:
         (badge_dir / f"{card.endpoint_id}.svg").write_text(status_badge(card), encoding="utf-8")
+    archive_dir = out / "api" / ARCHIVE_PATH
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    for record in archive:
+        (archive_dir / f"{record.endpoint_id}.json").write_text(
+            history_json(record, generated_at), encoding="utf-8"
+        )
     (out / "sitemap.xml").write_text(sitemap(pages, origin), encoding="utf-8")
     (out / "robots.txt").write_text(robots(origin), encoding="utf-8")
     write_assets(out)

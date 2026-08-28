@@ -34,8 +34,10 @@ from fhir_scorecard.site import DEFAULT_ORIGIN
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
-def _card(endpoint_id: str, name: str = "Acme Health") -> Scorecard:
-    return Scorecard(endpoint_id=endpoint_id, name=name, grade="B", reachable=True, dimensions=())
+def _card(endpoint_id: str, name: str = "Acme Health", kind: str = "payer") -> Scorecard:
+    return Scorecard(
+        endpoint_id=endpoint_id, name=name, grade="B", reachable=True, dimensions=(), kind=kind
+    )
 
 
 def _history(endpoint_id: str, days: int, answered: int) -> dict[str, object]:
@@ -292,7 +294,7 @@ def test_a_record_of_one_endpoint_never_reports_another(site: Path) -> None:
 def test_the_dataclass_rejects_nothing_it_was_given() -> None:
     """``Record`` is a plain carrier: every number on a page is computed from its observations,
     so a record built by hand behaves exactly like one read from a file."""
-    record = Record("x", "X", (), None, None)
+    record = Record("x", "X", "payer", (), None, None)
     assert record.summary() == "no observations recorded yet"
     assert record.rate_percent is None
 

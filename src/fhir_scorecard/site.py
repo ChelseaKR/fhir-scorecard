@@ -28,7 +28,9 @@ _PROGRAM_LABELS = {
     "fl-marketplace": "Florida individual marketplace (HealthCare.gov)",
 }
 
-_KIND_LABELS = {
+#: Human-readable name per registry kind. Public because grades and availability are only
+#: ever compared within a kind, so every surface that groups by kind uses this one map.
+KIND_LABELS = {
     "payer": "Payer Patient Access APIs",
     "payer_provider_directory": "Payer Provider Directory APIs",
     "provider": "Provider and health system APIs",
@@ -219,7 +221,7 @@ def _signal_map(cards: Sequence[Scorecard]) -> str:
         rows.append(
             '<div class="signal-row">'
             f'<a class="signal-label" href="/{_KIND_SLUGS[kind]}/">'
-            f"{html.escape(_KIND_LABELS[kind])}</a>"
+            f"{html.escape(KIND_LABELS[kind])}</a>"
             f'<span class="signal-count">{len(group):02d}</span>'
             f'<div class="signal-track">{signals}</div></div>'
         )
@@ -302,7 +304,7 @@ def endpoint_page(
     were reachable only by reading the sitemap. ``tests/test_site_audit.py`` now fails on an
     orphan, which is how that would be caught next time rather than by inspection.
     """
-    kind_label = _KIND_LABELS.get(card.kind, card.kind)
+    kind_label = KIND_LABELS.get(card.kind, card.kind)
     summary = _status_words(card)
     unobserved = card.grade == NOT_OBSERVED
     dimensions = "".join(_dimension_meter(dim.title, dim.score) for dim in card.dimensions)
@@ -443,7 +445,7 @@ def org_page(name: str, cards: list[Scorecard], origin: str) -> Page:
     rows = "".join(
         '<li class="surface-card">'
         f'<div>{_grade_badge(c.grade)}<span class="eyebrow">'
-        f"{html.escape(_KIND_LABELS.get(c.kind, c.kind))}</span></div>"
+        f"{html.escape(KIND_LABELS.get(c.kind, c.kind))}</span></div>"
         f'<a href="/endpoint/{c.endpoint_id}/">{html.escape(c.name)}</a>'
         f"<p>{html.escape(_status_words(c))}.</p></li>"
         for c in sorted(cards, key=lambda c: c.name)
@@ -469,7 +471,7 @@ determinations.</p>
 
 
 def kind_page(kind: str, cards: list[Scorecard], origin: str) -> Page:
-    label = _KIND_LABELS.get(kind, kind)
+    label = KIND_LABELS.get(kind, kind)
     blurb = _KIND_BLURBS.get(kind, "")
     rows = "".join(
         f'<tr><td><a href="/endpoint/{c.endpoint_id}/">'
@@ -523,7 +525,7 @@ def _cohort_included_rows(cohort: Cohort, cards: dict[str, Scorecard]) -> str:
         f"<td>{html.escape(_programs_text(member))}</td>"
         f'<td><a href="/endpoint/{card.endpoint_id}/">'
         f"{html.escape(card.name)}</a></td>"
-        f"<td>{html.escape(_KIND_LABELS.get(card.kind, card.kind))}</td>"
+        f"<td>{html.escape(KIND_LABELS.get(card.kind, card.kind))}</td>"
         f"<td>{_grade_badge(card.grade)}</td></tr>"
         for member in cohort.included
         for card in (cards[eid] for eid in member.endpoint_ids if eid in cards)
@@ -786,6 +788,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <ul class="usa-nav__primary usa-accordion">
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/#registry"><span>Registry</span></a></li>
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/how-we-grade/"><span>Method</span></a></li>
+<li class="usa-nav__primary-item"><a class="usa-nav-link" href="/availability/"><span>Availability</span></a></li>
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/history/"><span>Record</span></a></li>
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/dataset.csv"><span>Data</span></a></li>
 <li class="usa-nav__primary-item">
@@ -849,7 +852,7 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
         f'<div class="category-card-top"><span class="eyebrow">{len(v)} endpoints</span>'
         f'<span class="category-arrow" aria-hidden="true">↗</span></div>'
         f'<a href="/{_KIND_SLUGS.get(k, k)}/">'
-        f"{html.escape(_KIND_LABELS.get(k, k))}</a>"
+        f"{html.escape(KIND_LABELS.get(k, k))}</a>"
         f"<p>{html.escape(_KIND_BLURBS.get(k, 'Publicly observable FHIR surfaces.'))}</p>"
         f'<div class="grade-distribution" aria-label="Grade distribution">'
         f"{_grade_counts(v)}</div></li>"

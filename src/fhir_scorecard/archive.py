@@ -18,6 +18,14 @@ keeps an unobserved endpoint out of the availability figures.
 the reason is already recorded in `drift.Availability.summary`: a percentage off two data points
 is noise dressed as a metric. The archive respects the same floor, prints the raw counts below
 it, and says how many more observations the endpoint needs.
+
+The record also carries the **declaration timeline** (ROADMAP phase 5): when this publisher
+changed what its CapabilityStatement declares, and what changed. Returns are kept apart from
+changes and rendered as returns, because `drift` already established why: one hostname in front
+of more than one backend is a different fact about an endpoint from a publisher shipping a
+release, and repeating the second every time a probe lands on the other backend crowds out the
+releases that are real. Nothing here re-derives or re-orders anything; the timeline renders the
+events `history.json` recorded, in the order it recorded them.
 """
 
 from __future__ import annotations
@@ -42,6 +50,35 @@ class Observation:
 
 
 @dataclass(frozen=True)
+class Change:
+    """One recorded change to what an endpoint declares, on the date it was first seen."""
+
+    date: str
+    changes: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class Return:
+    """A declaration this endpoint has gone back to, with how many times and over what window.
+
+    Separate from :class:`Change` because it is a different fact, and counted rather than
+    repeated: see ``drift._apply_alternation_rule``.
+    """
+
+    first_return: str
+    last_return: str
+    times: int
+    state_first_seen: str
+    changes: tuple[str, ...]
+
+    @property
+    def window(self) -> str:
+        if self.first_return == self.last_return:
+            return self.first_return
+        return f"{self.first_return} to {self.last_return}"
+
+
+@dataclass(frozen=True)
 class Record:
     """One endpoint's observation record, read from ``history.json`` and nothing else."""
 
@@ -50,6 +87,10 @@ class Record:
     observations: tuple[Observation, ...]
     first_seen: str | None
     last_seen: str | None
+    #: Recorded declaration changes, oldest first, exactly as ``history.json`` holds them.
+    changes: tuple[Change, ...] = ()
+    #: Declarations this endpoint has returned to. Never merged into ``changes``.
+    returns: tuple[Return, ...] = ()
 
     @property
     def answered(self) -> int:
@@ -114,9 +155,51 @@ def records(history: dict[str, Any], cards: list[Scorecard]) -> list[Record]:
                 observations=observations,
                 first_seen=entry.get("first_seen"),
                 last_seen=entry.get("last_seen"),
+                changes=_changes(entry),
+                returns=_returns(entry),
             )
         )
     return built
+
+
+def _strings(value: Any) -> tuple[str, ...]:
+    return tuple(str(item) for item in value) if isinstance(value, list) else ()
+
+
+def _changes(entry: dict[str, Any]) -> tuple[Change, ...]:
+    """Recorded declaration changes, in the order the history holds them.
+
+    An event with no date is dropped rather than dated "unknown": the timeline's whole content
+    is when something happened, and a row that cannot say when would be filling space.
+    """
+    raw = entry.get("events")
+    return tuple(
+        Change(date=str(event["date"]), changes=_strings(event.get("changes")))
+        for event in (raw if isinstance(raw, list) else [])
+        if isinstance(event, dict) and isinstance(event.get("date"), str)
+    )
+
+
+def _returns(entry: dict[str, Any]) -> tuple[Return, ...]:
+    raw = entry.get("alternations")
+    built = []
+    for record in raw if isinstance(raw, list) else []:
+        if not isinstance(record, dict):
+            continue
+        first = record.get("first_return")
+        last = record.get("last_return")
+        if not isinstance(first, str) or not isinstance(last, str):
+            continue
+        built.append(
+            Return(
+                first_return=first,
+                last_return=last,
+                times=int(record.get("returns", 0) or 0),
+                state_first_seen=str(record.get("state_first_seen", "an earlier run")),
+                changes=_strings(record.get("changes")),
+            )
+        )
+    return tuple(built)
 
 
 def window(built: list[Record]) -> tuple[str, str] | None:
@@ -143,6 +226,21 @@ def history_json(record: Record, generated_at: str) -> str:
             "observations": [
                 {"date": observation.date, "answered": observation.up}
                 for observation in record.observations
+            ],
+            "declaration_changes": [
+                {"date": change.date, "changes": list(change.changes)} for change in record.changes
+            ],
+            # Kept in their own array, never merged into declaration_changes. A consumer that
+            # concatenated them would count one backend alternating as nine releases.
+            "declaration_returns": [
+                {
+                    "first_return": item.first_return,
+                    "last_return": item.last_return,
+                    "times": item.times,
+                    "state_first_seen": item.state_first_seen,
+                    "changes": list(item.changes),
+                }
+                for item in record.returns
             ],
         },
         indent=2,
@@ -176,6 +274,65 @@ def _record_body(record: Record) -> str:
     )
 
 
+def _timeline(record: Record) -> str:
+    """The declaration timeline: changes in order, then returns, then the empty case.
+
+    The empty case is a sentence, not an empty list. An endpoint that has declared the same
+    thing throughout is a real and common result, and rendering it as a heading over nothing
+    reads as data that failed to load.
+    """
+    if not record.changes and not record.returns:
+        observed = (
+            "No change to what this endpoint declares has been recorded."
+            if record.observations
+            else "Nothing has been observed for this endpoint yet, so nothing could have changed."
+        )
+        return f"<h2>Declaration timeline</h2><p>{observed}</p>"
+
+    parts = ["<h2>Declaration timeline</h2>"]
+    if record.changes:
+        items = "".join(
+            f"<li><strong>{html.escape(change.date)}</strong>"
+            + (
+                "<ul>"
+                + "".join(f"<li><code>{html.escape(one)}</code></li>" for one in change.changes)
+                + "</ul>"
+                if change.changes
+                else "<p>recorded as a change with no detail on the record</p>"
+            )
+            + "</li>"
+            for change in record.changes
+        )
+        parts.append(
+            f"<p>{len(record.changes)} recorded "
+            f"{'change' if len(record.changes) == 1 else 'changes'} to what this endpoint "
+            "declares, oldest first.</p>"
+            f'<ol class="drift-timeline">{items}</ol>'
+        )
+    if record.returns:
+        items = "".join(
+            f"<li><strong>{html.escape(item.window)}</strong>: returned "
+            f"{'once' if item.times == 1 else f'{item.times} times'} to a declaration first "
+            f"observed {html.escape(item.state_first_seen)}"
+            + (
+                " (" + "; ".join(f"<code>{html.escape(one)}</code>" for one in item.changes) + ")"
+                if item.changes
+                else ""
+            )
+            + "</li>"
+            for item in record.returns
+        )
+        parts.append(
+            "<h3>Declarations this endpoint returns to</h3>"
+            "<p>This address has served a declaration, moved away from it, and served it again. "
+            "That usually means one hostname in front of more than one backend rather than a "
+            "publisher changing anything, so each return is counted here once instead of being "
+            "listed above as a fresh change every time a probe lands on the other backend.</p>"
+            f"<ul>{items}</ul>"
+        )
+    return "".join(parts)
+
+
 def record_page(record: Record, origin: str) -> Page:
     """One endpoint's observation record."""
     body = f"""
@@ -190,9 +347,11 @@ def record_page(record: Record, origin: str) -> Page:
 <p class="eyebrow">Observation record</p>
 <h1>{html.escape(record.name)}: every observation on record</h1>
 {_record_body(record)}
+{_timeline(record)}
 <h2>What this record is</h2>
-<p>One row per day a probing run recorded a result for this endpoint. It says whether the
-endpoint answered, not whether what it answered with was any good; the
+<p>One row per day a probing run recorded a result for this endpoint, and one timeline entry
+per recorded change to what it declares. An observation says whether the endpoint answered, not
+whether what it answered with was any good; the
 <a href="/endpoint/{html.escape(record.endpoint_id)}/">current scorecard</a> is where the
 grade and its findings live. A day with no row is a day nothing was recorded, which is a fact
 about this project rather than about the endpoint.</p>
@@ -226,6 +385,7 @@ def _index_rows(built: list[Record], origin: str) -> str:
             f'<tr><th scope="row"><a href="/{ARCHIVE_PATH}/{html.escape(record.endpoint_id)}/">'
             f"{html.escape(record.name)}</a></th>"
             f"<td>{record.observed}</td><td>{record.answered}</td><td>{rate}</td>"
+            f"<td>{len(record.changes)}</td>"
             f"<td>{html.escape(record.first_seen or 'not yet observed')}</td></tr>"
         )
     return "".join(rows)
@@ -273,12 +433,16 @@ every result is kept. This is the record, not a summary of it.</p>
 <caption>Observation record by endpoint</caption>
 <thead><tr>
 <th scope="col">Endpoint</th><th scope="col">Observations</th><th scope="col">Answered</th>
-<th scope="col">Answered share</th><th scope="col">First observed</th>
+<th scope="col">Answered share</th><th scope="col">Declaration changes</th>
+<th scope="col">First observed</th>
 </tr></thead>
 <tbody>{_index_rows(built, origin)}</tbody></table>
 <h2>How to read it</h2>
 <p>An observation says the endpoint answered a request for its public
-<code>/metadata</code> document, not that what came back was any good. The grade is a separate
+<code>/metadata</code> document, not that what came back was any good. A declaration change is
+a recorded difference in what its CapabilityStatement says about itself; each endpoint\'s page
+lists them with their dates, and lists separately the declarations it has gone back to rather
+than counting a backend alternating as a run of releases. The grade is a separate
 question and lives on each endpoint's scorecard. A day with no observation is a day this
 project recorded nothing, which happens when a scheduled run does not complete; it is never
 evidence about the endpoint.</p>

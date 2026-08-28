@@ -790,6 +790,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/how-we-grade/"><span>Method</span></a></li>
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/availability/"><span>Availability</span></a></li>
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/history/"><span>Record</span></a></li>
+<li class="usa-nav__primary-item"><a class="usa-nav-link" href="/over-time/"><span>Over time</span></a></li>
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/dataset.csv"><span>Data</span></a></li>
 <li class="usa-nav__primary-item">
 <a class="usa-nav-link" href="/claim/"><span>Correct a record</span></a></li>

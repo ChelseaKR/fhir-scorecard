@@ -36,6 +36,7 @@ from fhir_scorecard.fetch import TIMEOUT_S, FetchResult, fetch_json
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
 from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.leaderboard import page as availability_page
+from fhir_scorecard.over_time import page as over_time_page
 from fhir_scorecard.registry import EXPECTS, KINDS, Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import render_html, to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
@@ -799,6 +800,7 @@ def _write_site(
     archive = records(history or {}, scorecards)
     pages.append(index_page(archive, origin, mode_of(history or {})))
     pages.append(availability_page(archive, origin))
+    pages.append(over_time_page(archive, origin))
     if coverage is not None:
         pages.append(coverage)
     pages.extend(record_page(record, origin) for record in archive)

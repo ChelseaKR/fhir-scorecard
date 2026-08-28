@@ -14,6 +14,19 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **The conformance-over-time report (ROADMAP phase 12).** `/over-time/` partitions the
+  observation record by calendar month and reports, for each: who was observed, who entered the
+  record, who answered every check and who missed at least one, what changed in what they
+  declare, and what they returned to. It is recomputed on every publish and stores nothing, so
+  it is regenerable byte for byte from the record, which a test asserts. A month with no
+  declaration change says so rather than printing an empty table, and an endpoint not observed
+  in a month appears in neither the answered-every-check column nor the missed-one column,
+  because folding it into the second would report this project's own gap as the endpoint's.
+  Two halves stay open on purpose and both are stated on the page: the narrative front door is
+  a piece of writing and is not generated, and the report cannot say whether grades moved
+  because `history.json` has never retained a grade. A test asserts that the committed history
+  genuinely holds no grade, so the limitation fails the build if it ever stops being true.
+
 - **The coverage tracker (ROADMAP phase 11).** `/coverage/` assigns every one of the 176
   state-issuer organizations on CMS's QHP Landscape PY2026 Individual Medical frame to exactly
   one of four populations and never adds two of them together: publishes a base URL a

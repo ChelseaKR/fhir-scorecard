@@ -104,8 +104,14 @@ read.*
       canonical origin in the site build, workflow, citation file and living docs. The old
       `chelseakr.github.io/fhir-scorecard` URLs redirect, so dated findings and ADRs keep the
       URLs they were written with
-- [ ] **Lighthouse and accessibility budgets** as merge gates, matching the 100-accessibility bar
-      held elsewhere in the portfolio
+- [x] **Accessibility and transfer-size budgets** as merge gates. Lighthouse itself was not
+      adopted and [ADR 0004](docs/adr/0004-accessibility-and-weight-gates-without-a-browser.md)
+      says why: its score is a weighted average of a moving rule set, it is not
+      deterministic, and it needs a browser and an npm toolchain in a package with no
+      runtime dependencies. What ships instead is twelve mechanical rules over the built
+      HTML, each naming the WCAG 2.2 Level A criterion it implements, plus two
+      transfer-size budgets measured from the published site. The ADR lists what a browser
+      would catch that this cannot, and the assistive-technology review stays open
 - [x] **SEO config validation** in CI: sitemap completeness, canonical correctness, JSON-LD
       validity, no orphan pages. Built as `fhir-scorecard audit-site`
       (`src/fhir_scorecard/audit.py`), run by the test suite against a site built from

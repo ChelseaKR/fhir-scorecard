@@ -141,7 +141,11 @@ read.*
 *Goal: say something nobody else is saying.*
 
 - [ ] **Availability leaderboard** once the 14-observation floor is met across the registry
-- [ ] **Drift timeline** per endpoint: when did this payer change what it declares
+- [x] **Drift timeline** per endpoint: when did this payer change what it declares. On each
+      endpoint's observation record at `/history/<id>/`, and in
+      `api/history/<id>.json` as `declaration_changes`. Declarations an endpoint returns
+      to are a separate list and a separate JSON array, never merged into the changes:
+      one hostname in front of two backends is not a run of releases
 - [ ] **Conformance-over-time report**, published monthly, with the write-up as its front door
 - [~] **Coverage tracker**: which CMS-regulated payers have a *publicly checkable* endpoint at
       all, with the "documented but unreachable" and "no public URL found" populations counted

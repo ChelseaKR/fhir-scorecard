@@ -70,5 +70,13 @@ branch = true
 source = ["src/fhir_scorecard"]
 
 [tool.coverage.report]
-fail_under = 85
+# CODE-QUALITY-STANDARD §2 sets the apps/services/CLIs minimum at >=85%. That is the
+# standard's minimum, not this repo's floor. The suite measures 98.50% branch coverage
+# over 607 tests (2026-08-29, `uv sync --locked --all-extras`), so a floor of 85 left
+# 13.5 points in which untested code could enter the tree and still leave the build
+# green. The gate now sits a few points under what is measured: enough slack that an
+# unrelated change does not fail the build, not enough to hide a real loss of covered
+# code. `src/fhir_scorecard/ai/provider.py` is the lowest module at 79% and is the one
+# to watch if this floor ever starts binding.
+fail_under = 95
 show_missing = true

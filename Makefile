@@ -35,10 +35,10 @@ verify: lock-check lint format typecheck test audit
 # the file; the gates simply could not have said so.
 # `tests/test_shipped_code_is_gated.py` fails if this list stops covering everything that ships.
 lint:
-	$(PYTHON) -m ruff check src tests action
+	$(PYTHON) -m ruff check src tests action tools
 
 format:
-	$(PYTHON) -m ruff format --check src tests action
+	$(PYTHON) -m ruff format --check src tests action tools
 
 typecheck:
 	$(PYTHON) -m mypy

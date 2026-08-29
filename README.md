@@ -340,7 +340,10 @@ the grounding fractions.
 
 ## Status
 
-v0.1.0-dev. Forty-five endpoints across payers, payer provider directories, a federal provider
+v0.1.0, tagged and released. Changes merged since that tag are collected under
+Unreleased in [CHANGELOG.md](CHANGELOG.md); what a version names is the composite
+GitHub Action and the distribution behind it, not the daily site rebuild. Forty-five
+endpoints across payers, payer provider directories, a federal provider
 API, EHR vendor sandboxes, and reference servers, in three curated cohorts (California payers,
 Texas marketplace issuers, Florida marketplace issuers). Forty were verified from a retrieved
 conformance document; five are listed on the organization's own publication of a base URL that does

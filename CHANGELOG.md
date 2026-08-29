@@ -14,6 +14,36 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **A share card on every page, and a rule that keeps it honest.** A technical
+  SEO audit found the site publishing `og:title`, `og:description`, `og:type`
+  and `og:url` and no `twitter:card`, so a link shared anywhere on X rendered
+  as a bare URL rather than as the page's own title and description. Every page
+  now also carries `og:site_name`, `og:locale`, `twitter:card`,
+  `twitter:title` and `twitter:description`, all from `_shell`, so the whole
+  site gained them at once.
+
+  The audit gained `SOCIAL_CARD_INCOMPLETE` with them. A card is copy this site
+  publishes and never rereads, so the rule is not that a page must have one but
+  that a page declaring any of it declares all of it, and that its title,
+  description and url are the page's own rather than a second set written for a
+  card. Demonstrated firing by deleting one tag, by replacing a description with
+  copy the page does not carry, and by pointing a card at another page.
+
+- **Organization pages publish the organization they are about.**
+  `audit.REQUIRED_JSONLD_FIELDS` had promised an `Organization` contract since
+  the site contract was written, and no page had ever emitted one, so the
+  promise was unkept and unkeepable: no page could fail a rule about a type no
+  page carried. `/org/<slug>/` now carries an `Organization` block with the two
+  properties already visible on it, the registry's name for the organization and
+  the address the page answers on. No grade, rating or review appears in it: a
+  grade is an observation of a surface, not a property of a company.
+
+  The fixture registry is three endpoints from three different organizations, so
+  it built no org page and the new tests would have had nothing to read. A
+  fixture derives one by copying an endpoint's captured discovery documents under
+  a second id whose name shares the organization prefix, which is the shape the
+  real registry has.
+
 - **Dated dataset snapshots (ROADMAP phase 13).** `fhir-scorecard snapshot <site> --out <dir>
   --date <date>` copies a build's machine-readable dataset - `dataset.csv`,
   `dataset.schema.json`, `scorecards.json`, `api/index.json`, and the per-endpoint and

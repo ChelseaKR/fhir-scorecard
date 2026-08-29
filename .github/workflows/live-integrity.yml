@@ -1,0 +1,63 @@
+# Is the site still the site this repository publishes, and is it still being published?
+#
+# grade-and-publish runs `audit-site` on the local site/ directory before the upload,
+# and the deploy job returns. After that nothing has ever looked at the bytes a reader
+# receives. A publish that failed, an upload that dropped an asset, or a Pages setting
+# that stopped serving would leave every gate green while the live site was stale,
+# broken, or gone, and nothing in this repository could tell.
+#
+# This check is narrower than its siblings on purpose. Most of this site is a daily
+# rescore of 45 live third-party endpoints, every page footer carries a minute-
+# resolution Generated stamp, and the availability and history pages derive from
+# data/history.json, which CI restores from the capability-history branch rather than
+# from main. Rebuilding that here would mean probing 45 third-party servers to produce
+# numbers that legitimately differ from the published ones, which is a moving target
+# and would produce noise rather than signal.
+#
+# So it checks what IS a pure function of committed inputs, exactly: all 57 files under
+# src/fhir_scorecard/assets, which write_assets copies verbatim; robots.txt and
+# dataset.schema.json, which are pure functions of the origin string; and the identity
+# half of api/index.json and dataset.csv, meaning the endpoint set and every field that
+# comes from data/registry.json rather than from a probe.
+#
+# Plus the one thing no rebuild would catch and no audit does: the site has to be
+# recent. A site frozen a year ago still audits clean, so api/index.json's generated_at
+# must parse, must not be in the future, and must be inside 48 hours of the run.
+#
+# It reads the network, deliberately, which is why it holds only `contents: read`, is
+# its own workflow, and is not a required check: it grades the deployment, and a
+# deployment that has not happened yet is not a reason to block a merge.
+#
+# Runs daily and on demand (Actions > live integrity sentinel > Run workflow). The cron
+# sits well after grade-and-publish's 14:17 so it reads a settled deployment.
+name: live integrity sentinel
+
+on:
+  schedule:
+    - cron: "7 20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-integrity
+  cancel-in-progress: false
+
+jobs:
+  verify-live:
+    name: the live site still matches its committed inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Compare the live site with this checkout's committed inputs
+        run: python3 tools/verify_live_site.py

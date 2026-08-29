@@ -380,3 +380,15 @@ li.unobserved .finding-copy, li.note .finding-copy { color: var(--usa-base-dark)
  * trademarked FHIR flame and unlike any government seal. */
 .usa-logo a { display: inline-flex; align-items: center; gap: .55rem; }
 .site-logo-mark { flex: none; }
+
+/* Declaration timeline on an observation record: the date leads, the changes hang off it. */
+.drift-timeline {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+.drift-timeline > li {
+  margin-bottom: 0.75rem;
+}
+.drift-timeline ul {
+  margin: 0.25rem 0 0;
+}

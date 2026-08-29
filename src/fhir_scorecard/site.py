@@ -28,7 +28,9 @@ _PROGRAM_LABELS = {
     "fl-marketplace": "Florida individual marketplace (HealthCare.gov)",
 }
 
-_KIND_LABELS = {
+#: Human-readable name per registry kind. Public because grades and availability are only
+#: ever compared within a kind, so every surface that groups by kind uses this one map.
+KIND_LABELS = {
     "payer": "Payer Patient Access APIs",
     "payer_provider_directory": "Payer Provider Directory APIs",
     "provider": "Provider and health system APIs",
@@ -156,7 +158,9 @@ def org_display_name(names: Sequence[str]) -> str:
     return " ".join(common) or " ".join(stripped[0])
 
 
-def _json_ld(payload: dict[str, object]) -> str:
+def json_ld(payload: dict[str, object]) -> str:
+    """A structured-data block. Public so pages built outside this module emit the same shape,
+    which is what the site contract checks."""
     """Serialize JSON-LD safely inside a <script> block.
 
     ``json.dumps`` will happily emit a literal ``</script>`` from any string it is given, which
@@ -217,7 +221,7 @@ def _signal_map(cards: Sequence[Scorecard]) -> str:
         rows.append(
             '<div class="signal-row">'
             f'<a class="signal-label" href="/{_KIND_SLUGS[kind]}/">'
-            f"{html.escape(_KIND_LABELS[kind])}</a>"
+            f"{html.escape(KIND_LABELS[kind])}</a>"
             f'<span class="signal-count">{len(group):02d}</span>'
             f'<div class="signal-track">{signals}</div></div>'
         )
@@ -300,10 +304,15 @@ def endpoint_page(
     were reachable only by reading the sitemap. ``tests/test_site_audit.py`` now fails on an
     orphan, which is how that would be caught next time rather than by inspection.
     """
-    kind_label = _KIND_LABELS.get(card.kind, card.kind)
+    kind_label = KIND_LABELS.get(card.kind, card.kind)
     summary = _status_words(card)
     unobserved = card.grade == NOT_OBSERVED
     dimensions = "".join(_dimension_meter(dim.title, dim.score) for dim in card.dimensions)
+    record_link = (
+        f'<p><a href="/history/{html.escape(card.endpoint_id)}/">'
+        "Every observation on record for this endpoint</a>, with the dates it answered and the "
+        "dates it did not.</p>"
+    )
     drift = ""
     if card.drift_events:
         events = "".join(f"<li>{html.escape(e)}</li>" for e in card.drift_events)
@@ -407,8 +416,9 @@ alt="FHIR Scorecard: {html.escape(_badge_alt(card))}"&gt;&lt;/a&gt;</code></div>
 <p class="usa-alert__text">This is an observational snapshot of a public, unauthenticated surface. It is
 not an audit, a ranking of care quality, or a statement about anyone's regulatory compliance.
 See <a href="/how-we-grade/">how we grade</a>.</p>
+{record_link}
 </div></div>
-{_json_ld(jsonld)}
+{json_ld(jsonld)}
 """
     return Page(
         path=f"endpoint/{card.endpoint_id}",
@@ -435,7 +445,7 @@ def org_page(name: str, cards: list[Scorecard], origin: str) -> Page:
     rows = "".join(
         '<li class="surface-card">'
         f'<div>{_grade_badge(c.grade)}<span class="eyebrow">'
-        f"{html.escape(_KIND_LABELS.get(c.kind, c.kind))}</span></div>"
+        f"{html.escape(KIND_LABELS.get(c.kind, c.kind))}</span></div>"
         f'<a href="/endpoint/{c.endpoint_id}/">{html.escape(c.name)}</a>'
         f"<p>{html.escape(_status_words(c))}.</p></li>"
         for c in sorted(cards, key=lambda c: c.name)
@@ -461,7 +471,7 @@ determinations.</p>
 
 
 def kind_page(kind: str, cards: list[Scorecard], origin: str) -> Page:
-    label = _KIND_LABELS.get(kind, kind)
+    label = KIND_LABELS.get(kind, kind)
     blurb = _KIND_BLURBS.get(kind, "")
     rows = "".join(
         f'<tr><td><a href="/endpoint/{c.endpoint_id}/">'
@@ -515,7 +525,7 @@ def _cohort_included_rows(cohort: Cohort, cards: dict[str, Scorecard]) -> str:
         f"<td>{html.escape(_programs_text(member))}</td>"
         f'<td><a href="/endpoint/{card.endpoint_id}/">'
         f"{html.escape(card.name)}</a></td>"
-        f"<td>{html.escape(_KIND_LABELS.get(card.kind, card.kind))}</td>"
+        f"<td>{html.escape(KIND_LABELS.get(card.kind, card.kind))}</td>"
         f"<td>{_grade_badge(card.grade)}</td></tr>"
         for member in cohort.included
         for card in (cards[eid] for eid in member.endpoint_ids if eid in cards)
@@ -778,6 +788,9 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <ul class="usa-nav__primary usa-accordion">
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/#registry"><span>Registry</span></a></li>
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/how-we-grade/"><span>Method</span></a></li>
+<li class="usa-nav__primary-item"><a class="usa-nav-link" href="/availability/"><span>Availability</span></a></li>
+<li class="usa-nav__primary-item"><a class="usa-nav-link" href="/history/"><span>Record</span></a></li>
+<li class="usa-nav__primary-item"><a class="usa-nav-link" href="/over-time/"><span>Over time</span></a></li>
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/dataset.csv"><span>Data</span></a></li>
 <li class="usa-nav__primary-item">
 <a class="usa-nav-link" href="/claim/"><span>Correct a record</span></a></li>
@@ -826,11 +839,19 @@ government website, and affiliated with no government agency.</p>
     return document
 
 
-def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] = ()) -> Page:
+def home_page(
+    cards: list[Scorecard],
+    origin: str,
+    cohorts: tuple[Cohort, ...] = (),
+    coverage_link: bool = False,
+) -> Page:
     """Landing page: what this is, what it found, where to go next.
 
     ``cohorts`` is empty when no cohort curation was loaded, and the section is then omitted
-    entirely rather than rendered as an empty list or a dead link.
+    entirely rather than rendered as an empty list or a dead link. ``coverage_link`` is the
+    same rule for the coverage tracker: the caller says whether that page was built, because a
+    build without a frame does not have one and a link to it would be dead. It is not inferred
+    from ``cohorts`` being non-empty, since the tracker also needs the frame CSV.
     """
     by_kind: dict[str, list[Scorecard]] = {}
     for c in cards:
@@ -840,7 +861,7 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
         f'<div class="category-card-top"><span class="eyebrow">{len(v)} endpoints</span>'
         f'<span class="category-arrow" aria-hidden="true">↗</span></div>'
         f'<a href="/{_KIND_SLUGS.get(k, k)}/">'
-        f"{html.escape(_KIND_LABELS.get(k, k))}</a>"
+        f"{html.escape(KIND_LABELS.get(k, k))}</a>"
         f"<p>{html.escape(_KIND_BLURBS.get(k, 'Publicly observable FHIR surfaces.'))}</p>"
         f'<div class="grade-distribution" aria-label="Grade distribution">'
         f"{_grade_counts(v)}</div></li>"
@@ -910,6 +931,13 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
         "isAccessibleForFree": True,
     }
     cohort_section = ""
+    coverage_note = (
+        '<p><a href="/coverage/">How much of the federal marketplace frame has a publicly '
+        "checkable endpoint</a>, with the organizations nobody has reviewed yet counted "
+        "separately from the ones that publish nothing.</p>"
+        if coverage_link
+        else ""
+    )
     if cohorts:
         items = "".join(
             f'<li><a href="/{c.cohort_id}/">{html.escape(c.name)}</a>: '
@@ -923,6 +951,7 @@ def home_page(cards: list[Scorecard], origin: str, cohorts: tuple[Cohort, ...] =
 <h2>Curated cohorts</h2></div>
 <p>Fixed public rosters make missing endpoints visible instead of silently dropping them.</p></div>
 <ul class="cards cohort-list">{items}</ul>
+{coverage_note}
 </section>
 """
     body = f"""
@@ -994,7 +1023,7 @@ the research note and its corrections →</a></div>
 <p class="usa-alert__text">Observational snapshots of public surfaces. Not audits, not rankings of care
 quality, not statements about anyone's regulatory compliance.</p>
 </div></div>
-{_json_ld(jsonld)}
+{json_ld(jsonld)}
 """
     return Page(
         path="",

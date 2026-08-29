@@ -11,6 +11,15 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from fhir_scorecard.accessibility import audit_accessibility
+from fhir_scorecard.archive import (
+    ARCHIVE_PATH,
+    history_json,
+    index_page,
+    mode_of,
+    record_page,
+    records,
+)
 from fhir_scorecard.audit import audit_site
 from fhir_scorecard.capability import (
     NO_CAPABILITY_RETRIEVED,
@@ -19,16 +28,21 @@ from fhir_scorecard.capability import (
     parse_smart,
 )
 from fhir_scorecard.cohort import Cohort, load_cohort_dir
+from fhir_scorecard.coverage import classify, read_frame, read_reviewed_rows_by_cohort
+from fhir_scorecard.coverage import page as coverage_page
 from fhir_scorecard.dataset import write_dataset
 from fhir_scorecard.drift import ensure_mode, load_history, observe, save_history
 from fhir_scorecard.fetch import TIMEOUT_S, FetchResult, fetch_json
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
 from fhir_scorecard.grading import Scorecard, build_scorecard
+from fhir_scorecard.leaderboard import page as availability_page
+from fhir_scorecard.over_time import page as over_time_page
 from fhir_scorecard.registry import EXPECTS, KINDS, Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import render_html, to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
 from fhir_scorecard.site import (
     DEFAULT_ORIGIN,
+    Page,
     claim_page,
     cohort_page,
     endpoint_page,
@@ -44,7 +58,11 @@ from fhir_scorecard.site import (
     write_assets,
     write_page,
 )
+from fhir_scorecard.snapshot import MANIFEST_NAME
+from fhir_scorecard.snapshot import build as build_snapshot
+from fhir_scorecard.snapshot import verify as verify_snapshot
 from fhir_scorecard.vantage import VantageProbe, load_probe_files, reconcile, write_probes
+from fhir_scorecard.weight import audit_weight
 
 
 def _offline_fetch(fixtures: Path, endpoint_id: str, filename: str, url: str) -> FetchResult:
@@ -414,8 +432,10 @@ def _build_parser() -> argparse.ArgumentParser:
     check.add_argument("--timeout", type=float, default=TIMEOUT_S)
     audit = sub.add_parser(
         "audit-site",
-        help="check a built site against the contract in fhir_scorecard.audit: sitemap "
-        "completeness, canonical correctness, structured data, internal links, and orphans",
+        help="check a built site: the contract in fhir_scorecard.audit (sitemap completeness, "
+        "canonical correctness, structured data, internal links, orphans), the mechanical "
+        "accessibility rules in fhir_scorecard.accessibility, and the transfer-size budgets "
+        "in fhir_scorecard.weight",
     )
     audit.add_argument("directory", metavar="DIR", type=Path, help="a built site directory")
     audit.add_argument(
@@ -424,6 +444,26 @@ def _build_parser() -> argparse.ArgumentParser:
         help="the origin the site was built for; canonical URLs and sitemap entries are "
         "checked against it, so auditing a build under the wrong origin fails",
     )
+    snapshot = sub.add_parser(
+        "snapshot",
+        help="copy a built site's machine-readable dataset files into a dated directory with a "
+        "SHA-256 manifest. Writes an artifact and nothing else: it does not tag, sign, or "
+        "publish, because a release here is cut only from an SSH-signed tag",
+    )
+    snapshot.add_argument("site", metavar="SITE", type=Path, help="a built site directory")
+    snapshot.add_argument("--out", type=Path, required=True, help="the dated snapshot directory")
+    snapshot.add_argument(
+        "--date",
+        required=True,
+        help="the date this snapshot is of, recorded in the manifest. Stated rather than taken "
+        "from the clock: a snapshot of yesterday's build built today is dated by the build",
+    )
+    check_snapshot = sub.add_parser(
+        "verify-snapshot",
+        help="check a snapshot against its own manifest: every file present, at the recorded "
+        "size and digest, and nothing present the manifest does not name",
+    )
+    check_snapshot.add_argument("snapshot", metavar="DIR", type=Path, help="a snapshot directory")
     return parser
 
 
@@ -499,11 +539,51 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
         return _cmd_narrate(args)
     if args.command == "audit-site":
         return _cmd_audit_site(args)
+    if args.command == "snapshot":
+        return _cmd_snapshot(args)
+    if args.command == "verify-snapshot":
+        return _cmd_verify_snapshot(args)
     return None
 
 
+def _cmd_snapshot(args: argparse.Namespace) -> int:
+    """Write one dated snapshot. Exit 2 for a usage error, never a partial artifact."""
+    if not args.site.is_dir():
+        print(f"snapshot error: {args.site} is not a directory", file=sys.stderr)
+        return 2
+    try:
+        manifest = build_snapshot(args.site, args.out, args.date)
+    except (FileExistsError, ValueError, OSError) as exc:
+        print(f"snapshot error: {exc}", file=sys.stderr)
+        return 2
+    print(f"snapshot {args.date}: {len(manifest.files)} files under {args.out}")
+    if manifest.missing:
+        print(f"  not in this build, recorded in the manifest: {', '.join(manifest.missing)}")
+    return 0
+
+
+def _cmd_verify_snapshot(args: argparse.Namespace) -> int:
+    """Check a snapshot against its manifest. Exit 1 if it disagrees, 2 if unreadable."""
+    if not args.snapshot.is_dir():
+        print(f"verify error: {args.snapshot} is not a directory", file=sys.stderr)
+        return 2
+    mismatches = verify_snapshot(args.snapshot)
+    for mismatch in mismatches:
+        print(mismatch)
+    if mismatches:
+        print(f"{len(mismatches)} snapshot mismatch(es)", file=sys.stderr)
+        return 1
+    print(f"snapshot verifies against {MANIFEST_NAME}")
+    return 0
+
+
 def _cmd_audit_site(args: argparse.Namespace) -> int:
-    """Report every way a built site breaks the contract, and exit nonzero if it does.
+    """Report every way a built site breaks its contract, and exit nonzero if it does.
+
+    Three families run, and all three run every time: the site contract (sitemap, canonical,
+    structured data, links, orphans), the mechanical accessibility rules, and the transfer-size
+    budgets. They are not separately switchable on purpose - a publish that could skip one is a
+    publish that will.
 
     Exit 2 is reserved for "there was nothing to audit", which is a usage error and must not
     read as a clean site. Exit 1 means the site was read and found wanting.
@@ -511,13 +591,17 @@ def _cmd_audit_site(args: argparse.Namespace) -> int:
     if not args.directory.is_dir():
         print(f"audit error: {args.directory} is not a directory", file=sys.stderr)
         return 2
-    findings = audit_site(args.directory, args.origin.rstrip("/"))
-    for finding in findings:
+    findings = (
+        audit_site(args.directory, args.origin.rstrip("/"))
+        + audit_accessibility(args.directory)
+        + audit_weight(args.directory)
+    )
+    for finding in sorted(findings, key=lambda f: (f.where, f.code, f.detail)):
         print(finding)
     if findings:
-        print(f"{len(findings)} site contract finding(s) against {args.origin}", file=sys.stderr)
+        print(f"{len(findings)} site finding(s) against {args.origin}", file=sys.stderr)
         return 1
-    print(f"site contract: clean against {args.origin}")
+    print(f"site contract, accessibility and weight budgets: clean against {args.origin}")
     return 0
 
 
@@ -654,7 +738,16 @@ def main(argv: list[str] | None = None) -> int:
     (args.out / "index.html").write_text(
         render_html(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
     )
-    _write_site(scorecards, endpoints, args.out, args.origin, generated_at, cohorts)
+    _write_site(
+        scorecards,
+        endpoints,
+        args.out,
+        args.origin,
+        generated_at,
+        cohorts,
+        history,
+        cohorts_path,
+    )
     write_dataset(
         args.out,
         scorecards,
@@ -717,6 +810,33 @@ def _organizations(
     return by_org, org_of
 
 
+#: The national frame the coverage tracker measures against, found beside the cohort directory.
+FRAME_CSV_NAME = "qhp-landscape-py2026-individual-medical.csv"
+
+
+def _coverage_page(
+    cohorts_dir: Path | None,
+    cohorts: tuple[Cohort, ...],
+    endpoints: list[Endpoint],
+    origin: str,
+) -> Page | None:
+    """The coverage tracker, or None when this build has no frame to track coverage against.
+
+    Absent rather than empty on purpose. A coverage page whose denominator is missing would
+    report zero organizations in every population, which reads as a measured result and is not
+    one. An offline fixture build has no frame; the published build does.
+    """
+    if cohorts_dir is None or not cohorts:
+        return None
+    frame_csv = cohorts_dir.parent / "frames" / FRAME_CSV_NAME
+    if not frame_csv.is_file():
+        return None
+    orgs = classify(
+        read_frame(frame_csv), cohorts, endpoints, read_reviewed_rows_by_cohort(cohorts_dir)
+    )
+    return coverage_page(orgs, origin) if orgs else None
+
+
 def _write_site(
     scorecards: list[Scorecard],
     endpoints: list[Endpoint],
@@ -724,11 +844,26 @@ def _write_site(
     origin: str,
     generated_at: str,
     cohorts: tuple[Cohort, ...] = (),
+    history: dict[str, Any] | None = None,
+    cohorts_dir: Path | None = None,
 ) -> None:
-    """One indexable page per endpoint, organization, category, and cohort, plus sitemap."""
+    """One indexable page per endpoint, organization, category, cohort and observation
+    record, plus the sitemap and the machine-readable copies of each."""
     origin = origin.rstrip("/")
     by_id = {e.endpoint_id: e for e in endpoints}
-    pages = [home_page(scorecards, origin, cohorts), how_we_grade_page(origin), claim_page(origin)]
+    coverage = _coverage_page(cohorts_dir, cohorts, endpoints, origin)
+    pages = [
+        home_page(scorecards, origin, cohorts, coverage_link=coverage is not None),
+        how_we_grade_page(origin),
+        claim_page(origin),
+    ]
+    archive = records(history or {}, scorecards)
+    pages.append(index_page(archive, origin, mode_of(history or {})))
+    pages.append(availability_page(archive, origin))
+    pages.append(over_time_page(archive, origin))
+    if coverage is not None:
+        pages.append(coverage)
+    pages.extend(record_page(record, origin) for record in archive)
     cards_by_id = {card.endpoint_id: card for card in scorecards}
     pages.extend(cohort_page(cohort, cards_by_id, origin) for cohort in cohorts)
 
@@ -762,6 +897,12 @@ def _write_site(
     badge_dir.mkdir(parents=True, exist_ok=True)
     for card in scorecards:
         (badge_dir / f"{card.endpoint_id}.svg").write_text(status_badge(card), encoding="utf-8")
+    archive_dir = out / "api" / ARCHIVE_PATH
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    for record in archive:
+        (archive_dir / f"{record.endpoint_id}.json").write_text(
+            history_json(record, generated_at), encoding="utf-8"
+        )
     (out / "sitemap.xml").write_text(sitemap(pages, origin), encoding="utf-8")
     (out / "robots.txt").write_text(robots(origin), encoding="utf-8")
     write_assets(out)

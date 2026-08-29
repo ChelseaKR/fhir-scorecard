@@ -505,3 +505,27 @@ def test_a_cohort_member_may_point_at_an_endpoint_that_did_not_answer() -> None:
         assert endpoint.verification_source.startswith("https://")
         assert endpoint.verification_observed
         assert endpoint.enabled, "a documented-unreachable entry is graded like any other"
+
+
+def test_roster_name_is_optional_and_kept_verbatim(tmp_path: Path) -> None:
+    """The join key back to a committed roster CSV. Kept exactly as the roster's publisher
+    prints it, because a cohort matched to a frame on this project's own normalisation of a
+    name would have a denominator only this project could reproduce."""
+    payload = _cohort_payload()
+    payload["members"][0]["roster_name"] = "  Ambetter from Superior HealthPlan  "
+    cohort = load_cohort(_write(tmp_path, payload), _REGISTRY_IDS)
+    assert cohort.members[0].roster_name == "Ambetter from Superior HealthPlan"
+    assert cohort.members[1].roster_name == "", "a member without one carries an empty string"
+
+
+@pytest.mark.parametrize("value", ["", "   ", 17, None, ["a name"]])
+def test_a_roster_name_that_is_present_but_unusable_is_refused(
+    tmp_path: Path, value: object
+) -> None:
+    """Absent means "this cohort has no committed roster". Present-but-empty means somebody
+    tried to say something and said nothing, which would silently drop the member out of every
+    frame join."""
+    payload = _cohort_payload()
+    payload["members"][0]["roster_name"] = value
+    with pytest.raises(ValueError, match="roster_name"):
+        load_cohort(_write(tmp_path, payload), _REGISTRY_IDS)

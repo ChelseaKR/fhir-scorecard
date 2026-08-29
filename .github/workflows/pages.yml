@@ -132,12 +132,15 @@ jobs:
               --origin "https://fhir.chelseakr.com" \
               --vantage "github-actions/ubuntu-latest"
           fi
-      - name: Audit the built site against its contract
+      - name: "Audit the built site: contract, accessibility, weight"
         # The site contract (src/fhir_scorecard/audit.py): every page in the sitemap and every
         # sitemap entry answered, one correct canonical per page, structured data that parses
         # and carries what this site promises, no internal link to a path the build did not
-        # write, and no page nothing links to. The test suite runs the same audit against a
-        # site built from fixtures; this runs it against the real one, which is the only build
+        # write, and no page nothing links to. It also runs the twelve mechanical accessibility
+        # rules (src/fhir_scorecard/accessibility.py, ADR 0004: eight name a WCAG 2.2 Level A
+        # criterion, four declare themselves this project's own) and the two transfer-size budgets
+        # (src/fhir_scorecard/weight.py). The test suite runs the same three families against a
+        # site built from fixtures; this runs them against the real one, which is the only build
         # that carries organization pages, cohort pages, and forty-five endpoints. A site that
         # fails here is not published: the deploy job needs this one.
         run: >

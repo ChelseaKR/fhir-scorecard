@@ -77,11 +77,24 @@ read.*
 - [x] **MCP server** (`fhir-scorecard mcp`), read-only over the published dataset, with a
       `grading_method` tool that returns the documented limits so an assistant can be told what
       the numbers do not mean
-- [~] **Historical archive**: dated snapshots so availability and drift can be studied over time,
-      which is the part nobody else has. The `capability-history` branch now accrues one dated
-      commit per day on which an observation changed; a browsable archive surface on the site is
-      still open
-- [ ] A monthly dated dataset release, signed
+- [x] **Historical archive**: dated snapshots so availability and drift can be studied over time,
+      which is the part nobody else has. The `capability-history` branch accrues one dated
+      commit per day on which an observation changed, and the record is now browsable at
+      `/history/`: an index with the window it covers, one page per endpoint listing every
+      observation with its date, and `api/history/<id>.json` beside it. An endpoint with no
+      observations says so rather than rendering a zero, and no rate is published below the
+      14-observation floor
+- [~] A monthly dated dataset release, signed. **The artifact is built; the signature is
+      not, and cannot be from here.** `fhir-scorecard snapshot <site> --out <dir> --date
+      <date>` copies the machine-readable dataset of one build into a dated directory
+      with a SHA-256 manifest, byte-identical across two builds of the same site, and
+      `fhir-scorecard verify-snapshot <dir>` checks a snapshot against that manifest in
+      both directions. What stays blocked is the release: `.github/workflows/release.yml`
+      publishes only from an SSH-signed annotated tag verified against
+      `.github/allowed_signers`, and only the holder of that key can make one. A workflow
+      written to publish an unsigned snapshot would be a release path that skips the
+      control every other release here passes, so this stops at the artifact and the tag
+      is left to the maintainer
 
 ## Phase 3: participation
 
@@ -104,8 +117,15 @@ read.*
       canonical origin in the site build, workflow, citation file and living docs. The old
       `chelseakr.github.io/fhir-scorecard` URLs redirect, so dated findings and ADRs keep the
       URLs they were written with
-- [ ] **Lighthouse and accessibility budgets** as merge gates, matching the 100-accessibility bar
-      held elsewhere in the portfolio
+- [x] **Accessibility and transfer-size budgets** as merge gates. Lighthouse itself was not
+      adopted and [ADR 0004](docs/adr/0004-accessibility-and-weight-gates-without-a-browser.md)
+      says why: its score is a weighted average of a moving rule set, it is not
+      deterministic, and it needs a browser and an npm toolchain in a package with no
+      runtime dependencies. What ships instead is twelve mechanical rules over the built
+      HTML - eight naming the WCAG 2.2 Level A criterion they implement, four declaring
+      themselves this project's own rule rather than a criterion - plus two
+      transfer-size budgets measured from the published site. The ADR lists what a browser
+      would catch that this cannot, and the assistive-technology review stays open
 - [x] **SEO config validation** in CI: sitemap completeness, canonical correctness, JSON-LD
       validity, no orphan pages. Built as `fhir-scorecard audit-site`
       (`src/fhir_scorecard/audit.py`), run by the test suite against a site built from
@@ -131,15 +151,37 @@ read.*
 
 *Goal: say something nobody else is saying.*
 
-- [ ] **Availability leaderboard** once the 14-observation floor is met across the registry
-- [ ] **Drift timeline** per endpoint: when did this payer change what it declares
-- [ ] **Conformance-over-time report**, published monthly, with the write-up as its front door
-- [~] **Coverage tracker**: which CMS-regulated payers have a *publicly checkable* endpoint at
-      all, with the "documented but unreachable" and "no public URL found" populations counted
-      separately and never merged. The denominator now exists - the national federal-marketplace
-      roster under `data/frames/` (176 state-issuer organizations, 30 states) with per-state
-      review status in `docs/SAMPLING-FRAME.md` - and adds a third population those two must
-      never be merged with: *not yet reviewed*. The tracker page itself is still open
+- [x] **Availability leaderboard**, at `/availability/`. The floor is applied per endpoint
+      rather than across the registry, because a registry-wide floor never arrives: each
+      curation wave adds endpoints at zero observations and resets it. Measured on the
+      live record on 2026-08-27, the floor puts 30 of 45 endpoints in the tables and
+      names the other 15 with their counts. Ordering happens within a kind and never
+      across one. See
+      [ADR 0005](docs/adr/0005-a-leaderboard-that-publishes-what-meets-the-floor.md)
+- [x] **Drift timeline** per endpoint: when did this payer change what it declares. On each
+      endpoint's observation record at `/history/<id>/`, and in
+      `api/history/<id>.json` as `declaration_changes`. Declarations an endpoint returns
+      to are a separate list and a separate JSON array, never merged into the changes:
+      one hostname in front of two backends is not a run of releases
+- [~] **Conformance-over-time report** at `/over-time/`, partitioned by calendar month and
+      recomputed from the observation record on every publish, so it needs no new stored
+      state. Per month: who was observed, who entered the record, who answered every check
+      and who missed one, what changed in what they declare, and what they returned to. A
+      month with no change says so rather than printing an empty table. **Two halves stay
+      open, both deliberately.** The write-up front door is a piece of writing and is not
+      generated. And the report cannot say whether grades moved: `history.json` retains
+      availability and a capability fingerprint and has never retained a grade, so no run
+      can look up last month's letter. Deriving one from the fingerprint would invent a
+      measurement nobody took. Recording a grade per run would be a change to the data
+      the daily workflow persists and is an owner decision, not one to take here
+- [x] **Coverage tracker**, at `/coverage/`: which CMS-regulated payers have a *publicly
+      checkable* endpoint at all, with the "documented but unreachable" and "no public URL
+      found" populations counted separately and never merged, and *not yet reviewed* kept apart
+      from both. Over the national federal-marketplace roster under `data/frames/` (176
+      state-issuer organizations, 30 states): 13 verified, 2 documented but unreachable, 15
+      reviewed with no public URL found, 146 not yet reviewed. Frame rows are joined on
+      `(state, issuer name)` from the committed cohort roster CSVs, and `publishing_rate`
+      raises rather than divide by a set containing an unreviewed organization
 
 ---
 

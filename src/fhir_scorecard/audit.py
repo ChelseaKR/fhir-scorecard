@@ -135,8 +135,12 @@ def _url_for(site_path: str, origin: str) -> str:
     return f"{origin}/{site_path + '/' if site_path else ''}"
 
 
-def _page_paths(root: Path) -> list[str]:
-    """Site-relative directories of every ``index.html`` under ``root``, home first."""
+def page_paths(root: Path) -> list[str]:
+    """Site-relative directories of every ``index.html`` under ``root``, home first.
+
+    Public because the accessibility and weight gates walk the same set of pages: a second
+    walk that discovered pages differently could report clean what the contract rejects.
+    """
     found = []
     for html_file in sorted(root.rglob("index.html")):
         relative = html_file.parent.relative_to(root).as_posix()
@@ -217,7 +221,7 @@ def _check_sitemap(root: Path, origin: str, pages: list[str]) -> list[SiteFindin
         url = _url_for(page, origin)
         if url not in listed:
             findings.append(
-                SiteFinding("PAGE_MISSING_FROM_SITEMAP", _page_file(page), f"{url} is not listed")
+                SiteFinding("PAGE_MISSING_FROM_SITEMAP", page_file(page), f"{url} is not listed")
             )
     for loc in locs:
         if not loc.startswith(origin + "/") and loc != origin + "/":
@@ -239,12 +243,13 @@ def _check_robots(root: Path, origin: str) -> list[SiteFinding]:
     return []
 
 
-def _page_file(page_path: str) -> str:
+def page_file(page_path: str) -> str:
+    """The site-relative file behind a page path, which is what a finding names."""
     return f"{page_path}/index.html" if page_path else "index.html"
 
 
 def _check_canonical(page: str, parser: _PageParser, origin: str) -> list[SiteFinding]:
-    where = _page_file(page)
+    where = page_file(page)
     if not parser.canonicals:
         return [SiteFinding("CANONICAL_MISSING", where, "no <link rel=canonical>")]
     if len(parser.canonicals) > 1:
@@ -264,7 +269,7 @@ def _check_canonical(page: str, parser: _PageParser, origin: str) -> list[SiteFi
 
 
 def _check_jsonld(page: str, parser: _PageParser) -> list[SiteFinding]:
-    where = _page_file(page)
+    where = page_file(page)
     findings = []
     for index, raw in enumerate(parser.jsonld):
         try:
@@ -300,7 +305,7 @@ def _check_jsonld(page: str, parser: _PageParser) -> list[SiteFinding]:
 def _read_page(root: Path, page: str, origin: str) -> tuple[list[SiteFinding], set[str]]:
     """One page's findings, and the site-relative pages it links to."""
     parser = _PageParser()
-    parser.feed((root / _page_file(page)).read_text(encoding="utf-8"))
+    parser.feed((root / page_file(page)).read_text(encoding="utf-8"))
     findings = _check_canonical(page, parser, origin) + _check_jsonld(page, parser)
     links: set[str] = set()
     for reference in parser.references:
@@ -308,7 +313,7 @@ def _read_page(root: Path, page: str, origin: str) -> tuple[list[SiteFinding], s
         if target is None:
             continue
         if not (root / target).is_file():
-            findings.append(SiteFinding("INTERNAL_LINK_UNBUILT", _page_file(page), reference))
+            findings.append(SiteFinding("INTERNAL_LINK_UNBUILT", page_file(page), reference))
         elif target.endswith("index.html"):
             links.add(target[: -len("index.html")].rstrip("/"))
     return findings, links
@@ -332,7 +337,7 @@ def audit_site(root: Path, origin: str) -> list[SiteFinding]:
     An empty list means the site satisfies every rule in :data:`FINDING_CODES`. It does not
     mean the site is correct; it means these named properties hold.
     """
-    pages = _page_paths(root)
+    pages = page_paths(root)
     if not pages:
         return [SiteFinding("SITEMAP_UNPARSEABLE", "", "no pages were built, so nothing was read")]
     findings = _check_sitemap(root, origin, pages) + _check_robots(root, origin)
@@ -341,7 +346,7 @@ def audit_site(root: Path, origin: str) -> list[SiteFinding]:
         page_findings, outgoing[page] = _read_page(root, page, origin)
         findings += page_findings
     findings += [
-        SiteFinding("ORPHAN_PAGE", _page_file(page), "no internal link path reaches it")
+        SiteFinding("ORPHAN_PAGE", page_file(page), "no internal link path reaches it")
         for page in _unreachable(pages, outgoing)
     ]
     return sorted(findings, key=lambda f: (f.where, f.code, f.detail))

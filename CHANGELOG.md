@@ -14,6 +14,110 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **Dated dataset snapshots (ROADMAP phase 13).** `fhir-scorecard snapshot <site> --out <dir>
+  --date <date>` copies a build's machine-readable dataset - `dataset.csv`,
+  `dataset.schema.json`, `scorecards.json`, `api/index.json`, and the per-endpoint and
+  per-history API files - into a dated directory with a manifest recording every file's size and
+  SHA-256. Not the pages: a page is a rendering that changes when the templates do, and the
+  dataset is what somebody would cite. Two builds of one site are byte-identical, a dated
+  directory is written once rather than overwritten, and a dataset file the build did not carry
+  is named in the manifest's `missing` list rather than silently skipped.
+  `fhir-scorecard verify-snapshot <dir>` checks a snapshot against its manifest in both
+  directions and fails on a changed byte, a changed length, a deleted file, a file added after
+  the fact, and a manifest that is missing, unreadable, or records nothing. The manifest is
+  plain JSON of relative path to size and digest, checkable with `sha256sum`. **Signing and
+  tagging remain a maintainer action and are deliberately not automated**: releases here are cut
+  only from an SSH-signed annotated tag verified against `.github/allowed_signers`, and a
+  workflow that published an unsigned snapshot would be a release path skipping the control
+  every other release passes.
+
+- **The conformance-over-time report (ROADMAP phase 12).** `/over-time/` partitions the
+  observation record by calendar month and reports, for each: who was observed, who entered the
+  record, who answered every check and who missed at least one, what changed in what they
+  declare, and what they returned to. It is recomputed on every publish and stores nothing, so
+  it is regenerable byte for byte from the record, which a test asserts. A month with no
+  declaration change says so rather than printing an empty table, and an endpoint not observed
+  in a month appears in neither the answered-every-check column nor the missed-one column,
+  because folding it into the second would report this project's own gap as the endpoint's.
+  Two halves stay open on purpose and both are stated on the page: the narrative front door is
+  a piece of writing and is not generated, and the report cannot say whether grades moved
+  because `history.json` has never retained a grade. A test asserts that the committed history
+  genuinely holds no grade, so the limitation fails the build if it ever stops being true.
+
+- **The coverage tracker (ROADMAP phase 11).** `/coverage/` assigns every one of the 176
+  state-issuer organizations on CMS's QHP Landscape PY2026 Individual Medical frame to exactly
+  one of four populations and never adds two of them together: publishes a base URL a
+  CapabilityStatement was retrieved from (13), publishes one that did not answer (2), was
+  reviewed and publishes none a stranger could read (15), and not yet reviewed (146). The
+  fourth is a fact about this project's progress, never about an issuer, and the rule is
+  enforced rather than trusted: `coverage.publishing_rate` raises if handed a set containing an
+  unreviewed organization instead of dividing by it. Frame rows are joined on
+  `(state, issuer name)`, read from the committed cohort roster CSVs, because the frame's unit
+  is a state-issuer: joining on the issuer name alone credited 23 states with a review that
+  only Texas and Florida received. `CohortMember` gains `roster_name`, the join key, kept
+  verbatim as the roster's publisher prints it. A build with no frame omits the page and its
+  link entirely rather than publishing zero in every population.
+
+- **The availability page (ROADMAP phase 10, ADR 0005).** `/availability/` orders the endpoints
+  with at least `drift.MIN_OBSERVATIONS_TO_REPORT` recorded observations by measured answered
+  share, within each registry kind and never across one, and names the endpoints below the
+  floor with their counts and how many more observations each needs. The floor is applied per
+  endpoint rather than across the registry, because the roadmap's registry-wide condition never
+  arrives: each curation wave adds endpoints at zero observations and resets it. The exclusion
+  is measured on both sides rather than asserted - 30 of 45 endpoints above the floor on the
+  live record on 2026-08-27, and every one of the 19 endpoints in the committed seed below it,
+  which a test asserts against the committed file. A below-floor endpoint is never given a
+  share and never given a position; with nothing above the floor the page says nothing is
+  ordered yet rather than ranking a two-day record. Position is a property of the table and is
+  not stored on a record, so an endpoint that leaves the table takes no position with it.
+
+- **The declaration timeline (ROADMAP phase 9).** Each observation record now shows when the
+  endpoint changed what it declares and what changed, dated and in the order `history.json`
+  recorded it, with the count on the archive index and the same data in
+  `api/history/<id>.json` as `declaration_changes`. Declarations an endpoint has returned to
+  are a separate section and a separate JSON array, `declaration_returns`, carrying how many
+  times and over what window; they are never merged into the changes, because a consumer that
+  concatenated them would read one backend alternating as nine releases. An endpoint that has
+  never changed says so, and an endpoint that has never been observed says *that* instead,
+  because "nothing changed" over no observations is a claim made from no evidence. An event
+  with no date is dropped rather than dated "unknown": a timeline row that cannot say when is
+  filling space.
+
+- **The observation record, made browsable (ROADMAP phase 8).** `/history/` publishes what the
+  `capability-history` branch has been accruing since 2026-08-05 and nothing derived beyond
+  counting: an index with the window the record covers, one page per endpoint listing every
+  observation with its date and whether the endpoint answered, and `api/history/<id>.json`
+  beside each. Two refusals are enforced in `fhir_scorecard.archive` rather than left to the
+  templates. An endpoint with no observations says so and renders no table, no zero and no
+  percent. A rate is published only at or above `drift.MIN_OBSERVATIONS_TO_REPORT`, which is
+  fourteen; below it the raw counts appear with how many more observations the record needs,
+  and `answered_percent` in the JSON is `null` rather than `0`, so a consumer cannot read
+  "not enough observations" as a real zero. The index names the below-floor population instead
+  of dropping it, because an endpoint missing from a table reads as an endpoint nobody watched.
+  A record written by a fixture run is labelled as such on the page.
+
+- **Accessibility and transfer-size budgets as merge gates (ROADMAP phase 7, ADR 0004).**
+  `fhir_scorecard.accessibility` runs twelve mechanical rules over every built page. Eight
+  name the WCAG 2.2 Level A success criterion they implement: language of page (SC 3.1.1),
+  page titled (SC 2.4.2), a top-level heading (SC 1.3.1), alt text present on every image
+  (SC 1.1.1), an accessible name on every control and link (SC 4.1.2, SC 2.4.4), and id
+  references and same-page fragments that resolve (SC 1.3.1, SC 2.4.1). The other four are
+  this project's own rule rather than a criterion and say so in the text of the finding:
+  unique page titles, no duplicated id, no skipped heading level, and a main landmark. The
+  last two are worth checking on a site generated from one template set, and neither is a
+  Level A requirement - SC 1.3.1 is satisfied by structure that is programmatically
+  determined however the heading levels are numbered, and SC 2.4.1 Bypass Blocks is satisfied
+  by a skip link to any target - so neither wears a criterion number. `fhir_scorecard.weight` enforces two transfer-size
+  budgets, one on each page's own bytes and one on the subresources more than one page links,
+  counted once; both numbers were measured from the published site on 2026-08-27 rather than
+  chosen. Both families run inside `audit-site`, so both gate a merge and a publish.
+  ADR 0004 records why a Lighthouse score is not the gate - it is a weighted average of a
+  moving rule set, it is not deterministic, and it needs a browser and an npm toolchain in a
+  package with no runtime dependencies - and lists what a browser would catch that this cannot:
+  contrast as rendered, focus order, visible focus, computed ARIA roles, reflow, and whether an
+  accessible name is any good. The assistive-technology review stays open;
+  `docs/RESPONSIBLE-TECH-AUDITS.md` section E now says which half of it this closed.
+
 - **The site contract, and a gate that enforces it (ROADMAP phase 6).**
   `fhir-scorecard audit-site <dir> [--origin]` reads a built site and reports every way it
   breaks the properties this project publishes about it: a page the sitemap omits, a sitemap
@@ -27,6 +131,46 @@ Merged changes land here until the next tag.
   fails the contract is not deployed; the deploy job depends on the job that audits.
 
 ### Fixed
+
+- **An endpoint that has never once answered was told its declaration had not changed.** The
+  declaration timeline's empty case keyed on whether any observation existed, not on whether
+  any observation *answered*. A declaration only exists on a run where the endpoint answered,
+  so an endpoint probed daily that never answered has no fingerprint on the record, no events,
+  and an empty timeline for a reason that has nothing to do with its publisher. Five of the
+  forty-five endpoints in the live record are in exactly that state - 8 to 10 observations,
+  zero answered, no `fingerprint` key at all - and five record pages would each have carried a
+  claim about a publisher's declaration drawn from zero successful reads of it. There are three
+  empty timelines, not two, and each now says which one it is. Same invariant as *"an endpoint
+  that answered with nothing was published as though it had never answered"*: the absence of a
+  measurement is never a measurement of stability.
+
+- **The coverage tracker published one state's review under another state's heading.** Frame
+  rows are joined on `(state, issuer name)`, but that key was applied only to whether a row
+  counted as reviewed; the member whose prose got published was looked up by `roster_name`
+  alone, across every cohort at once. Three roster names sit in both the Texas and the Florida
+  cohort - Cigna Healthcare, Molina Healthcare, UnitedHealthcare - and `load_cohort_dir` sorts
+  by filename, so `texas-marketplace.json` loaded last and won all three. Molina Healthcare's
+  two exclusion reasons are findings about two different developer portals, and Florida's row
+  published Texas's while Florida's own finding went nowhere. The lookup is now keyed on the
+  pair on both sides, and `read_reviewed_rows_by_cohort` keeps each roster's rows attributed to
+  the cohort that reviewed them, so a member can only ever answer for its own cohort's rows.
+  The four population counts, the state table and the 13-of-30 rate are unchanged; what changes
+  is which review each row publishes.
+
+- **Two accessibility rules cited a WCAG criterion that does not require them.**
+  `A11Y_HEADING_LEVEL_SKIPPED` cited SC 1.3.1 and `A11Y_NO_MAIN_LANDMARK` cited SC 1.3.1 and
+  SC 2.4.1. SC 1.3.1 Info and Relationships asks that structure conveyed through presentation
+  be programmatically determined, which an h1 followed by an h3 already is; SC 2.4.1 Bypass
+  Blocks asks for a mechanism that bypasses repeated blocks, which a skip link provides
+  whatever it points at. No Level A criterion requires sequential heading levels or a `main`
+  landmark, and axe-core tags both of the equivalent rules `best-practice` rather than
+  `wcag2a`. Both rules are worth running on a site generated from one template set, where each
+  is a generator defect, so both are kept and both now declare themselves this project's own
+  rule the way unique page titles and duplicate ids already did. **Eight** of the twelve name a
+  criterion; **four** are this project's own, and a test pins the split so a description string
+  cannot drift back. No rule's logic changed and no finding changed; only what each cites.
+  `README.md`, `CHANGELOG.md`, `ROADMAP.md`, ADR 0004, `pages.yml` and
+  `docs/RESPONSIBLE-TECH-AUDITS.md` corrected to match.
 
 - **Twelve organization pages were published, listed in the sitemap, and linked from nowhere.**
   `/org/<slug>/` pages are built for every organization with more than one surface, and no

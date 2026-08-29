@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from fhir_scorecard.cohort import load_cohort_dir
+from fhir_scorecard.cohort import Cohort, load_cohort_dir
 from fhir_scorecard.coverage import (
     COVERAGE_PATH,
     DOCUMENTED_UNREACHABLE,
@@ -25,6 +25,7 @@ from fhir_scorecard.coverage import (
     NOT_YET_REVIEWED,
     POPULATIONS,
     REVIEWED_POPULATIONS,
+    ROSTER_SUFFIX,
     VERIFIED,
     FrameOrg,
     classify,
@@ -32,7 +33,7 @@ from fhir_scorecard.coverage import (
     page,
     publishing_rate,
     read_frame,
-    read_reviewed_rows,
+    read_reviewed_rows_by_cohort,
 )
 from fhir_scorecard.registry import load_registry
 from fhir_scorecard.site import DEFAULT_ORIGIN
@@ -47,11 +48,22 @@ def _text(markup: str) -> str:
     return " ".join(re.sub(r"<[^>]+>", " ", markup).split())
 
 
+def _cohorts() -> tuple[Cohort, ...]:
+    endpoints = [e for e in load_registry(DATA / "registry.json") if e.enabled]
+    return load_cohort_dir(COHORT_DIR, frozenset(e.endpoint_id for e in endpoints))
+
+
+def _cohort(cohorts: tuple[Cohort, ...], cohort_id: str) -> Cohort:
+    return next(cohort for cohort in cohorts if cohort.cohort_id == cohort_id)
+
+
 def _committed() -> list[FrameOrg]:
     """Classification of the frame this repository ships, built from committed files only."""
     endpoints = [e for e in load_registry(DATA / "registry.json") if e.enabled]
     cohorts = load_cohort_dir(COHORT_DIR, frozenset(e.endpoint_id for e in endpoints))
-    return classify(read_frame(FRAME_CSV), cohorts, endpoints, read_reviewed_rows(COHORT_DIR))
+    return classify(
+        read_frame(FRAME_CSV), cohorts, endpoints, read_reviewed_rows_by_cohort(COHORT_DIR)
+    )
 
 
 # --- the committed frame, recomputed rather than typed ---
@@ -111,12 +123,49 @@ def test_reviewedness_is_a_property_of_the_state_and_the_issuer_together() -> No
 
 
 def test_the_reviewed_rows_come_from_the_committed_roster_files() -> None:
-    reviewed_rows = read_reviewed_rows(COHORT_DIR)
-    assert len(reviewed_rows) == 30
-    for roster in sorted(COHORT_DIR.glob("*.roster.csv")):
+    """And stay attributed to the cohort whose roster carries them, which is what lets a review
+    be published against the right row rather than against any row sharing a name."""
+    by_cohort = read_reviewed_rows_by_cohort(COHORT_DIR)
+    assert set(by_cohort) == {"florida-marketplace", "texas-marketplace"}
+    assert len({row for rows in by_cohort.values() for row in rows}) == 30
+    for roster in sorted(COHORT_DIR.glob("*" + ROSTER_SUFFIX)):
         with roster.open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
-                assert (row["state_code"], row["issuer_name"]) in reviewed_rows
+                assert (row["state_code"], row["issuer_name"]) in by_cohort[
+                    roster.name[: -len(ROSTER_SUFFIX)]
+                ]
+
+
+def test_a_name_in_two_cohorts_publishes_each_cohorts_own_review() -> None:
+    """The defect the (state, name) key exists to prevent, asserted on the published sentence.
+
+    ``Cigna Healthcare``, ``Molina Healthcare`` and ``UnitedHealthcare`` are roster names in both
+    the Texas and the Florida cohort. ``load_cohort_dir`` sorts by filename, so a member map keyed
+    on the name alone gave every one of them Texas's member, and Florida's rows published Texas's
+    review. Molina's two exclusion reasons are findings about two different developer portals.
+    """
+    orgs = {(org.state, org.roster_name): org for org in _committed()}
+    cohorts = _cohorts()
+    shared = {m.roster_name for m in _cohort(cohorts, "texas-marketplace").members} & {
+        m.roster_name for m in _cohort(cohorts, "florida-marketplace").members
+    }
+    assert shared - {""} == {"Cigna Healthcare", "Molina Healthcare", "UnitedHealthcare"}
+
+    reasons = {
+        cohort_id: _cohort(cohorts, cohort_id + "-marketplace")
+        for cohort_id in ("texas", "florida")
+    }
+    molina = {
+        state: next(m for m in cohort.members if m.roster_name == "Molina Healthcare")
+        for state, cohort in reasons.items()
+    }
+    assert molina["texas"].exclusion is not None and molina["florida"].exclusion is not None
+    assert molina["texas"].exclusion.reason != molina["florida"].exclusion.reason
+
+    for state, cohort_id in (("TX", "texas-marketplace"), ("FL", "florida-marketplace")):
+        for member in _cohort(cohorts, cohort_id).members:
+            if member.roster_name and member.exclusion is not None:
+                assert orgs[(state, member.roster_name)].detail == member.exclusion.reason
 
 
 def test_a_cohort_without_a_roster_file_reviews_no_frame_rows() -> None:

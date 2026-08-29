@@ -26,6 +26,12 @@ of more than one backend is a different fact about an endpoint from a publisher 
 release, and repeating the second every time a probe lands on the other backend crowds out the
 releases that are real. Nothing here re-derives or re-orders anything; the timeline renders the
 events `history.json` recorded, in the order it recorded them.
+
+**A declaration nobody ever read is not a stable declaration.** The timeline's empty case splits
+three ways, not two: never observed, observed and never answered, and answered without ever
+changing. Only the third is a finding about the publisher. The second is a finding about the
+network, and telling its reader that nothing has changed would publish a claim about a
+CapabilityStatement this project has never once retrieved.
 """
 
 from __future__ import annotations
@@ -278,20 +284,41 @@ def _record_body(record: Record) -> str:
     )
 
 
+def _empty_timeline(record: Record) -> str:
+    """Which of the three empty timelines this is, and there are three, not two.
+
+    A declaration timeline is built from what the endpoint declared, and a declaration only
+    exists on a run where the endpoint answered. So an endpoint probed every day that has never
+    once answered has no fingerprint on the record, therefore no events, therefore an empty
+    timeline - and routing it into "no change has been recorded" would state something about a
+    publisher's declaration on the strength of zero successful reads of it.
+
+    This is the same invariant as "an endpoint that answered with nothing was published as
+    though it had never answered": the absence of a measurement is never a measurement of
+    stability. The predicate is therefore ``answered``, not ``observations``.
+    """
+    if not record.observed:
+        return "Nothing has been observed for this endpoint yet, so nothing could have changed."
+    if not record.answered:
+        checks = "once" if record.observed == 1 else f"{record.observed} times"
+        return (
+            f"This endpoint has been checked {checks} and has not answered, so what it declares "
+            "has never been read. Nothing here says its declaration is stable; it says there is "
+            "nothing on the record to compare."
+        )
+    return "No change to what this endpoint declares has been recorded."
+
+
 def _timeline(record: Record) -> str:
     """The declaration timeline: changes in order, then returns, then the empty case.
 
     The empty case is a sentence, not an empty list. An endpoint that has declared the same
     thing throughout is a real and common result, and rendering it as a heading over nothing
-    reads as data that failed to load.
+    reads as data that failed to load. Which sentence is :func:`_empty_timeline`, which is
+    where the three empty cases are kept apart.
     """
     if not record.changes and not record.returns:
-        observed = (
-            "No change to what this endpoint declares has been recorded."
-            if record.observations
-            else "Nothing has been observed for this endpoint yet, so nothing could have changed."
-        )
-        return f"<h2>Declaration timeline</h2><p>{observed}</p>"
+        return f"<h2>Declaration timeline</h2><p>{_empty_timeline(record)}</p>"
 
     parts = ["<h2>Declaration timeline</h2>"]
     if record.changes:

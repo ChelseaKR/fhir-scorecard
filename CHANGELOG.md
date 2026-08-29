@@ -97,13 +97,17 @@ Merged changes land here until the next tag.
   A record written by a fixture run is labelled as such on the page.
 
 - **Accessibility and transfer-size budgets as merge gates (ROADMAP phase 7, ADR 0004).**
-  `fhir_scorecard.accessibility` runs twelve mechanical rules over every built page, each
-  naming the WCAG 2.2 Level A success criterion it implements: language of page (SC 3.1.1),
-  page titled (SC 2.4.2), a top-level heading and no skipped level (SC 1.3.1), alt text present
-  on every image (SC 1.1.1), an accessible name on every control and link (SC 4.1.2, SC 2.4.4),
-  id references and same-page fragments that resolve (SC 1.3.1, SC 2.4.1), and a main landmark.
-  Two rules are this project's own rather than a criterion and say so where they are defined:
-  unique page titles, and no duplicated id. `fhir_scorecard.weight` enforces two transfer-size
+  `fhir_scorecard.accessibility` runs twelve mechanical rules over every built page. Eight
+  name the WCAG 2.2 Level A success criterion they implement: language of page (SC 3.1.1),
+  page titled (SC 2.4.2), a top-level heading (SC 1.3.1), alt text present on every image
+  (SC 1.1.1), an accessible name on every control and link (SC 4.1.2, SC 2.4.4), and id
+  references and same-page fragments that resolve (SC 1.3.1, SC 2.4.1). The other four are
+  this project's own rule rather than a criterion and say so in the text of the finding:
+  unique page titles, no duplicated id, no skipped heading level, and a main landmark. The
+  last two are worth checking on a site generated from one template set, and neither is a
+  Level A requirement - SC 1.3.1 is satisfied by structure that is programmatically
+  determined however the heading levels are numbered, and SC 2.4.1 Bypass Blocks is satisfied
+  by a skip link to any target - so neither wears a criterion number. `fhir_scorecard.weight` enforces two transfer-size
   budgets, one on each page's own bytes and one on the subresources more than one page links,
   counted once; both numbers were measured from the published site on 2026-08-27 rather than
   chosen. Both families run inside `audit-site`, so both gate a merge and a publish.
@@ -127,6 +131,46 @@ Merged changes land here until the next tag.
   fails the contract is not deployed; the deploy job depends on the job that audits.
 
 ### Fixed
+
+- **An endpoint that has never once answered was told its declaration had not changed.** The
+  declaration timeline's empty case keyed on whether any observation existed, not on whether
+  any observation *answered*. A declaration only exists on a run where the endpoint answered,
+  so an endpoint probed daily that never answered has no fingerprint on the record, no events,
+  and an empty timeline for a reason that has nothing to do with its publisher. Five of the
+  forty-five endpoints in the live record are in exactly that state - 8 to 10 observations,
+  zero answered, no `fingerprint` key at all - and five record pages would each have carried a
+  claim about a publisher's declaration drawn from zero successful reads of it. There are three
+  empty timelines, not two, and each now says which one it is. Same invariant as *"an endpoint
+  that answered with nothing was published as though it had never answered"*: the absence of a
+  measurement is never a measurement of stability.
+
+- **The coverage tracker published one state's review under another state's heading.** Frame
+  rows are joined on `(state, issuer name)`, but that key was applied only to whether a row
+  counted as reviewed; the member whose prose got published was looked up by `roster_name`
+  alone, across every cohort at once. Three roster names sit in both the Texas and the Florida
+  cohort - Cigna Healthcare, Molina Healthcare, UnitedHealthcare - and `load_cohort_dir` sorts
+  by filename, so `texas-marketplace.json` loaded last and won all three. Molina Healthcare's
+  two exclusion reasons are findings about two different developer portals, and Florida's row
+  published Texas's while Florida's own finding went nowhere. The lookup is now keyed on the
+  pair on both sides, and `read_reviewed_rows_by_cohort` keeps each roster's rows attributed to
+  the cohort that reviewed them, so a member can only ever answer for its own cohort's rows.
+  The four population counts, the state table and the 13-of-30 rate are unchanged; what changes
+  is which review each row publishes.
+
+- **Two accessibility rules cited a WCAG criterion that does not require them.**
+  `A11Y_HEADING_LEVEL_SKIPPED` cited SC 1.3.1 and `A11Y_NO_MAIN_LANDMARK` cited SC 1.3.1 and
+  SC 2.4.1. SC 1.3.1 Info and Relationships asks that structure conveyed through presentation
+  be programmatically determined, which an h1 followed by an h3 already is; SC 2.4.1 Bypass
+  Blocks asks for a mechanism that bypasses repeated blocks, which a skip link provides
+  whatever it points at. No Level A criterion requires sequential heading levels or a `main`
+  landmark, and axe-core tags both of the equivalent rules `best-practice` rather than
+  `wcag2a`. Both rules are worth running on a site generated from one template set, where each
+  is a generator defect, so both are kept and both now declare themselves this project's own
+  rule the way unique page titles and duplicate ids already did. **Eight** of the twelve name a
+  criterion; **four** are this project's own, and a test pins the split so a description string
+  cannot drift back. No rule's logic changed and no finding changed; only what each cites.
+  `README.md`, `CHANGELOG.md`, `ROADMAP.md`, ADR 0004, `pages.yml` and
+  `docs/RESPONSIBLE-TECH-AUDITS.md` corrected to match.
 
 - **Twelve organization pages were published, listed in the sitemap, and linked from nowhere.**
   `/org/<slug>/` pages are built for every organization with more than one surface, and no

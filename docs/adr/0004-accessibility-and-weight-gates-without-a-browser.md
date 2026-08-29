@@ -36,13 +36,24 @@ plain semantic HTML.
 
 Gate on what a static reader can decide, and say plainly what that leaves out.
 
-`fhir_scorecard.accessibility` implements twelve rules over the built HTML, each naming the
-WCAG 2.2 Level A success criterion it implements: language of page (SC 3.1.1), page titled
-(SC 2.4.2), a top-level heading and no skipped heading level (SC 1.3.1), alt text present on
-every image (SC 1.1.1), an accessible name on every control and every link (SC 4.1.2, SC
-2.4.4), id references and same-page fragments that resolve (SC 1.3.1, SC 2.4.1), and a main
-landmark (SC 1.3.1, SC 2.4.1). Two rules are this project's own rather than a criterion, and
-each says so where it is defined: unique page titles, and no duplicated id.
+`fhir_scorecard.accessibility` implements twelve rules over the built HTML. **Eight name the
+WCAG 2.2 Level A success criterion they implement:** language of page (SC 3.1.1), page titled
+(SC 2.4.2), a top-level heading (SC 1.3.1), alt text present on every image (SC 1.1.1), an
+accessible name on every control and every link (SC 4.1.2, SC 2.4.4), and id references and
+same-page fragments that resolve (SC 1.3.1, SC 2.4.1).
+
+**Four are this project's own rule rather than a criterion, and each says so where it is
+defined:** unique page titles, no duplicated id, no skipped heading level, and a main landmark.
+A rule may cite a criterion only where the criterion requires what the rule reports, which is
+the standard the grading rules are already held to. It does not hold for these four. SC 2.4.2
+requires a title that describes the topic, not a unique one. SC 4.1.1 Parsing, which duplicate
+ids used to fall under, was removed in WCAG 2.2. SC 1.3.1 asks that structure conveyed through
+presentation be programmatically determined, which an h1 followed by an h3 already is, so no
+Level A criterion requires sequential heading levels. And SC 2.4.1 Bypass Blocks asks for a
+mechanism that bypasses repeated blocks, which a skip link provides whatever it points at, so no
+Level A criterion requires a `main` landmark. All four are still worth checking on a site
+generated from one template set, where each is a generator defect rather than an authoring
+choice; they are checked under this project's own name.
 
 `fhir_scorecard.weight` enforces two transfer-size budgets: one on each page's own bytes,
 including any subresource no other page links, and one on the subresources more than one page

@@ -375,6 +375,47 @@ def test_an_endpoint_never_observed_says_that_instead_of_never_changed() -> None
     )
 
 
+def test_an_endpoint_that_never_answered_is_not_told_its_declaration_is_stable() -> None:
+    """The third empty state, and the one that was being published as the first.
+
+    Nine of the forty-five endpoints in the live record have been probed daily and have never
+    answered; five of them carry observations and no fingerprint at all. A timeline is built
+    from fingerprints, so theirs is empty for a reason that has nothing to do with the
+    publisher. "No change has been recorded" over zero successful reads is the same defect as
+    grading an endpoint that answered with nothing.
+    """
+    (record,) = records(_history("acme", days=20, answered=0), [_card("acme")])
+    assert (record.observed, record.answered) == (20, 0)
+    body = _text(record_page(record, DEFAULT_ORIGIN).body)
+    assert "checked 20 times and has not answered" in body
+    assert "what it declares has never been read" in body
+    assert "No change to what this endpoint declares has been recorded" not in body
+    assert "Nothing has been observed for this endpoint yet" not in body
+
+
+def test_the_three_empty_timelines_are_three_different_sentences() -> None:
+    """Asserted from all three sides. A predicate that collapsed two of them would still pass a
+    test that only ever looked at one, which is how the answered/observed confusion survived."""
+    never_observed, never_answered, unchanged = (
+        records(history, [_card("acme")])[0]
+        for history in (
+            {},
+            _history("acme", days=9, answered=0),
+            _history("acme", days=9, answered=9),
+        )
+    )
+    sentences = {
+        _text(record_page(record, DEFAULT_ORIGIN).body).split("Declaration timeline")[1]
+        for record in (never_observed, never_answered, unchanged)
+    }
+    assert len(sentences) == 3
+
+
+def test_a_single_unanswered_check_is_worded_as_once() -> None:
+    (record,) = records(_history("acme", days=1, answered=0), [_card("acme")])
+    assert "checked once and has not answered" in _text(record_page(record, DEFAULT_ORIGIN).body)
+
+
 def test_a_return_reads_as_a_return_and_is_never_counted_as_a_change() -> None:
     (record,) = records(_with_events("acme", [], ONE_RETURN), [_card("acme")])
     assert record.changes == ()

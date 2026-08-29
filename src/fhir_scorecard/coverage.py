@@ -47,6 +47,11 @@ reading a Texas issuer's developer portal. Which frame rows a cohort reviewed is
 from that cohort's own committed roster CSV, the file
 ``tests/test_plan_evidence.py`` already pins to be an exact state-slice of the national frame,
 rather than from a state code written down here.
+
+That key governs **which review is published**, not only whether a row counts as reviewed. Three
+roster names sit in both the Texas and the Florida cohort, and a lookup keyed on the name alone
+returned whichever cohort loaded last, so Florida's rows carried Texas's review text. The two
+halves of the join are kept together in :func:`_members_by_row` for that reason.
 """
 
 from __future__ import annotations
@@ -54,15 +59,20 @@ from __future__ import annotations
 import csv
 import html
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from fhir_scorecard.cohort import Cohort
+from fhir_scorecard.cohort import Cohort, CohortMember
 from fhir_scorecard.registry import Endpoint
 from fhir_scorecard.site import Page, json_ld
 
 #: Site path of the coverage tracker.
 COVERAGE_PATH = "coverage"
+
+#: How a cohort's committed roster file is named beside its cohort JSON. The stem either side
+#: of it is the cohort id, which is what ties a roster's rows to the members that reviewed them.
+ROSTER_SUFFIX = ".roster.csv"
 
 VERIFIED = "verified"
 DOCUMENTED_UNREACHABLE = "documented_unreachable"
@@ -109,17 +119,27 @@ def read_frame(path: Path) -> list[tuple[str, str]]:
         return [(row["state_code"], row["issuer_name"]) for row in csv.DictReader(handle)]
 
 
-def read_reviewed_rows(cohort_dir: Path) -> set[tuple[str, str]]:
-    """Every (state, issuer name) a committed cohort roster covers.
+def read_reviewed_rows_by_cohort(cohort_dir: Path) -> dict[str, frozenset[tuple[str, str]]]:
+    """Every (state, issuer name) a committed cohort roster covers, kept per cohort.
+
+    Per cohort rather than pooled into one set, because two questions have to be answered and a
+    pooled set answers only the first: *was this row reviewed*, and *which cohort reviewed it*.
+    The second is what decides whose review may be published against the row, and losing it is
+    how one state's review came to be published under another state's heading.
+
+    The key is the roster file's stem, which is the cohort id: ``texas-marketplace.json`` and
+    ``texas-marketplace.roster.csv``. :func:`classify` reads it back through ``cohort_id``, so a
+    roster naming no loaded cohort contributes rows no member can answer for, and those rows
+    stay unreviewed rather than picking up somebody else's review.
 
     A cohort with no roster CSV beside it - California's, whose frame is a state's own program
     roster rather than a slice of the federal file - contributes nothing here, correctly: its
     members are not rows of this frame.
     """
-    reviewed: set[tuple[str, str]] = set()
-    for roster in sorted(cohort_dir.glob("*.roster.csv")):
-        reviewed.update(read_frame(roster))
-    return reviewed
+    return {
+        roster.name[: -len(ROSTER_SUFFIX)]: frozenset(read_frame(roster))
+        for roster in sorted(cohort_dir.glob("*" + ROSTER_SUFFIX))
+    }
 
 
 def _population_for(
@@ -143,34 +163,56 @@ def _population_for(
     )
 
 
+def _members_by_row(
+    cohorts: tuple[Cohort, ...],
+    reviewed_rows: Mapping[str, frozenset[tuple[str, str]]],
+) -> dict[tuple[str, str], CohortMember]:
+    """(state, issuer name) -> the member of the cohort that reviewed *that row*.
+
+    Keyed on the pair on both sides, which is the whole point. Keyed on ``roster_name`` alone
+    and built across every cohort at once, this map held one member per name for the whole
+    frame, and the last cohort to load won every name two cohorts shared. ``load_cohort_dir``
+    sorts by filename, so ``texas-marketplace.json`` loaded after ``florida-marketplace.json``
+    and Florida's rows for Cigna Healthcare, Molina Healthcare and UnitedHealthcare published
+    Texas's review. Molina's two exclusion reasons are materially different findings about two
+    different developer portals, and Florida's was never published anywhere.
+
+    A member may only answer for the rows its own cohort's roster covers, so the rows come from
+    that cohort's entry in ``reviewed_rows`` and never from the pooled set.
+    """
+    by_row: dict[tuple[str, str], CohortMember] = {}
+    for cohort in cohorts:
+        by_name = {m.roster_name: m for m in cohort.members if m.roster_name}
+        for row in sorted(reviewed_rows.get(cohort.cohort_id, frozenset())):
+            member = by_name.get(row[1])
+            if member is not None:
+                by_row[row] = member
+    return by_row
+
+
 def classify(
     frame: list[tuple[str, str]],
     cohorts: tuple[Cohort, ...],
     endpoints: list[Endpoint],
-    reviewed_rows: set[tuple[str, str]],
+    reviewed_rows: Mapping[str, frozenset[tuple[str, str]]],
 ) -> list[FrameOrg]:
     """Every frame row assigned to exactly one population.
 
     Joined on ``(state, roster_name)``: the state code and the name the roster's publisher
-    prints, both kept verbatim on both sides. ``reviewed_rows`` comes from the committed cohort
-    roster CSVs, so a member can only answer for the frame rows its own cohort actually
-    reviewed. A join on the name alone puts a national carrier's Texas review against its rows
-    in twenty-two other states; a join on this project's own normalisation of a name would give
-    the frame a denominator only this project could reproduce. Both are the defect
-    ``docs/SAMPLING-FRAME.md`` exists to prevent.
+    prints, both kept verbatim on both sides, and on *both* halves of the join. ``reviewed_rows``
+    comes from the committed cohort roster CSVs, per cohort, so a member can only answer for the
+    frame rows its own cohort actually reviewed. A join on the name alone puts a national
+    carrier's Texas review against its rows in twenty-two other states; a join on this project's
+    own normalisation of a name would give the frame a denominator only this project could
+    reproduce. Both are the defect ``docs/SAMPLING-FRAME.md`` exists to prevent.
     """
     by_id = {endpoint.endpoint_id: endpoint for endpoint in endpoints}
-    members = {
-        member.roster_name: member
-        for cohort in cohorts
-        for member in cohort.members
-        if member.roster_name
-    }
+    members = _members_by_row(cohorts, reviewed_rows)
     classified = []
     for state, issuer_name in frame:
-        # Reviewed-ness is a property of the (state, issuer) row, not of the name. A member is
-        # only allowed to answer for the rows its own cohort's roster covers.
-        member = members.get(issuer_name) if (state, issuer_name) in reviewed_rows else None
+        # Reviewed-ness is a property of the (state, issuer) row, not of the name, and so is the
+        # review itself. A row no member of the cohort that reviewed it answers for is unreviewed.
+        member = members.get((state, issuer_name))
         if member is None:
             population, detail = NOT_YET_REVIEWED, "no review has been recorded for this state"
         elif member.endpoint_ids:

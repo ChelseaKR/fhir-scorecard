@@ -15,6 +15,9 @@ unusable with a screen reader.
 
 Each rule names the success criterion it implements, or says plainly that it is this project's
 own rule rather than a criterion, which is the same standard the grading rules are held to.
+Eight name a criterion; four are this project's own. A rule wearing a criterion number that does
+not require it would be a fabricated citation, which is the one thing this repository cannot
+publish, so the four say so in the text a reader of a finding sees.
 """
 
 from __future__ import annotations
@@ -44,8 +47,12 @@ A11Y_CODES: dict[str, str] = {
         "the page has no h1 (WCAG 2.2 SC 1.3.1 Info and Relationships, Level A)"
     ),
     "A11Y_HEADING_LEVEL_SKIPPED": (
-        "a heading is more than one level below the heading before it, so the structure it "
-        "conveys is not the structure it has (WCAG 2.2 SC 1.3.1, Level A)"
+        "a heading is more than one level below the heading before it. No Level A criterion "
+        "requires sequential heading levels: SC 1.3.1 Info and Relationships asks that "
+        "structure conveyed through presentation be programmatically determined, which a "
+        "correctly marked-up h1 then h3 already is. So this is this project's own rule, not a "
+        "criterion, and it is here because every page is generated from one template set, "
+        "where a skipped level is a defect in the generator rather than an authoring choice"
     ),
     "A11Y_IMAGE_WITHOUT_ALT": (
         'an <img> with no alt attribute at all. alt="" is correct for a decorative image and '
@@ -63,8 +70,9 @@ A11Y_CODES: dict[str, str] = {
     ),
     "A11Y_DUPLICATE_ID": (
         "an id used more than once. SC 4.1.1 Parsing was removed in WCAG 2.2, so this is not "
-        "that criterion: it is here because every id reference below resolves to the first "
-        "match, which makes a duplicate a silent mis-labelling (supports SC 1.3.1 and 4.1.2)"
+        "that criterion but this project's own rule: it is here because every id reference "
+        "below resolves to the first match, which makes a duplicate a silent mis-labelling "
+        "(supports SC 1.3.1 and 4.1.2)"
     ),
     "A11Y_REFERENCE_TO_MISSING_ID": (
         "aria-labelledby, aria-describedby, aria-controls, or a label's for names an id that is "
@@ -77,8 +85,11 @@ A11Y_CODES: dict[str, str] = {
         "(WCAG 2.2 SC 2.4.1 Bypass Blocks, Level A)"
     ),
     "A11Y_NO_MAIN_LANDMARK": (
-        "the page has no <main> and nothing with role=main, so there is no landmark to skip to "
-        "(WCAG 2.2 SC 1.3.1 and SC 2.4.1, Level A)"
+        "the page has no <main> and nothing with role=main. No Level A criterion requires a "
+        "main landmark: SC 2.4.1 Bypass Blocks asks for a mechanism that bypasses repeated "
+        "blocks, and a skip link satisfies it whatever it points at. So this is this project's "
+        "own rule, not a criterion, and it is here because every page this build writes carries "
+        "a skip link to its own <main>, which is a promise a page without one cannot keep"
     ),
 }
 

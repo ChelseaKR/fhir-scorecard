@@ -122,7 +122,8 @@ read.*
       says why: its score is a weighted average of a moving rule set, it is not
       deterministic, and it needs a browser and an npm toolchain in a package with no
       runtime dependencies. What ships instead is twelve mechanical rules over the built
-      HTML, each naming the WCAG 2.2 Level A criterion it implements, plus two
+      HTML - eight naming the WCAG 2.2 Level A criterion they implement, four declaring
+      themselves this project's own rule rather than a criterion - plus two
       transfer-size budgets measured from the published site. The ADR lists what a browser
       would catch that this cannot, and the assistive-technology review stays open
 - [x] **SEO config validation** in CI: sitemap completeness, canonical correctness, JSON-LD

@@ -28,7 +28,7 @@ from fhir_scorecard.capability import (
     parse_smart,
 )
 from fhir_scorecard.cohort import Cohort, load_cohort_dir
-from fhir_scorecard.coverage import classify, read_frame, read_reviewed_rows
+from fhir_scorecard.coverage import classify, read_frame, read_reviewed_rows_by_cohort
 from fhir_scorecard.coverage import page as coverage_page
 from fhir_scorecard.dataset import write_dataset
 from fhir_scorecard.drift import ensure_mode, load_history, observe, save_history
@@ -831,7 +831,9 @@ def _coverage_page(
     frame_csv = cohorts_dir.parent / "frames" / FRAME_CSV_NAME
     if not frame_csv.is_file():
         return None
-    orgs = classify(read_frame(frame_csv), cohorts, endpoints, read_reviewed_rows(cohorts_dir))
+    orgs = classify(
+        read_frame(frame_csv), cohorts, endpoints, read_reviewed_rows_by_cohort(cohorts_dir)
+    )
     return coverage_page(orgs, origin) if orgs else None
 
 

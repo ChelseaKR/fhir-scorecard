@@ -214,6 +214,54 @@ def test_a_role_main_counts_as_the_landmark(page: Path) -> None:
     assert audit_accessibility(page) == []
 
 
+#: The eight rules a WCAG 2.2 success criterion actually requires, and the four that are this
+#: project's own. Pinned here rather than counted at runtime: a criterion number on a rule the
+#: criterion does not require is a fabricated citation, and the point of the split is that it
+#: cannot drift by somebody editing a description string.
+CRITERION_BACKED = frozenset(
+    {
+        "A11Y_PAGE_NOT_IN_A_LANGUAGE",
+        "A11Y_PAGE_NOT_TITLED",
+        "A11Y_NO_TOP_LEVEL_HEADING",
+        "A11Y_IMAGE_WITHOUT_ALT",
+        "A11Y_CONTROL_WITHOUT_NAME",
+        "A11Y_LINK_WITHOUT_TEXT",
+        "A11Y_REFERENCE_TO_MISSING_ID",
+        "A11Y_FRAGMENT_TARGET_MISSING",
+    }
+)
+PROJECT_RULES = frozenset(
+    {
+        "A11Y_TITLE_NOT_UNIQUE",
+        "A11Y_HEADING_LEVEL_SKIPPED",
+        "A11Y_DUPLICATE_ID",
+        "A11Y_NO_MAIN_LANDMARK",
+    }
+)
+
+
+def test_a_rule_either_names_a_criterion_or_says_it_is_this_projects_own() -> None:
+    """Every rule is in exactly one of the two sets, and its own text says which.
+
+    This is the accessibility gate held to the standard the grading rules are held to: a
+    finding may cite a specification only where the specification requires what the finding
+    reports. Two rules used to fail it. ``A11Y_HEADING_LEVEL_SKIPPED`` cited SC 1.3.1, which is
+    satisfied by structure that is programmatically determined however the levels are numbered,
+    and ``A11Y_NO_MAIN_LANDMARK`` cited SC 1.3.1 and SC 2.4.1, neither of which requires a main
+    landmark; SC 2.4.1 Bypass Blocks is met by a skip link to any target. Both are worth
+    checking on this site and neither is a Level A requirement, which is what "this project's
+    own rule" is for.
+    """
+    assert set(A11Y_CODES) == CRITERION_BACKED | PROJECT_RULES
+    assert not CRITERION_BACKED & PROJECT_RULES
+    for code in CRITERION_BACKED:
+        assert "WCAG 2.2 SC" in A11Y_CODES[code], code
+        assert "this project's own rule" not in A11Y_CODES[code], code
+    for code in PROJECT_RULES:
+        assert "this project's own rule" in A11Y_CODES[code], code
+        assert "WCAG 2.2 SC" not in A11Y_CODES[code], code
+
+
 def test_every_emitted_accessibility_code_is_documented(page: Path) -> None:
     _mutate(page, '<html lang="en">', "<html>")
     _mutate(page, "<title>A title used by no other page</title>", "<title></title>")

@@ -3,7 +3,21 @@
 # SHA-pinned GitHub Actions.
 version: 2
 updates:
-  - package-ecosystem: "pip"
+  # `uv`, not `pip`. This project's dependency surface is a PEP 735 `[dependency-groups]`
+  # block resolved into `uv.lock`; `[project] dependencies` is empty. The `pip` ecosystem
+  # does not read `[dependency-groups]`, and a bump that did not also update `uv.lock`
+  # would fail `make verify`, which opens with `uv lock --check`.
+  #
+  # The symptom was silence, not red PRs. Every dependabot pull request ever opened on this
+  # repository - twelve of them, 2026-08-07 to 2026-08-27, on a weekly schedule - is
+  # `github-actions`. Zero are `pip`, across a window in which pytest, mypy, ruff, pip-audit
+  # and hypothesis all released. The dev toolchain the README calls "the whole dependency
+  # surface" was unwatched, and nothing said so.
+  #
+  # `uv` is a documented `package-ecosystem` value: GitHub's Dependabot options reference
+  # lists it, and version updates went generally available for it on 2025-03-13, security
+  # updates on 2025-12-16. `uv.lock` is committed, which is what the ecosystem reads.
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"

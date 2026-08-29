@@ -63,6 +63,7 @@ import json
 import secrets
 import ssl
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -392,6 +393,14 @@ def check_freshness(generated: dt.datetime, maximum_hours: float) -> list[str]:
     return []
 
 
+def refuse_unbounded_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """Bounds on the knobs, so a typo cannot quietly turn the check into nothing."""
+    if not 1 <= args.attempts <= 10:
+        parser.error("--attempts must be between 1 and 10")
+    if not 0 <= args.retry_seconds <= 120:
+        parser.error("--retry-seconds must be between 0 and 120")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default=LIVE_URL, help=f"live site root (default {LIVE_URL})")
@@ -402,29 +411,61 @@ def main(argv: list[str] | None = None) -> int:
         default=48.0,
         help="how stale the published run may be before this fails (default 48)",
     )
+    parser.add_argument(
+        "--attempts",
+        type=int,
+        default=3,
+        help="how many times to look before reporting a difference (default 3)",
+    )
+    parser.add_argument(
+        "--retry-seconds",
+        type=float,
+        default=20.0,
+        help="seconds to wait between attempts, for a deploy to settle (default 20)",
+    )
     args = parser.parse_args(argv)
+    refuse_unbounded_options(parser, args)
 
-    try:
-        origin = Origin(args.url, timeout_seconds=args.timeout_seconds)
-        canonical_origin = args.url.rstrip("/")
-        endpoints = [e for e in load_registry(REGISTRY) if e.enabled]
-        if len(endpoints) < MINIMUM_ENDPOINTS:
-            raise LiveSiteError(
-                f"the registry holds {len(endpoints)} enabled endpoint(s), below the floor "
-                f"of {MINIMUM_ENDPOINTS}. A check that compares nothing must fail, not pass."
+    last_error: LiveSiteError | None = None
+    differences: list[str] = []
+    for attempt in range(1, args.attempts + 1):
+        last_error = None
+        try:
+            origin = Origin(args.url, timeout_seconds=args.timeout_seconds)
+            canonical_origin = args.url.rstrip("/")
+            endpoints = [e for e in load_registry(REGISTRY) if e.enabled]
+            if len(endpoints) < MINIMUM_ENDPOINTS:
+                raise LiveSiteError(
+                    f"the registry holds {len(endpoints)} enabled endpoint(s), below the floor "
+                    f"of {MINIMUM_ENDPOINTS}. A check that compares nothing must fail, not pass."
+                )
+            assets = committed_assets()
+            nonce = secrets.token_hex(16)
+            prove_the_origin_discriminates(origin, nonce)
+
+            differences = compare_assets(origin, nonce, assets)
+            differences += compare_pure_documents(origin, nonce, canonical_origin)
+            index_differences, generated = compare_api_index(
+                origin, nonce, endpoints, canonical_origin
             )
-        assets = committed_assets()
-        nonce = secrets.token_hex(16)
-        prove_the_origin_discriminates(origin, nonce)
-
-        differences = compare_assets(origin, nonce, assets)
-        differences += compare_pure_documents(origin, nonce, canonical_origin)
-        index_differences, generated = compare_api_index(origin, nonce, endpoints, canonical_origin)
-        differences += index_differences
-        differences += compare_dataset_csv(origin, nonce, endpoints)
-        differences += check_freshness(generated, args.max_age_hours)
-    except LiveSiteError as exc:
-        print(f"live integrity check could not run: {exc}", file=sys.stderr)
+            differences += index_differences
+            differences += compare_dataset_csv(origin, nonce, endpoints)
+            differences += check_freshness(generated, args.max_age_hours)
+        except LiveSiteError as exc:
+            last_error = exc
+            differences = []
+        if last_error is None and not differences:
+            break
+        if attempt < args.attempts:
+            reason = last_error if last_error else f"{len(differences)} difference(s)"
+            print(
+                f"attempt {attempt}/{args.attempts}: {reason}; waiting "
+                f"{args.retry_seconds:.0f}s in case a deploy is still settling",
+                file=sys.stderr,
+            )
+            time.sleep(args.retry_seconds)
+    if last_error is not None:
+        print(f"live integrity check could not run: {last_error}", file=sys.stderr)
         return EXIT_CANNOT_RUN
 
     if differences:

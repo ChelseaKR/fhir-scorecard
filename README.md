@@ -1,6 +1,7 @@
 # fhir-scorecard
 
-**A plain-language operational scorecard for publicly observable FHIR endpoints.**
+**A plain-language operational scorecard for publicly observable FHIR
+(Fast Healthcare Interoperability Resources) endpoints.**
 
 CMS interoperability rules require regulated payers to stand up FHIR R4 APIs (Patient Access,
 Provider Directory, and, under CMS-0057-F, more to come). Whether those endpoints are *actually

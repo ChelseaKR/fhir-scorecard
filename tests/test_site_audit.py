@@ -279,10 +279,13 @@ def test_a_page_nothing_links_to_is_caught(site: Path) -> None:
     stray = site / "endpoint" / "stray-copy"
     shutil.copytree(orphan, stray)
     text = (stray / "index.html").read_text(encoding="utf-8")
+    # Readdress the copy completely. A page states where it is twice -- in its
+    # canonical and in its share card -- and moving only one of them would break a
+    # second rule, leaving this test asserting two defects while claiming one.
     (stray / "index.html").write_text(
         text.replace(
-            f'canonical" href="{DEFAULT_ORIGIN}/endpoint/cms-blue-button-2/"',
-            f'canonical" href="{DEFAULT_ORIGIN}/endpoint/stray-copy/"',
+            f"{DEFAULT_ORIGIN}/endpoint/cms-blue-button-2/",
+            f"{DEFAULT_ORIGIN}/endpoint/stray-copy/",
         ),
         encoding="utf-8",
     )
@@ -435,3 +438,139 @@ def test_a_dot_dot_at_the_site_root_is_dropped_rather_than_escaping_it(site: Pat
         encoding="utf-8",
     )
     assert audit_site(site, DEFAULT_ORIGIN) == []
+
+
+# --- the share card, which is copy this site publishes and does not otherwise reread ---
+
+
+def test_a_clean_site_carries_a_complete_share_card(site: Path) -> None:
+    """Before any of the checks below mean anything, the built site has to pass them."""
+    assert "SOCIAL_CARD_INCOMPLETE" not in _codes(site)
+    home = (site / "index.html").read_text(encoding="utf-8")
+    for tag in ("og:site_name", "og:locale", "twitter:card", "twitter:title"):
+        assert tag in home, tag
+
+
+def test_a_half_written_share_card_is_caught(site: Path) -> None:
+    """A card missing a tag is one a crawler completes from somewhere else."""
+    page = site / "payers" / "index.html"
+    text = page.read_text(encoding="utf-8")
+    page.write_text(
+        text.replace('<meta name="twitter:card" content="summary">\n', ""), encoding="utf-8"
+    )
+    assert "SOCIAL_CARD_INCOMPLETE" in _codes(site)
+
+
+def test_a_card_that_says_something_the_page_does_not_is_caught(site: Path) -> None:
+    """The site's copy is reviewed. A card that drifts from it is copy nobody rereads."""
+    page = site / "payers" / "index.html"
+    text = page.read_text(encoding="utf-8")
+    block = re.search(r'<meta property="og:description" content="([^"]*)">', text)
+    assert block is not None
+    page.write_text(
+        text.replace(
+            block.group(0),
+            '<meta property="og:description" content="The most trusted FHIR grades anywhere.">',
+        ),
+        encoding="utf-8",
+    )
+    assert "SOCIAL_CARD_INCOMPLETE" in _codes(site)
+
+
+def test_a_card_addressing_another_page_is_caught(site: Path) -> None:
+    page = site / "payers" / "index.html"
+    text = page.read_text(encoding="utf-8")
+    page.write_text(
+        text.replace(
+            f'<meta property="og:url" content="{DEFAULT_ORIGIN}/payers/">',
+            f'<meta property="og:url" content="{DEFAULT_ORIGIN}/providers/">',
+        ),
+        encoding="utf-8",
+    )
+    assert "SOCIAL_CARD_INCOMPLETE" in _codes(site)
+
+
+def test_a_page_with_no_share_card_at_all_is_not_reported(site: Path) -> None:
+    """The rule is that a card must be complete, not that every page must have one.
+
+    A page declaring nothing publishes no claim to be wrong about; a crawler falls
+    back to the title and description, which are checked by their own rules.
+    """
+    page = site / "payers" / "index.html"
+    text = page.read_text(encoding="utf-8")
+    page.write_text(
+        re.sub(r'<meta (?:property="og:|name="twitter:)[^>]*>\n?', "", text), encoding="utf-8"
+    )
+    assert "SOCIAL_CARD_INCOMPLETE" not in _codes(site)
+
+
+@pytest.fixture
+def site_with_an_org(tmp_path: Path) -> Path:
+    """A build where one organization publishes two surfaces, so an org page exists.
+
+    ``_write_site`` only writes ``/org/<slug>/`` for an organization with more than
+    one endpoint, and the three fixture endpoints are three different organizations.
+    This copies one endpoint's captured discovery documents under a second id whose
+    name shares the organization prefix, which is exactly the shape the real registry
+    has and the fixture registry does not.
+    """
+    fixtures = tmp_path / "fixtures"
+    shutil.copytree(FIXTURES, fixtures)
+    shutil.copytree(fixtures / "cms-blue-button-2", fixtures / "cms-blue-button-2-directory")
+    registry = json.loads((FIXTURES / "registry.json").read_text(encoding="utf-8"))
+    original = next(e for e in registry["endpoints"] if e["id"] == "cms-blue-button-2")
+    registry["endpoints"].append(
+        {
+            **original,
+            "id": "cms-blue-button-2-directory",
+            "name": "CMS Blue Button 2.0 provider directory",
+            "kind": "payer_provider_directory",
+        }
+    )
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text(json.dumps(registry), encoding="utf-8")
+    return _build(tmp_path / "site", fixtures=fixtures, registry=registry_path)
+
+
+def test_a_site_with_an_organization_page_is_still_clean(site_with_an_org: Path) -> None:
+    assert audit_site(site_with_an_org, DEFAULT_ORIGIN) == []
+
+
+def test_an_organization_page_publishes_the_organization_it_is_about(
+    site_with_an_org: Path,
+) -> None:
+    """``REQUIRED_JSONLD_FIELDS`` has promised an Organization contract from the start.
+
+    Nothing emitted one, so the promise was unkept and unkeepable: no page could fail
+    a rule about a type no page carried.
+    """
+    org_pages = sorted((site_with_an_org / "org").glob("*/index.html"))
+    assert org_pages, "the fixture registry builds no organization page"
+    for page in org_pages:
+        payloads = [
+            json.loads(block)
+            for block in re.findall(
+                r'<script type="application/ld\+json">(.*?)</script>',
+                page.read_text(encoding="utf-8"),
+                re.DOTALL,
+            )
+        ]
+        organizations = [p for p in payloads if p.get("@type") == "Organization"]
+        assert len(organizations) == 1, page
+        assert organizations[0]["url"].startswith(f"{DEFAULT_ORIGIN}/org/")
+        # A grade is an observation of a surface, never a property of a company.
+        assert "aggregateRating" not in organizations[0]
+        assert "review" not in organizations[0]
+
+
+def test_an_organization_missing_a_promised_field_is_caught(site_with_an_org: Path) -> None:
+    page = next(iter(sorted((site_with_an_org / "org").glob("*/index.html"))))
+    text = page.read_text(encoding="utf-8")
+    block = re.search(
+        r'<script type="application/ld\+json">(\{[^<]*"Organization"[^<]*\})</script>', text
+    )
+    assert block is not None
+    payload = json.loads(block.group(1))
+    payload.pop("url")
+    page.write_text(text.replace(block.group(1), json.dumps(payload)), encoding="utf-8")
+    assert "JSONLD_INCOMPLETE" in _codes(site_with_an_org)

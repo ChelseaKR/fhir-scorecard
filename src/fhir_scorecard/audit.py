@@ -63,7 +63,23 @@ FINDING_CODES: dict[str, str] = {
     "INTERNAL_LINK_UNBUILT": "a link or subresource pointing at a path the build did not write",
     "ORPHAN_PAGE": "a built page no path of internal links reaches from the home page",
     "ROBOTS_SITEMAP_MISMATCH": "robots.txt is missing or does not point at this site's sitemap",
+    "SOCIAL_CARD_INCOMPLETE": "a page whose share card is missing a tag or contradicts the page",
 }
+
+#: What a page must declare once it declares any of it. A half-written card is one a
+#: crawler completes from somewhere else; a card whose title or description differs from
+#: the page's own is a second, unreviewed piece of copy about this site, which is exactly
+#: what the repository's claim rules exist to prevent.
+SOCIAL_TAGS: tuple[str, ...] = (
+    "og:title",
+    "og:description",
+    "og:type",
+    "og:url",
+    "og:site_name",
+    "twitter:card",
+    "twitter:title",
+    "twitter:description",
+)
 
 
 @dataclass(frozen=True)
@@ -95,34 +111,52 @@ class _PageParser(HTMLParser):
         self.canonicals: list[str] = []
         self.jsonld: list[str] = []
         self.references: list[str] = []
+        self.metas: dict[str, str] = {}
+        self.title = ""
         self._in_jsonld = False
+        self._in_title = False
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         got = {k: (v or "") for k, v in attrs}
         if tag == "link":
-            rel = got.get("rel", "").lower().split()
-            if "canonical" in rel:
-                self.canonicals.append(got.get("href", ""))
-            elif got.get("href"):
-                self.references.append(got["href"])
+            self._link(got)
         elif tag == "script":
-            if got.get("type", "").lower() == "application/ld+json":
-                self._in_jsonld = True
-                self.jsonld.append("")
-            elif got.get("src"):
-                self.references.append(got["src"])
+            self._script(got)
         elif tag in {"a", "area"} and got.get("href"):
             self.references.append(got["href"])
         elif tag in {"img", "source", "iframe", "embed"} and got.get("src"):
+            self.references.append(got["src"])
+        elif tag == "meta":
+            key = got.get("name") or got.get("property")
+            if key and "content" in got:
+                self.metas[key.lower()] = got["content"]
+        elif tag == "title":
+            self._in_title = True
+
+    def _link(self, got: dict[str, str]) -> None:
+        if "canonical" in got.get("rel", "").lower().split():
+            self.canonicals.append(got.get("href", ""))
+        elif got.get("href"):
+            self.references.append(got["href"])
+
+    def _script(self, got: dict[str, str]) -> None:
+        if got.get("type", "").lower() == "application/ld+json":
+            self._in_jsonld = True
+            self.jsonld.append("")
+        elif got.get("src"):
             self.references.append(got["src"])
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "script":
             self._in_jsonld = False
+        elif tag == "title":
+            self._in_title = False
 
     def handle_data(self, data: str) -> None:
         if self._in_jsonld and self.jsonld:
             self.jsonld[-1] += data
+        if self._in_title:
+            self.title += data
 
 
 def _origin_prefix(origin: str) -> str:
@@ -268,6 +302,45 @@ def _check_canonical(page: str, parser: _PageParser, origin: str) -> list[SiteFi
     return []
 
 
+def _check_social(page: str, parser: _PageParser, origin: str) -> list[SiteFinding]:
+    """A share card must be complete, and must say what the page says.
+
+    The site's copy is reviewed; a card is copy too, and one that drifts from the page
+    is an unreviewed claim about this project published where nobody rereads it. So the
+    card is not checked for existing so much as for agreeing.
+    """
+    where = page_file(page)
+    if not any(tag in parser.metas for tag in SOCIAL_TAGS):
+        return []
+    findings = [
+        SiteFinding("SOCIAL_CARD_INCOMPLETE", where, f"declares no {tag}")
+        for tag in SOCIAL_TAGS
+        if tag not in parser.metas
+    ]
+    title = " ".join(parser.title.split())
+    description = parser.metas.get("description", "")
+    for tag, expected, what in (
+        ("og:title", title, "the page title"),
+        ("twitter:title", title, "the page title"),
+        ("og:description", description, "the page description"),
+        ("twitter:description", description, "the page description"),
+        ("og:url", _url_for(page, origin), "the page address"),
+    ):
+        found = parser.metas.get(tag)
+        # `og:title` is the page's own title without the site suffix the <title> carries,
+        # so it is a match when the <title> is it plus that suffix, and only then.
+        if (
+            found is None
+            or found == expected
+            or (tag.endswith("title") and title.startswith(f"{found} |"))
+        ):
+            continue
+        findings.append(
+            SiteFinding("SOCIAL_CARD_INCOMPLETE", where, f"{tag} does not match {what}")
+        )
+    return findings
+
+
 def _check_jsonld(page: str, parser: _PageParser) -> list[SiteFinding]:
     where = page_file(page)
     findings = []
@@ -306,7 +379,11 @@ def _read_page(root: Path, page: str, origin: str) -> tuple[list[SiteFinding], s
     """One page's findings, and the site-relative pages it links to."""
     parser = _PageParser()
     parser.feed((root / page_file(page)).read_text(encoding="utf-8"))
-    findings = _check_canonical(page, parser, origin) + _check_jsonld(page, parser)
+    findings = (
+        _check_canonical(page, parser, origin)
+        + _check_jsonld(page, parser)
+        + _check_social(page, parser, origin)
+    )
     links: set[str] = set()
     for reference in parser.references:
         target = _resolve(reference, page, origin)

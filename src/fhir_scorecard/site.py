@@ -442,6 +442,22 @@ See <a href="/how-we-grade/">how we grade</a>.</p>
 
 
 def org_page(name: str, cards: list[Scorecard], origin: str) -> Page:
+    # `audit.REQUIRED_JSONLD_FIELDS` has promised an Organization contract since the
+    # site contract was written, and no page had ever emitted one, so the promise
+    # went unkept and unchecked. This is the page that has an organization on it.
+    # Two properties, both already visible above: the name the registry records and
+    # the address this page answers on. Nothing about the organization is asserted
+    # that the page does not already say, and in particular no grade, rating or
+    # compliance statement appears here -- a grade is an observation of a surface,
+    # not a property of a company.
+    organization = json_ld(
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": name,
+            "url": f"{origin}/org/{org_slug(name)}/",
+        }
+    )
     rows = "".join(
         '<li class="surface-card">'
         f'<div>{_grade_badge(c.grade)}<span class="eyebrow">'
@@ -460,6 +476,7 @@ def org_page(name: str, cards: list[Scorecard], origin: str) -> Page:
 <p class="usa-alert__text">Observational snapshots of public surfaces, not audits or compliance
 determinations.</p>
 </div></div>
+{organization}
 """
     return Page(
         path=f"org/{org_slug(name)}",
@@ -766,6 +783,11 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <meta property="og:description" content="{html.escape(page.description)}">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{html.escape(canonical)}">
+<meta property="og:site_name" content="FHIR Scorecard">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{html.escape(page.title)}">
+<meta name="twitter:description" content="{html.escape(page.description)}">
 <meta name="theme-color" content="#162e51">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/uswds/css/uswds.min.css">

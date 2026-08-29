@@ -58,7 +58,12 @@ Three consequences:
    sides inserted at the same anchor and git cannot see that one is a superset. Six trivial
    but manual resolutions.
 3. **Merging #61 will not auto-close #55 to #60.** Their commits are not ancestors of the
-   result. They will sit open showing an empty diff and must be closed by hand.
+   result, and never become so. Checked against a simulated merge: the merge base of each of
+   them and the merged `main` is still `c587169`, so GitHub keeps showing each one its **full**
+   diff, not an empty one - #55 still reads as 11 files and 963 insertions. `git merge-tree`
+   against that merged `main` exits 1 for all six, so they read as *conflicting*, which is even
+   less like "already merged" than an empty diff would be. All six must be closed by hand with a
+   note saying they landed via #61.
 
 **Defects propagate down the stack the same way features do.** #57 carries a blocking defect, so
 #58, #59, #60 and #61 all carry it. #59 carries a second one, so #60 and #61 carry that too.
@@ -128,8 +133,9 @@ real and correctly levelled - but two rules wear a number that does not require 
 
 **Needs work, narrowly:** relabel those two as project rules the way the other two already are,
 and update the "twelve, each naming a criterion" sentence in `README.md`, `CHANGELOG.md`,
-`ROADMAP.md`, ADR 0004 and `pages.yml:139`. That makes it ten criterion-backed rules and four
-project rules.
+`ROADMAP.md`, ADR 0004 and `pages.yml:139`. That makes it **eight** criterion-backed rules and
+four project rules, not the ten and four written here first: twelve rules, two already labelled
+as this project's own, two more moving across.
 
 Two more worth fixing while there, neither blocking:
 
@@ -425,8 +431,9 @@ instead.
 4. **Merge #61 alone.** It contains all seven features. One merge, one CI cycle, no conflict
    resolution.
 5. **Close #55, #56, #57, #58, #59 and #60 by hand**, noting they landed via #61. They will **not**
-   auto-close - their commits are rebased copies and are not ancestors of the result - and they will
-   show an empty diff, which reads as "nothing to merge" rather than "already merged".
+   auto-close - their commits are rebased copies and are not ancestors of the result - and each
+   will keep showing its full diff against an unchanged merge base, and will report a merge
+   conflict, neither of which reads as "already merged".
 6. **Dispatch `pages.yml` manually** and watch the audit step, rather than waiting for 17:14 UTC.
 7. **Close issue #49**, which is already fixed (below).
 

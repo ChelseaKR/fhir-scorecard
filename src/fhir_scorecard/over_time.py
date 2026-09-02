@@ -10,6 +10,16 @@ The months are read out of the observation record itself rather than persisted, 
 is regenerated whole on every publish and needs no new state anywhere. A month appears because
 the record contains observations in it.
 
+**Both edges of that window are stated on the page, because both were reading as facts about
+the endpoints.** ``drift`` keeps a bounded rolling window of observations and writes
+``first_seen`` once without ever advancing it, so endpoints eventually enter the record in a
+month this report no longer covers, and every section says "No endpoint entered the record this
+month" - each sentence true of its month, the run of them reading as though nothing ever
+joined. And the last month covered runs only to the most recent observation, so its counts are
+a part of a month set beside whole ones. :func:`entered_before_the_window` and
+:func:`last_observed` answer both from the record itself; nothing here reads a clock, which is
+what keeps the page regenerable byte-for-byte from committed inputs.
+
 **What this report cannot say, and why.** It does not report grade changes. ``history.json``
 retains availability observations and a capability fingerprint; it has never retained a grade,
 so no run can look up what an endpoint was graded last month. Deriving one from the fingerprint
@@ -42,6 +52,11 @@ class MonthlySection:
     missed_at_least_once: tuple[str, ...]
     changes: tuple[tuple[str, str, tuple[str, ...]], ...]
     returns: tuple[tuple[str, str, int], ...]
+    #: How many endpoints entered the record before the first month this report covers. A
+    #: report-level fact, carried on every section on purpose: "No endpoint entered the record
+    #: this month" is the sentence it qualifies, and a reader meets that sentence inside a
+    #: section rather than at the top of the page. See :func:`entered_before_the_window`.
+    entered_before_the_window: int = 0
 
     @property
     def observations(self) -> int:
@@ -54,7 +69,42 @@ def _months(records: list[Record]) -> list[str]:
     )
 
 
-def _month_section(month: str, records: list[Record]) -> MonthlySection:
+def entered_before_the_window(records: list[Record], months: list[str]) -> int:
+    """Endpoints whose ``first_seen`` predates the earliest month this report can cover.
+
+    The months come out of ``record.observations``, which ``drift`` bounds at
+    ``_MAX_OBSERVATIONS`` (120, roughly four months of daily runs). ``first_seen`` is written
+    once and never advances. So after enough runs every endpoint's ``first_seen`` falls
+    permanently outside the retained window, every section renders "No endpoint entered the
+    record this month", and each of those sentences is *true* about its month and reads as
+    though nothing joined this project at all.
+
+    The sentence is not the fix; the missing count is. This is the number of endpoints the
+    months below cannot show entering, and the page prints it rather than leaving a reader to
+    infer a population of zero from a run of empty sections.
+    """
+    if not months:
+        return 0
+    return sum(
+        1
+        for record in records
+        if record.first_seen is not None and record.first_seen[:7] < months[0]
+    )
+
+
+def last_observed(records: list[Record]) -> str | None:
+    """The most recent observation date on the record, or ``None`` where there are none.
+
+    The final month a report covers runs to this date, not to the end of its calendar month,
+    and the page says so. Answering it from the record rather than from a clock is deliberate:
+    nothing in this module reads ``now()``, which is what lets the report be regenerated
+    byte-for-byte from committed inputs.
+    """
+    dates = [observation.date for record in records for observation in record.observations]
+    return max(dates) if dates else None
+
+
+def _month_section(month: str, records: list[Record], entered_before: int = 0) -> MonthlySection:
     observed: list[str] = []
     entered: list[str] = []
     clean: list[str] = []
@@ -84,12 +134,15 @@ def _month_section(month: str, records: list[Record]) -> MonthlySection:
         missed_at_least_once=tuple(sorted(missed)),
         changes=tuple(sorted(changes)),
         returns=tuple(sorted(returns)),
+        entered_before_the_window=entered_before,
     )
 
 
 def sections(records: list[Record]) -> list[MonthlySection]:
     """One section per calendar month the record holds observations in, oldest first."""
-    return [_month_section(month, records) for month in _months(records)]
+    months = _months(records)
+    before = entered_before_the_window(records, months)
+    return [_month_section(month, records, before) for month in months]
 
 
 def _list_or_sentence(names: tuple[str, ...], nothing: str) -> str:
@@ -140,6 +193,24 @@ def _returns_block(section: MonthlySection) -> str:
     )
 
 
+def _nobody_entered(section: MonthlySection) -> str:
+    """The empty "Entered the record" sentence, qualified where it would mislead.
+
+    True of its month either way. Unqualified in a report whose window still reaches back to
+    every endpoint's first sighting; qualified once it does not, because a run of sections all
+    saying nobody entered reads as a fact about the registry and is a fact about how far back
+    the retained observations go.
+    """
+    if not section.entered_before_the_window:
+        return "No endpoint entered the record this month."
+    count = section.entered_before_the_window
+    return (
+        f"No endpoint entered the record this month. {count} "
+        f"{'endpoint' if count == 1 else 'endpoints'} entered before the earliest month this "
+        "report covers, so no section below can show them entering."
+    )
+
+
 def _section_html(section: MonthlySection) -> str:
     return f"""
 <h3>{html.escape(section.month)}</h3>
@@ -148,7 +219,7 @@ def _section_html(section: MonthlySection) -> str:
 {len(section.missed_at_least_once)} missed at least one. An endpoint absent from both numbers
 was not observed at all this month, which is a fact about this project's runs.</p>
 <h4>Entered the record</h4>
-{_list_or_sentence(section.entered, "No endpoint entered the record this month.")}
+{_list_or_sentence(section.entered, _nobody_entered(section))}
 <h4>Missed at least one check</h4>
 {
         _list_or_sentence(
@@ -160,6 +231,39 @@ was not observed at all this month, which is a fact about this project's runs.</
 {_changes_block(section)}
 {_returns_block(section)}
 """
+
+
+def _what_the_window_leaves_out(records: list[Record], built: list[MonthlySection]) -> str:
+    """The two edges of the window, stated rather than left for a reader to discover.
+
+    Both are about the *record*, not about the endpoints, and both were being presented as
+    though they were about the endpoints.
+
+    The far edge: ``drift`` keeps a bounded rolling window of observations and never advances
+    ``first_seen``, so endpoints that entered before the retained window exist and no section
+    can show them entering. The near edge: the last month covered runs only to the most recent
+    observation, so its counts are a partial month and a reader comparing it to the month
+    before it is comparing a part to a whole. Neither sentence needs a clock; both come out of
+    the record, which is what keeps this page byte-for-byte regenerable.
+    """
+    parts = []
+    before = built[0].entered_before_the_window if built else 0
+    if before:
+        parts.append(
+            f"<p>{before} {'endpoint' if before == 1 else 'endpoints'} entered the record "
+            f"before {html.escape(built[0].month)}, the earliest month this report still "
+            "covers, so no section below shows them entering. The observation record is a "
+            "bounded rolling window; an endpoint's first sighting eventually falls out of "
+            "it.</p>"
+        )
+    latest = last_observed(records)
+    if latest is not None and built:
+        parts.append(
+            f"<p>{html.escape(built[-1].month)} is covered only as far as "
+            f"{html.escape(latest)}, the most recent observation on the record. Its counts are "
+            "a part of that month, not all of it.</p>"
+        )
+    return "".join(parts)
 
 
 def page(records: list[Record], origin: str) -> Page:
@@ -183,6 +287,7 @@ def page(records: list[Record], origin: str) -> Page:
             f"{tally['changes']} recorded declaration "
             f"{'change' if tally['changes'] == 1 else 'changes'} and {tally['returns']} "
             f"recorded {'return' if tally['returns'] == 1 else 'returns'}.</p>"
+            + _what_the_window_leaves_out(records, built)
         )
         body_sections = "".join(_section_html(section) for section in built)
     body = f"""

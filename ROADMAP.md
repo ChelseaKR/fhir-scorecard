@@ -302,11 +302,24 @@ same breath as any rate it prints.
 ### Phase 12: conformance over time
 
 *Delivers:* phase 5's **conformance-over-time report**, in the half a program can produce:
-the computed sections of a dated report - what the graded population looked like at the
-start of the window, what it looks like now, which endpoints changed grade, which changed
-what they declare, and what share of the registry was observable throughout. The editorial
-front door phase 5 asks for is the maintainer's to write; this phase delivers the numbers it
-would be written around, and says in the document that the prose is not generated.
+the computed sections of a dated report - who was observed in each month of the window, who
+entered the record, who answered every check and who missed at least one, and what changed in
+what they declare. The editorial front door phase 5 asks for is the maintainer's to write;
+this phase delivers the numbers it would be written around, and says in the document that the
+prose is not generated.
+
+*Not delivered, and the page says so rather than this file promising it:* **which endpoints
+changed grade**, and with it what the graded population looked like at the start of the
+window. `history.json` retains availability observations and a capability fingerprint and has
+never retained a grade, so no run can look up last month's letter, and deriving one from the
+fingerprint would invent a measurement nobody took.
+`test_the_committed_history_really_does_not_retain_a_grade` fails the build if a grade ever
+starts being recorded, at which point this is worth revisiting. Recording one per run changes
+what the daily workflow persists, which is the maintainer's call rather than this phase's.
+**What share of the registry was observable throughout** is not delivered either: the
+observation window is bounded and rolling, so "throughout" names a period the record stops
+covering, and the report states the window's two edges instead of computing a share across
+one it cannot see all of.
 
 *Depends on:* phases 8 and 9.
 

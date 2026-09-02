@@ -162,6 +162,33 @@ Merged changes land here until the next tag.
 
 ### Fixed
 
+- **A return whose dates the record does not hold was published as though it had them.** The
+  refusal that drops an undated declaration *change* rather than dating it `unknown` was
+  one-sided: it was never applied to returns. `drift._apply_alternation_rule` rebuilds a log
+  written before the alternation rule, and where it cannot re-derive a date from the record it
+  writes the literal string `unknown` into `first_return`, `last_return` or `state_first_seen`.
+  Both readers checked `isinstance(value, str)`, which that sentinel passes, so the endpoint page
+  could render *"unknown to unknown: returned 9 times to a declaration first observed unknown"* -
+  a window and a count, with no window behind either. `drift._alternation_lines` had a second
+  route to the same place: it formatted the fields through `dict.get`, so a key that was missing
+  altogether printed as the literal `None`, on a line rendered verbatim on the endpoint page and
+  in the single-file report.
+
+  `drift.UNDATED` names the sentinel and `drift.undated` is now the only way anything reads these
+  fields, so the writer and the readers cannot disagree about its spelling. A missing key, a
+  non-string and the sentinel are one fact - this record cannot say when - and a return whose
+  window is not on the record is dropped, exactly as an undated event has always been.
+  `state_first_seen` is treated as the detail it is rather than as the window, for the reason a
+  change with no detail still keeps its date: it becomes `None`, the page says the record does
+  not date that first sighting, and `api/history/<id>.json` carries `null`. It used to default to
+  the string `"an earlier run"` - a phrase this project supplied and then rendered as *"first
+  observed an earlier run"*, which reads as something that was observed.
+
+  Latent rather than live: neither `data/history.json` nor the 2026-09-01 state of
+  `capability-history` holds a sentinel or a missing field in any of its alternation records, so
+  nothing wrong has been published. It is reachable from a legacy-shaped entry, which is the
+  only input `_apply_alternation_rule` runs on at all.
+
 - **An endpoint that has never once answered was told its declaration had not changed.** The
   declaration timeline's empty case keyed on whether any observation existed, not on whether
   any observation *answered*. A declaration only exists on a run where the endpoint answered,

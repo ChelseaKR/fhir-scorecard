@@ -27,7 +27,7 @@ from fhir_scorecard.archive import (
     window,
 )
 from fhir_scorecard.cli import main
-from fhir_scorecard.drift import META_KEY, MIN_OBSERVATIONS_TO_REPORT
+from fhir_scorecard.drift import META_KEY, MIN_OBSERVATIONS_TO_REPORT, UNDATED
 from fhir_scorecard.grading import Scorecard
 from fhir_scorecard.site import DEFAULT_ORIGIN
 
@@ -453,6 +453,57 @@ def test_an_undated_or_malformed_event_is_dropped_rather_than_dated_unknown() ->
     (record,) = records(history, [_card("acme")])
     assert [change.date for change in record.changes] == ["2026-08-09"]
     assert record.returns == ()
+
+
+@pytest.mark.parametrize("field", ["first_return", "last_return"])
+def test_the_undated_sentinel_is_read_as_no_date_and_not_as_one(field: str) -> None:
+    """The refusal above was one-sided, and this is the side it was missing.
+
+    ``drift._apply_alternation_rule`` writes ``drift.UNDATED`` where it could not re-derive a
+    date, so the key is present and its value is a string, and an ``isinstance(..., str)`` check
+    let it straight through to the page as "unknown to unknown: returned 9 times". A window and a
+    count, and there was no window. An absent key and the sentinel are the same fact and have to
+    read the same.
+    """
+    sentinel = _with_events("acme", [], [dict(ONE_RETURN[0], **{field: UNDATED})])
+    (record,) = records(sentinel, [_card("acme")])
+    assert record.returns == ()
+    body = _text(record_page(record, DEFAULT_ORIGIN).body)
+    assert UNDATED not in body
+    assert "Declarations this endpoint returns to" not in body
+    assert json.loads(history_json(record, "2026-08-27"))["declaration_returns"] == []
+
+    kept = _with_events("acme", [], ONE_RETURN)
+    assert len(records(kept, [_card("acme")])[0].returns) == 1, "the control must still be kept"
+
+
+def test_a_return_whose_first_sighting_is_undated_keeps_its_window_and_says_so() -> None:
+    """A missing ``state_first_seen`` is a missing *detail*, not a missing window, so the return
+    is still published - the same reason a change with no detail keeps its date. What must not
+    survive is the stand-in: ``"an earlier run"`` was supplied by this module and then rendered
+    as "first observed an earlier run", which reads as a date the record held.
+    """
+    for value in ({}, {"state_first_seen": UNDATED}, {"state_first_seen": None}):
+        entry = dict(ONE_RETURN[0])
+        entry.pop("state_first_seen")
+        (record,) = records(_with_events("acme", [], [entry | value]), [_card("acme")])
+        (item,) = record.returns
+        assert item.state_first_seen is None
+        assert item.window == "2026-08-08 to 2026-08-26"
+        body = _text(record_page(record, DEFAULT_ORIGIN).body)
+        assert "returned 9 times to a declaration whose first sighting this record does" in body
+        assert "an earlier run" not in body
+        assert UNDATED not in body
+        payload = json.loads(history_json(record, "2026-08-27"))
+        assert payload["declaration_returns"][0]["state_first_seen"] is None
+
+
+def test_a_return_that_is_dated_still_publishes_its_first_sighting() -> None:
+    """The other side of the refusal above: a date the record does hold is still printed."""
+    (record,) = records(_with_events("acme", [], ONE_RETURN), [_card("acme")])
+    body = _text(record_page(record, DEFAULT_ORIGIN).body)
+    assert "returned 9 times to a declaration first observed 2026-08-08" in body
+    assert "whose first sighting this record does not date" not in body
 
 
 def test_a_change_recorded_without_detail_still_appears_with_its_date() -> None:

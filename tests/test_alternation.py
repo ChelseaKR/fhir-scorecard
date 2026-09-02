@@ -21,7 +21,7 @@ from conftest import good_capability, good_smart
 
 from fhir_scorecard.capability import parse_capability, parse_smart
 from fhir_scorecard.dataset import write_dataset
-from fhir_scorecard.drift import fingerprint, observe, state_digest
+from fhir_scorecard.drift import UNDATED, fingerprint, observe, state_digest
 from fhir_scorecard.fetch import FetchResult
 from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.registry import Endpoint
@@ -244,6 +244,56 @@ def test_a_malformed_alternation_record_is_skipped_not_rendered() -> None:
     history: dict[str, Any] = {"x": {"alternations": ["not a record"], "observations": []}}
     result = observe(history, "x", _facts("HAPI", "1.0.0"), "2026-09-01")
     assert result.alternations == ()
+
+
+DATED_RETURN: dict[str, Any] = {
+    "digest": "b4924cf854242db6",
+    "first_return": "2026-08-08",
+    "last_return": "2026-08-26",
+    "returns": 9,
+    "state_first_seen": "2026-08-08",
+    "changes": [],
+}
+
+
+def _published(record: dict[str, Any]) -> tuple[str, ...]:
+    history: dict[str, Any] = {"x": {"alternations": [record], "observations": []}}
+    return observe(history, "x", _facts("HAPI", "1.0.0"), "2026-09-01").alternations
+
+
+def test_the_published_return_sentence_never_invents_a_date() -> None:
+    """These lines are rendered verbatim on the endpoint page and in the report, and both ways a
+    date could go missing formatted as one.
+
+    ``_apply_alternation_rule`` writes ``UNDATED`` when it cannot re-derive a date, which printed
+    as "unknown to unknown: returned 9 times"; and a key missing altogether printed through
+    ``dict.get`` as the literal "None". Both read as a measurement. A return whose window is not
+    on the record is dropped, exactly as an undated event is.
+    """
+    control = _published(DATED_RETURN)
+    assert control == (
+        "2026-08-08 to 2026-08-26: returned 9 times to a declaration first observed 2026-08-08"
+        " - counted, not recorded as a new change each time",
+    )
+
+    for missing in ("first_return", "last_return"):
+        assert _published(dict(DATED_RETURN, **{missing: UNDATED})) == ()
+        assert _published({k: v for k, v in DATED_RETURN.items() if k != missing}) == ()
+
+
+def test_a_return_whose_first_sighting_is_undated_is_still_published_and_says_so() -> None:
+    """The window is the return; ``state_first_seen`` is a detail hanging off it. Dropping the
+    return over a missing detail would lose a window that really was recorded, so the sentence
+    says what it does not know instead."""
+    for value in ({"state_first_seen": UNDATED}, {}):
+        record = {k: v for k, v in DATED_RETURN.items() if k != "state_first_seen"} | value
+        (line,) = _published(record)
+        assert (
+            "returned 9 times to a declaration whose first sighting this record does not date"
+            in line
+        )
+        assert "2026-08-08 to 2026-08-26" in line
+        assert UNDATED not in line and "None" not in line
 
 
 def test_an_outage_does_not_lose_the_alternation_record() -> None:

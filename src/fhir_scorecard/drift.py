@@ -48,6 +48,27 @@ _MAX_OBSERVATIONS = 120
 # informational until a run has this many observations behind it.
 MIN_OBSERVATIONS_TO_REPORT = 14
 
+#: Written into an alternation record in place of a date the history could not supply.
+#:
+#: :func:`_apply_alternation_rule` rebuilds an old log under the current rule, and an event whose
+#: date the record never held cannot be given one. The sentinel exists so the file says which
+#: dates are absent instead of leaving a key out, but it is *not* a date and must never be
+#: rendered as one: "unknown to unknown: returned 3 times" reads as a measurement, and it is the
+#: absence of one. :func:`undated` is the only way anything should read these fields, and
+#: ``archive`` imports it so the writer and the readers cannot disagree about the spelling.
+UNDATED = "unknown"
+
+
+def undated(value: Any) -> str | None:
+    """The date in ``value``, or ``None`` where the record does not hold one.
+
+    ``None``, a non-string, and the :data:`UNDATED` sentinel are the same fact - this record
+    cannot say when - and they have to read the same, because a caller that checked only
+    ``isinstance(value, str)`` accepted the sentinel and published it as a date.
+    """
+    return value if isinstance(value, str) and value != UNDATED else None
+
+
 _FINGERPRINT_FIELDS = (
     "fhir_version",
     "software_name",
@@ -323,7 +344,7 @@ def _apply_alternation_rule(entry: dict[str, Any], current: dict[str, Any] | Non
         # the cut rather than from the endpoint's first observation.
         previous_event = events[cut - 1] if cut > 0 else None
         candidate = previous_event.get("date") if isinstance(previous_event, dict) else None
-        oldest_first_seen = candidate if isinstance(candidate, str) else "unknown"
+        oldest_first_seen = candidate if isinstance(candidate, str) else UNDATED
 
     states = _remember([], state_digest(derived[0]), oldest_first_seen)
     rebuilt = list(events[:cut])
@@ -332,7 +353,7 @@ def _apply_alternation_rule(entry: dict[str, Any], current: dict[str, Any] | Non
         after = derived[offset + 1]
         digest = state_digest(after)
         date = event.get("date") if isinstance(event, dict) else None
-        date = date if isinstance(date, str) else "unknown"
+        date = date if isinstance(date, str) else UNDATED
         known = _first_seen_of(states, digest)
         if known is not None:
             changes = event.get("changes") if isinstance(event, dict) else None
@@ -353,6 +374,17 @@ def _apply_alternation_rule(entry: dict[str, Any], current: dict[str, Any] | Non
 
 
 def _alternation_lines(entry: dict[str, Any]) -> tuple[str, ...]:
+    """One published sentence per alternation record, and none of them invents a date.
+
+    These lines are rendered verbatim on the endpoint page (``site.py``) and in the report, so a
+    missing date reached readers twice over: ``record.get('first_return')`` formats a missing key
+    as the literal ``None``, and :data:`UNDATED` formats as the word ``unknown``. Both read as
+    dates. A record whose window this history does not hold is **dropped**, which is what
+    :func:`archive._returns` does with the same record and what an undated event has always got:
+    a return is a thing that happened on some days, and a row that cannot say which is not the
+    shorter version of that sentence. ``state_first_seen`` is a detail rather than the window, so
+    its absence is said in words and the return is still published.
+    """
     raw = entry.get("alternations")
     if not isinstance(raw, list):
         return ()
@@ -360,18 +392,22 @@ def _alternation_lines(entry: dict[str, Any]) -> tuple[str, ...]:
     for record in raw:
         if not isinstance(record, dict):
             continue
+        first, last = undated(record.get("first_return")), undated(record.get("last_return"))
+        if first is None or last is None:
+            continue
         returns = int(record.get("returns", 0) or 0)
         changes = record.get("changes")
         detail = "; ".join(str(c) for c in changes) if isinstance(changes, list) and changes else ""
-        window = (
-            f"{record.get('first_return')}"
-            if record.get("first_return") == record.get("last_return")
-            else f"{record.get('first_return')} to {record.get('last_return')}"
-        )
+        window = first if first == last else f"{first} to {last}"
         times = "once" if returns == 1 else f"{returns} times"
+        state_first_seen = undated(record.get("state_first_seen"))
+        origin = (
+            f"first observed {state_first_seen}"
+            if state_first_seen is not None
+            else "whose first sighting this record does not date"
+        )
         lines.append(
-            f"{window}: returned {times} to a declaration first observed "
-            f"{record.get('state_first_seen')}"
+            f"{window}: returned {times} to a declaration {origin}"
             + (f" ({detail})" if detail else "")
             + " - counted, not recorded as a new change each time"
         )

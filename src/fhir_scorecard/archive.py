@@ -41,7 +41,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from fhir_scorecard.drift import META_KEY, MIN_OBSERVATIONS_TO_REPORT
+from fhir_scorecard.drift import META_KEY, MIN_OBSERVATIONS_TO_REPORT, undated
 from fhir_scorecard.grading import Scorecard
 from fhir_scorecard.site import Page, json_ld
 
@@ -74,7 +74,10 @@ class Return:
     first_return: str
     last_return: str
     times: int
-    state_first_seen: str
+    #: When the declaration returned to was first seen, or ``None`` where the history does not
+    #: hold that date. Never a stand-in phrase: ``"an earlier run"`` was supplied by this module
+    #: rather than read from the record, and rendered as though it had been observed.
+    state_first_seen: str | None
     changes: tuple[str, ...]
 
     @property
@@ -191,21 +194,36 @@ def _changes(entry: dict[str, Any]) -> tuple[Change, ...]:
 
 
 def _returns(entry: dict[str, Any]) -> tuple[Return, ...]:
+    """Recorded returns, dropping any whose window this history cannot date.
+
+    Same rule as :func:`_changes`, and it has to be, because the refusal was one-sided.
+    ``drift`` writes :data:`drift.UNDATED` where it could not re-derive a date, and an
+    ``isinstance(..., str)`` check accepts that sentinel: the page rendered "unknown to unknown:
+    returned 3 times", which is a window and a count, and there was no window.
+    :func:`drift.undated` reads a missing key, a non-string and the sentinel as the one fact they
+    are.
+
+    ``state_first_seen`` is treated differently on purpose, for the reason
+    :func:`_changes` keeps an event whose detail is missing: it is a detail hanging off the
+    return, not the return's own dates. It becomes ``None`` and the page says so, rather than
+    defaulting to ``"an earlier run"`` - a phrase this module supplied and then rendered as
+    "first observed an earlier run", which reads as something the record held.
+    """
     raw = entry.get("alternations")
     built = []
     for record in raw if isinstance(raw, list) else []:
         if not isinstance(record, dict):
             continue
-        first = record.get("first_return")
-        last = record.get("last_return")
-        if not isinstance(first, str) or not isinstance(last, str):
+        first = undated(record.get("first_return"))
+        last = undated(record.get("last_return"))
+        if first is None or last is None:
             continue
         built.append(
             Return(
                 first_return=first,
                 last_return=last,
                 times=int(record.get("returns", 0) or 0),
-                state_first_seen=str(record.get("state_first_seen", "an earlier run")),
+                state_first_seen=undated(record.get("state_first_seen")),
                 changes=_strings(record.get("changes")),
             )
         )
@@ -247,6 +265,8 @@ def history_json(record: Record, generated_at: str) -> str:
                     "first_return": item.first_return,
                     "last_return": item.last_return,
                     "times": item.times,
+                    # Null, never a phrase: a consumer that read "an earlier run" here would
+                    # have no way to tell a date this record holds from one it does not.
                     "state_first_seen": item.state_first_seen,
                     "changes": list(item.changes),
                 }
@@ -343,8 +363,12 @@ def _timeline(record: Record) -> str:
     if record.returns:
         items = "".join(
             f"<li><strong>{html.escape(item.window)}</strong>: returned "
-            f"{'once' if item.times == 1 else f'{item.times} times'} to a declaration first "
-            f"observed {html.escape(item.state_first_seen)}"
+            f"{'once' if item.times == 1 else f'{item.times} times'} to a declaration "
+            + (
+                f"first observed {html.escape(item.state_first_seen)}"
+                if item.state_first_seen is not None
+                else "whose first sighting this record does not date"
+            )
             + (
                 " (" + "; ".join(f"<code>{html.escape(one)}</code>" for one in item.changes) + ")"
                 if item.changes

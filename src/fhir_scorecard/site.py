@@ -769,8 +769,31 @@ def _site_path_prefix(origin: str) -> str:
 _INTERNAL_LINK = re.compile(r'\b(href|src)="/(?!/)')
 
 
+#: The social card `write_assets` copies into every build, relative to the site root.
+SOCIAL_CARD = "assets/social-card.png"
+SOCIAL_CARD_SIZE = (1200, 630)
+SOCIAL_CARD_ALT = (
+    "FHIR Scorecard: a plain-language operational scorecard for publicly observable "
+    "FHIR endpoints. Rescored daily; every finding cites the spec."
+)
+
+
+def social_card_url(origin: str) -> str:
+    """The absolute address of the card, which is the only kind og:image may carry.
+
+    A crawler reads this head from somewhere that is not this origin, so the
+    root-relative form every other asset on the page uses would resolve against
+    the wrong site or against nothing. It is built from ``origin`` rather than
+    hardcoded for the same reason internal links are: this site was served under
+    a project path until 2026-08-19, and a hardcoded host is a broken preview the
+    day the hosting shape changes.
+    """
+    return f"{origin.rstrip('/')}/{SOCIAL_CARD}"
+
+
 def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str:
     prefix = _site_path_prefix(origin)
+    card = social_card_url(origin)
     document = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -785,9 +808,16 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <meta property="og:url" content="{html.escape(canonical)}">
 <meta property="og:site_name" content="FHIR Scorecard">
 <meta property="og:locale" content="en_US">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="{html.escape(card)}">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="{SOCIAL_CARD_SIZE[0]}">
+<meta property="og:image:height" content="{SOCIAL_CARD_SIZE[1]}">
+<meta property="og:image:alt" content="{html.escape(SOCIAL_CARD_ALT)}">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{html.escape(page.title)}">
 <meta name="twitter:description" content="{html.escape(page.description)}">
+<meta name="twitter:image" content="{html.escape(card)}">
+<meta name="twitter:image:alt" content="{html.escape(SOCIAL_CARD_ALT)}">
 <meta name="theme-color" content="#162e51">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/uswds/css/uswds.min.css">

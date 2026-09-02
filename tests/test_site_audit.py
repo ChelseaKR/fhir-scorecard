@@ -456,7 +456,8 @@ def test_a_half_written_share_card_is_caught(site: Path) -> None:
     page = site / "payers" / "index.html"
     text = page.read_text(encoding="utf-8")
     page.write_text(
-        text.replace('<meta name="twitter:card" content="summary">\n', ""), encoding="utf-8"
+        text.replace('<meta name="twitter:card" content="summary_large_image">\n', ""),
+        encoding="utf-8",
     )
     assert "SOCIAL_CARD_INCOMPLETE" in _codes(site)
 
@@ -484,6 +485,51 @@ def test_a_card_addressing_another_page_is_caught(site: Path) -> None:
         text.replace(
             f'<meta property="og:url" content="{DEFAULT_ORIGIN}/payers/">',
             f'<meta property="og:url" content="{DEFAULT_ORIGIN}/providers/">',
+        ),
+        encoding="utf-8",
+    )
+    assert "SOCIAL_CARD_INCOMPLETE" in _codes(site)
+
+
+def test_a_card_naming_an_image_the_build_did_not_write_is_caught(site: Path) -> None:
+    """The quiet half of a share card: the head is well-formed and the preview is blank.
+
+    Nothing about the page itself looks wrong, no internal link is broken, and the
+    only place the defect is visible is somewhere else's link unfurler.
+    """
+    page = site / "payers" / "index.html"
+    text = page.read_text(encoding="utf-8")
+    page.write_text(
+        text.replace("/assets/social-card.png", "/assets/social-card-v2.png"), encoding="utf-8"
+    )
+    findings = audit_site(site, DEFAULT_ORIGIN)
+    assert "SOCIAL_CARD_INCOMPLETE" in [f.code for f in findings]
+    assert any("was not built" in f.detail for f in findings)
+
+
+def test_a_card_whose_two_image_tags_disagree_is_caught(site: Path) -> None:
+    """Two addresses for one card is two cards, and only one of them was reviewed."""
+    page = site / "payers" / "index.html"
+    text = page.read_text(encoding="utf-8")
+    card = f'<meta name="twitter:image" content="{DEFAULT_ORIGIN}/assets/social-card.png">'
+    assert card in text
+    page.write_text(
+        text.replace(
+            card, f'<meta name="twitter:image" content="{DEFAULT_ORIGIN}/badge/acme.svg">'
+        ),
+        encoding="utf-8",
+    )
+    assert "SOCIAL_CARD_INCOMPLETE" in _codes(site)
+
+
+def test_a_card_image_hosted_somewhere_else_is_caught(site: Path) -> None:
+    """A card served from another origin is a preview this project cannot keep working."""
+    page = site / "payers" / "index.html"
+    text = page.read_text(encoding="utf-8")
+    page.write_text(
+        text.replace(
+            f'<meta property="og:image" content="{DEFAULT_ORIGIN}/assets/social-card.png">',
+            '<meta property="og:image" content="https://cdn.example.test/card.png">',
         ),
         encoding="utf-8",
     )

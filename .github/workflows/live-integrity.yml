@@ -14,11 +14,17 @@
 # numbers that legitimately differ from the published ones, which is a moving target
 # and would produce noise rather than signal.
 #
-# So it checks what IS a pure function of committed inputs, exactly: all 57 files under
+# So it checks what IS a pure function of committed inputs, exactly: all 58 files under
 # src/fhir_scorecard/assets, which write_assets copies verbatim; robots.txt and
 # dataset.schema.json, which are pure functions of the origin string; and the identity
 # half of api/index.json and dataset.csv, meaning the endpoint set and every field that
 # comes from data/registry.json rather than from a probe.
+#
+# One rendered page is read, for four tags. The home page's og:image and twitter:image
+# are site.social_card_url(origin) and nothing else, and og:title, og:description and
+# og:image:alt have to be there. They carry no grade, latency or timestamp, so they are
+# as pure as the two documents above -- and a head naming a card the deployment does not
+# serve is invisible from inside a checkout and blank everywhere the page is shared.
 #
 # Plus the one thing no rebuild would catch and no audit does: the site has to be
 # recent. A site frozen a year ago still audits clean, so api/index.json's generated_at

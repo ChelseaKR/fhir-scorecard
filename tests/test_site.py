@@ -10,7 +10,15 @@ from fhir_scorecard.capability import parse_capability, parse_smart
 from fhir_scorecard.cli import main
 from fhir_scorecard.fetch import FetchResult
 from fhir_scorecard.grading import build_scorecard
-from fhir_scorecard.site import endpoint_page, org_slug, robots, sitemap, status_badge
+from fhir_scorecard.site import (
+    SOCIAL_CARD_SIZE,
+    endpoint_page,
+    org_slug,
+    robots,
+    sitemap,
+    social_card_url,
+    status_badge,
+)
 
 
 def _card(eid: str = "acme", kind: str = "payer", name: str = "Acme Health"):
@@ -308,3 +316,89 @@ def test_the_category_cards_keep_their_grade_colours_and_title_colour() -> None:
         "the letter cell's own colour is ink, so currentcolor paints it black"
     )
     assert ".category-card > a:visited" in css, "the card title must pin its visited colour"
+
+
+def _png_size(data: bytes) -> tuple[int, int]:
+    """Width and height out of a PNG's IHDR, so reading the card needs no image library."""
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", "not a PNG"
+    assert data[12:16] == b"IHDR", "the first chunk of a PNG is IHDR"
+    return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+
+
+def test_the_share_card_is_published_and_the_head_addresses_it(tmp_path: Path) -> None:
+    """og:image has to name a file this build actually wrote, at an absolute address.
+
+    Until 2026-09 this site emitted og:title, og:description and twitter:card=summary and
+    no image at all, so every share of fhir.chelseakr.com rendered as a line of text.
+    The failure mode a card invites is the opposite and quieter: a head that names an
+    image nothing publishes previews as a blank rectangle, and nothing about the page
+    itself looks wrong.
+    """
+    for eid in ("alpha", "alpha-dir"):
+        d = tmp_path / "fixtures" / eid
+        d.mkdir(parents=True)
+        (d / "metadata.json").write_text(json.dumps(good_capability()))
+        (d / "smart.json").write_text(json.dumps(good_smart()))
+    out = tmp_path / "site"
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(_registry(tmp_path)),
+                "--offline",
+                "--fixtures",
+                str(tmp_path / "fixtures"),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+                "--origin",
+                "https://example.test",
+            ]
+        )
+        == 0
+    )
+
+    published = out / "assets" / "social-card.png"
+    assert published.is_file(), "write_assets did not publish the card the head names"
+    assert _png_size(published.read_bytes()) == SOCIAL_CARD_SIZE, (
+        "the card is not the size the head declares, and every preview crops to what the "
+        "head declares"
+    )
+
+    for rel in ("index.html", "endpoint/alpha/index.html"):
+        page = (out / rel).read_text()
+        for tag in ("og:image", "twitter:image"):
+            assert 'content="https://example.test/assets/social-card.png"' in page, (
+                f"{rel} does not address the built card"
+            )
+            assert tag in page, f"{rel} declares no {tag}"
+        assert '<meta name="twitter:card" content="summary_large_image">' in page, (
+            f"{rel} declares a card layout other than the large one, which crops a "
+            f"1200x630 image to a square thumbnail"
+        )
+        alt = re.search(r'<meta property="og:image:alt" content="([^"]*)">', page)
+        assert alt is not None and alt.group(1).strip(), (
+            f"{rel} has no og:image:alt: in a preview the card carries the page's only "
+            f"words, and a reader who cannot see it gets none of them"
+        )
+        assert f'<meta property="og:image:width" content="{SOCIAL_CARD_SIZE[0]}">' in page
+        assert f'<meta property="og:image:height" content="{SOCIAL_CARD_SIZE[1]}">' in page
+
+
+def test_the_card_address_follows_the_origin_shape() -> None:
+    """A hardcoded host is a broken preview the day the hosting shape changes.
+
+    Which is not hypothetical here: internal links carried a hardcoded /fhir-scorecard/
+    until the custom domain started serving, and every one of them broke that day.
+    """
+    assert social_card_url("https://fhir.chelseakr.com") == (
+        "https://fhir.chelseakr.com/assets/social-card.png"
+    )
+    assert social_card_url("https://fhir.chelseakr.com/") == (
+        "https://fhir.chelseakr.com/assets/social-card.png"
+    )
+    assert social_card_url("https://host.example/fhir-scorecard") == (
+        "https://host.example/fhir-scorecard/assets/social-card.png"
+    )

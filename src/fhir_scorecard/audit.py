@@ -79,6 +79,8 @@ SOCIAL_TAGS: tuple[str, ...] = (
     "twitter:card",
     "twitter:title",
     "twitter:description",
+    "og:image",
+    "twitter:image",
 )
 
 
@@ -302,7 +304,50 @@ def _check_canonical(page: str, parser: _PageParser, origin: str) -> list[SiteFi
     return []
 
 
-def _check_social(page: str, parser: _PageParser, origin: str) -> list[SiteFinding]:
+def _check_card_image(
+    root: Path, where: str, parser: _PageParser, origin: str
+) -> list[SiteFinding]:
+    """The card's image has to be absolute, on this origin, and actually published.
+
+    ``og:image`` is the one address on this page that is resolved by something
+    which is not this origin, so the root-relative form every other asset uses
+    would resolve against the wrong site or against nothing. And an image this
+    build did not write is a blank rectangle everywhere the page is shared, with
+    nothing about the page itself looking wrong -- which is the only reason this
+    is checked rather than trusted.
+    """
+    image = parser.metas.get("og:image")
+    if image is None:
+        return []
+    findings = []
+    twitter = parser.metas.get("twitter:image")
+    if twitter is not None and twitter != image:
+        findings.append(
+            SiteFinding(
+                "SOCIAL_CARD_INCOMPLETE",
+                where,
+                "og:image and twitter:image address different files",
+            )
+        )
+    prefix = f"{origin.rstrip('/')}/"
+    if not image.startswith(prefix):
+        findings.append(
+            SiteFinding(
+                "SOCIAL_CARD_INCOMPLETE", where, f"og:image {image} is not an address on {origin}"
+            )
+        )
+        return findings
+    relative = image[len(prefix) :]
+    if not (root / relative).is_file():
+        findings.append(
+            SiteFinding(
+                "SOCIAL_CARD_INCOMPLETE", where, f"og:image names {relative}, which was not built"
+            )
+        )
+    return findings
+
+
+def _check_social(root: Path, page: str, parser: _PageParser, origin: str) -> list[SiteFinding]:
     """A share card must be complete, and must say what the page says.
 
     The site's copy is reviewed; a card is copy too, and one that drifts from the page
@@ -338,7 +383,7 @@ def _check_social(page: str, parser: _PageParser, origin: str) -> list[SiteFindi
         findings.append(
             SiteFinding("SOCIAL_CARD_INCOMPLETE", where, f"{tag} does not match {what}")
         )
-    return findings
+    return findings + _check_card_image(root, where, parser, origin)
 
 
 def _check_jsonld(page: str, parser: _PageParser) -> list[SiteFinding]:
@@ -382,7 +427,7 @@ def _read_page(root: Path, page: str, origin: str) -> tuple[list[SiteFinding], s
     findings = (
         _check_canonical(page, parser, origin)
         + _check_jsonld(page, parser)
-        + _check_social(page, parser, origin)
+        + _check_social(root, page, parser, origin)
     )
     links: set[str] = set()
     for reference in parser.references:

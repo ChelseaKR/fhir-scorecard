@@ -322,9 +322,16 @@ The one command that does call a model is `narrate`
 
 ```bash
 uv sync --all-extras                                     # adds the `ai` extra: the public anthropic SDK
-FHIR_AI_PROVIDER=bedrock FHIR_AI_MODEL=global.anthropic.claude-sonnet-4-6 \
-  fhir-scorecard narrate --endpoint cms-blue-button-2 --language es
+FHIR_AI_PROVIDER=bedrock fhir-scorecard narrate --endpoint cms-blue-button-2 --language es
 ```
+
+`FHIR_AI_MODEL` overrides the model; each provider's default is one that provider can actually
+be asked for, and they are deliberately not the same. The Anthropic API defaults to
+`claude-sonnet-5`. Bedrock defaults to `global.anthropic.claude-sonnet-4-6`, because the AWS
+account this project's evals run on is not entitled to Sonnet 5 there - `InvokeModel` returns
+`AccessDeniedException` while the entitlement API reports the model AUTHORIZED, so entitlement
+can only be established by invoking. The recorded runs in `evals/ai/results/` are all on the
+Bedrock default.
 
 It explains one published scorecard in plain language. The grade and findings are inputs it
 cannot change; every sentence it prints quotes a passage of the cited page that was verified

@@ -162,6 +162,42 @@ Merged changes land here until the next tag.
 
 ### Fixed
 
+- **The conformance-over-time report presented the limits of its own window as facts about the
+  endpoints.** Both edges of the window were unstated, and both read as findings.
+
+  The far edge: the months come out of `record.observations`, which `drift` bounds at 120 -
+  roughly four months of daily runs - while `first_seen` is written once and never advances.
+  After enough runs every endpoint's first sighting falls permanently outside the retained
+  window, and every section renders *"No endpoint entered the record this month"*. Each of those
+  sentences is true of its month; the run of them reads as though nothing ever joined this
+  project. The page now counts the endpoints that entered before the earliest month it covers
+  and says so, in the report summary and in the qualified sentence itself, so a reader meets the
+  reason where they meet the empty section. Where the window still reaches every first sighting
+  the count is zero and nothing extra is printed, which is asserted from that side too.
+
+  The near edge: the last month covered runs only to the most recent observation on the record,
+  so its counts were a part of a month set beside whole ones with nothing saying which. The page
+  now names that date. Both figures come from the record and not from a clock -
+  `test_the_report_reads_no_clock` parses the module and fails on a `datetime`/`time` import or a
+  `now`/`today` call - which is what keeps the report regenerable byte-for-byte.
+
+- **The guard on the report's grade claim only looked one level deep.**
+  `test_the_committed_history_really_does_not_retain_a_grade` is the whole basis for the page
+  saying it cannot report grade movement, and it scanned top-level entry keys only. A grade
+  written inside `fingerprint` - the one place in the file that already holds per-run declared
+  facts, and so the likeliest place for one to arrive - passed it. Measured by planting
+  `fingerprint.grade` in a copy of the committed history: the old scan found nothing, the
+  recursive scan finds it. The guard now walks the whole structure and asserts it reached the
+  nested entries, so it cannot pass by looking at less than it claims to.
+
+- **`ROADMAP.md` phase 12 promised three things the report does not ship.** *"Which endpoints
+  changed grade"*, *"what the graded population looked like at the start of the window"* and
+  *"what share of the registry was observable throughout"* were still written as delivered. The
+  first two cannot be computed from a record that has never retained a grade, which the page
+  states plainly; the third names a period a bounded rolling window stops covering. Phase 12 now
+  records what ships and what does not, and why, rather than leaving the roadmap claiming more
+  than the page.
+
 - **A return whose dates the record does not hold was published as though it had them.** The
   refusal that drops an undated declaration *change* rather than dating it `unknown` was
   one-sided: it was never applied to returns. `drift._apply_alternation_rule` rebuilds a log

@@ -35,6 +35,8 @@ from fhir_scorecard.ai.narrate import (
     not_narratable_reason,
 )
 from fhir_scorecard.ai.provider import (
+    DEFAULT_ANTHROPIC_MODEL,
+    DEFAULT_BEDROCK_MODEL,
     ProviderError,
     ScriptedProvider,
     SDKProvider,
@@ -406,10 +408,40 @@ def test_sdk_provider_translates_outcomes() -> None:
         ).complete_json(system="s", user="u", schema={}, max_tokens=5)
 
 
+def test_the_two_providers_default_to_different_models_on_purpose() -> None:
+    """A default is what a caller gets when they name no model, so it has to be one that
+    provider can be asked for.
+
+    The AWS account this project's evals run on is not entitled to Sonnet 5 on Bedrock -
+    ``InvokeModel`` returns ``AccessDeniedException`` while the entitlement API reports the model
+    AUTHORIZED, so entitlement can only be established by invoking. The Bedrock default was the
+    Sonnet 5 id anyway, which is a 403 for anyone taking the Bedrock path without an explicit
+    ``FHIR_AI_MODEL``, and Bedrock is the path this project's own evals take.
+
+    Both halves are pinned because the failure mode is a tidy-up: the two lines look like they
+    have drifted apart and should be reconciled, and reconciling them either breaks Bedrock again
+    or holds a third-party deployer with ordinary API access back a model generation for a reason
+    that is not about them.
+    """
+    assert DEFAULT_ANTHROPIC_MODEL == "claude-sonnet-5"
+    assert DEFAULT_BEDROCK_MODEL == "global.anthropic.claude-sonnet-4-6"
+    assert f"global.anthropic.{DEFAULT_ANTHROPIC_MODEL}" != DEFAULT_BEDROCK_MODEL
+
+
+def test_the_bedrock_default_is_the_model_the_recorded_evals_ran_on() -> None:
+    """The claim above is checkable against this repository's own committed evidence rather than
+    only asserted: a default no recorded run has ever completed a call on is a guess."""
+    results = sorted((ROOT / "evals" / "ai" / "results").glob("*.json"))
+    assert results, "the recorded eval runs are the evidence for this default"
+    runs = [json.loads(path.read_text(encoding="utf-8"))["run"] for path in results]
+    bedrock = {run["model"] for run in runs if run["provider"] == "bedrock"}
+    assert bedrock == {DEFAULT_BEDROCK_MODEL}, sorted(bedrock)
+
+
 def test_settings_and_provider_factory(monkeypatch: pytest.MonkeyPatch) -> None:
-    assert Settings.from_environ({}) == Settings("anthropic", "claude-sonnet-5", None)
+    assert Settings.from_environ({}) == Settings("anthropic", DEFAULT_ANTHROPIC_MODEL, None)
     bedrock = Settings.from_environ({"FHIR_AI_PROVIDER": "bedrock", "AWS_REGION": "us-east-1"})
-    assert bedrock.region == "us-east-1" and bedrock.model == "global.anthropic.claude-sonnet-5"
+    assert bedrock.region == "us-east-1" and bedrock.model == DEFAULT_BEDROCK_MODEL
     with pytest.raises(ProviderError, match="FHIR_AI_PROVIDER"):
         Settings.from_environ({"FHIR_AI_PROVIDER": "openai"})
 

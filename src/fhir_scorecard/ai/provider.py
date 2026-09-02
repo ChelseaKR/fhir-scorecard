@@ -1,4 +1,25 @@
-"""Model access through the public ``anthropic`` SDK, credentials from the environment."""
+"""Model access through the public ``anthropic`` SDK, credentials from the environment.
+
+**The two providers default to different models on purpose. Do not reconcile them.**
+
+``narrate`` is the one command that calls a model (ADR 0003), and it reaches it either through
+the public Anthropic API or through Bedrock. A default is what a caller gets when they name no
+model, so each default has to be a model that provider can actually be asked for:
+
+* **Anthropic API** - ``claude-sonnet-5``, the current model, which is what a third-party
+  deployer with ordinary API access should get and what this project would choose on its own.
+* **Bedrock** - ``claude-sonnet-4-6``. The AWS account this project's evals run on is **not
+  entitled to Sonnet 5 on Bedrock**: ``InvokeModel`` returns ``AccessDeniedException`` even
+  though the entitlement API reports the model AUTHORIZED, so entitlement can only be
+  established by invoking. Every recorded live eval in ``evals/ai/results/`` ran on
+  ``global.anthropic.claude-sonnet-4-6``; the Sonnet 5 id that used to be this default has
+  never once completed a call here.
+
+Raising the Bedrock default to match the Anthropic one therefore does not upgrade anything - it
+hands a 403 to anyone who takes the Bedrock path without an explicit ``FHIR_AI_MODEL``, which is
+the path this project itself uses. ``test_the_two_providers_default_to_different_models_on_purpose``
+pins both, so a well-meant "these should be the same" edit fails the build rather than shipping.
+"""
 
 from __future__ import annotations
 
@@ -7,8 +28,12 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+#: Public Anthropic API default. The current model; a deployer with ordinary API access gets it.
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5"
-DEFAULT_BEDROCK_MODEL = "global.anthropic.claude-sonnet-5"
+#: Bedrock default. Deliberately *not* the same family as the line above - see the module
+#: docstring. This account cannot invoke Sonnet 5 on Bedrock, and the id below is the one every
+#: recorded eval actually ran on.
+DEFAULT_BEDROCK_MODEL = "global.anthropic.claude-sonnet-4-6"
 DEFAULT_BEDROCK_REGION = "us-west-2"
 PROVIDERS = ("anthropic", "bedrock")
 

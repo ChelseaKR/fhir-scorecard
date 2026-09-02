@@ -198,6 +198,23 @@ Merged changes land here until the next tag.
   records what ships and what does not, and why, rather than leaving the roadmap claiming more
   than the page.
 
+- **The Bedrock default named a model this project has never been able to invoke.**
+  `DEFAULT_BEDROCK_MODEL` was `global.anthropic.claude-sonnet-5`, and the AWS account these evals
+  run on is not entitled to Sonnet 5 on Bedrock: `InvokeModel` returns `AccessDeniedException`
+  while the entitlement API reports the model AUTHORIZED, so entitlement can only be established
+  by invoking, never by querying. Anyone taking the Bedrock path without an explicit
+  `FHIR_AI_MODEL` got a 403 - and Bedrock is the path this project's own evals take. The single
+  recorded run in `evals/ai/results/` is on `global.anthropic.claude-sonnet-4-6`, which is now
+  the default; the README's example no longer needs to override it.
+
+  The Anthropic API default stays `claude-sonnet-5`. **The two are deliberately different and
+  reconciling them is the mistake**: raising Bedrock to match breaks it again, and lowering the
+  Anthropic default holds a third-party deployer with ordinary API access back a model generation
+  for an entitlement problem that is not theirs. The reason is in the module docstring beside
+  both constants, and `test_the_two_providers_default_to_different_models_on_purpose` pins both
+  so a tidy-up fails the build. A second test checks the Bedrock default against the committed
+  eval results, so it stays a model something has actually completed a call on.
+
 - **A return whose dates the record does not hold was published as though it had them.** The
   refusal that drops an undated declaration *change* rather than dating it `unknown` was
   one-sided: it was never applied to returns. `drift._apply_alternation_rule` rebuilds a log

@@ -3,6 +3,12 @@
 **A plain-language operational scorecard for publicly observable FHIR
 (Fast Healthcare Interoperability Resources) endpoints.**
 
+**Live site: [fhir.chelseakr.com](https://fhir.chelseakr.com/)** — every endpoint in the registry
+rescored daily, each grade with the findings and spec citations behind it, plus the machine-readable
+[dataset](https://fhir.chelseakr.com/dataset.csv) and [API](https://fhir.chelseakr.com/api/).
+Published by `.github/workflows/pages.yml`; `tools/verify_live_site.py` fails if what is
+served stops matching what this checkout builds.
+
 CMS interoperability rules require regulated payers to stand up FHIR R4 APIs (Patient Access,
 Provider Directory, and, under CMS-0057-F, more to come). Whether those endpoints are *actually
 reachable, honestly documented, and interop-ready* is publicly observable today, and nobody grades

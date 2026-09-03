@@ -30,6 +30,13 @@ What IS a pure function of committed inputs is checked exactly:
   * the identity half of `dataset.csv`: its header is `dataset._COLUMNS`, it has
     one row per enabled registry entry, and the eight registry-derived columns in
     each row are what the registry says.
+  * the home page's share card: `og:image` and `twitter:image` are
+    `site.social_card_url(origin)`, and `og:title`, `og:description` and
+    `og:image:alt` are present and non-empty. These carry no grade, no latency and
+    no timestamp, so they are a pure function of the origin like the two documents
+    above; the card is singled out because a head naming an image the deployment
+    does not serve is invisible from inside a checkout and blank everywhere the page
+    is shared.
 
 And one thing that is not a rebuild but is the whole point of a daily publish:
 the site has to be recent. `api/index.json`'s `generated_at` must parse, must
@@ -60,6 +67,7 @@ import hashlib
 import http.client
 import io
 import json
+import re
 import secrets
 import ssl
 import sys
@@ -233,6 +241,49 @@ def compare_pure_documents(origin: Origin, nonce: str, canonical_origin: str) ->
                 f"{relative}: live sha256 {short(live)} ({len(live)} bytes) is not what "
                 f"this checkout renders, {short(expected)} ({len(expected)} bytes)"
             )
+    return differences
+
+
+def check_share_card(origin: Origin, nonce: str, canonical_origin: str) -> list[str]:
+    """The home page's share card: the one part of a rendered page that does not move.
+
+    Rendered pages are otherwise not compared here, for the reasons in the module
+    docstring. The card is the exception. ``og:image`` is a pure function of the
+    origin string, the image it names is one of the assets already compared byte for
+    byte above, and none of these tags carries a grade, a latency or a timestamp.
+
+    It is worth its own check because of how it fails. A head that names an image the
+    deployment does not serve previews as a blank rectangle on every platform the link
+    is shared to, and looks like nothing at all from inside this repository: the page
+    renders, the assets are there, and no gate that reads a checkout can see it. The
+    site published no image at all until 2026-09 for the same reason - nothing was
+    looking at what a crawler receives.
+    """
+    home = fetch_exact(origin, "", nonce)
+    if isinstance(home, str):
+        return [f"{home}; the home page is where the share card is checked"]
+    text = home.decode("utf-8", "replace")
+    expected = site_module.social_card_url(canonical_origin)
+    differences: list[str] = []
+    for tag, attribute in (
+        ("og:image", "property"),
+        ("twitter:image", "name"),
+    ):
+        found = re.search(rf'<meta {attribute}="{tag}" content="([^"]*)">', text)
+        if found is None:
+            differences.append(f"the live home page declares no {tag}")
+        elif found.group(1) != expected:
+            differences.append(
+                f"live {tag} is {found.group(1)}, and this checkout publishes {expected}"
+            )
+    for tag, attribute in (
+        ("og:title", "property"),
+        ("og:description", "property"),
+        ("og:image:alt", "property"),
+    ):
+        found = re.search(rf'<meta {attribute}="{tag}" content="([^"]*)">', text)
+        if found is None or not found.group(1).strip():
+            differences.append(f"the live home page's {tag} is absent or empty")
     return differences
 
 
@@ -450,6 +501,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             differences += index_differences
             differences += compare_dataset_csv(origin, nonce, endpoints)
+            differences += check_share_card(origin, nonce, canonical_origin)
             differences += check_freshness(generated, args.max_age_hours)
         except LiveSiteError as exc:
             last_error = exc
@@ -486,7 +538,8 @@ def main(argv: list[str] | None = None) -> int:
         f"{origin.url} still matches what this checkout publishes: {len(assets)} assets "
         f"byte for byte, robots.txt and dataset.schema.json byte for byte, and "
         f"{len(endpoints)} registry endpoints named identically in api/index.json and "
-        f"dataset.csv. Published {generated:%Y-%m-%d %H:%M} UTC."
+        f"dataset.csv, and a home page whose share card addresses the card it serves. "
+        f"Published {generated:%Y-%m-%d %H:%M} UTC."
     )
     return 0
 

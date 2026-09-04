@@ -46,8 +46,12 @@ MAX_BODY_BYTES = 5_000_000
 DISCOVERY_PATHS = ("/metadata", "/.well-known/smart-configuration")
 
 #: Redirect hops allowed before giving up. urllib's default is 10, which would let a server turn
-#: one probe into eleven requests; the contract says at most two requests per endpoint per run,
-#: and a short bound keeps a redirect loop from being expensive for the operator being graded.
+#: one probe into eleven requests. This project asks each endpoint for two documents per run, and
+#: a redirect the server itself sends costs another GET on top, so this bound is what keeps the
+#: worst case an operator can see small and statable: at most four requests per document, eight
+#: per endpoint per run, which is the number SECURITY.md publishes. Changing it changes a promise
+#: made to the servers being measured, so `tests/test_probe_contract.py` requires the two to
+#: agree.
 MAX_REDIRECTS = 3
 
 

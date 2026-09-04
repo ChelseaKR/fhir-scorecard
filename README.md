@@ -181,8 +181,16 @@ in Texas for 2026, as enumerated by CMS/CCIIO's QHP Landscape PY2026 Individual 
 13,013 plan-county rows, 18 HIOS issuer IDs, **15 issuer organizations**, frozen before any URL was
 probed. Six publish a base URL this project could verify from their own documentation. Three of the
 fifteen publish a Patient Access base URL and one of the three answers a stranger; six publish a
-Provider Directory base URL - the surface the rule requires to be reachable *without*
-authentication - and four of the six answer.
+Provider Directory base URL and four of the six answer.
+
+One attribution this cohort should not make, and used to: the unauthenticated-provider-directory
+duty is not this prong's. 45 CFR 156.221 is a Patient Access API section and says nothing about a
+provider directory; the API that must answer *without* authentication is
+[42 CFR 422.120](https://www.law.cornell.edu/cfr/text/42/422.120), which reaches Medicare
+Advantage organizations, with parallel provisions for Medicaid and CHIP. Several of these issuers
+run MA plans too, so a directory endpoint one of them publishes may well exist for that reason.
+This project measures the public surface either way and does not decide which obligation, if any,
+a given endpoint answers to.
 
 The third is the **Florida marketplace issuer cohort** at `/florida-marketplace/`: the same federal
 prong in the largest HealthCare.gov state. From the same CMS file - 7,569 plan-county rows, 16 HIOS
@@ -262,8 +270,8 @@ audit-site site/` reads a built directory and reports every page the sitemap omi
 sitemap entry no file answers, every missing or misaddressed canonical, every structured-data
 block that does not parse or omits a field this site promises, every internal link pointing at
 a path the build never wrote, and every page no path of internal links reaches. The same command
-also runs twelve mechanical accessibility rules - eight naming the WCAG 2.2 Level A criterion
-they implement, four saying plainly that they are this project's own rule and not a criterion -
+also runs twelve mechanical accessibility rules - seven naming the WCAG 2.2 Level A criterion
+they implement, five saying plainly that they are this project's own rule and not a criterion -
 and two transfer-size budgets. The publish workflow runs all three families before
 the artifact is uploaded, so a site that fails any of them is not deployed. Its first run against a site carrying an organization page found twelve published,
 sitemapped `/org/` pages that nothing on the site linked to.
@@ -379,7 +387,7 @@ are no blank rows and no silent skips.
 | Security & Supply-Chain | Applies: Actions pinned to full commit SHAs, scoped workflow permissions, CodeQL + full-history gitleaks + a pip-audit of the locked dependency set, all three on push, PR and a weekly schedule (`.github/workflows/security.yml`), Dependabot for uv and github-actions - `uv`, because `pip` does not read the PEP 735 `[dependency-groups]` block that is this project's whole dependency surface, and had produced zero pull requests in the three and a half weeks it was configured. No `\|\| true` and nothing muted: the audit blocks |
 | CI/CD | Applies: `verify.yml` runs the same `make verify` gate as local, and the `protect-main` ruleset requires it on `main`. `verify` is the only *required* check, so the CodeQL, gitleaks and pip-audit jobs in `security.yml` report on a pull request without blocking it; a red one is a decision for the reviewer rather than a closed gate |
 | Observability | Applies (scoped): scheduled batch publisher, not a hosted runtime; run health is visible in Actions, and availability/drift history accrues on the `capability-history` branch, one commit per day on which something changed (the copy on `main` is the seed the first run started from, and is no longer updated) |
-| Accessibility | Applies: static semantic HTML pages, with twelve mechanical rules (`fhir_scorecard.accessibility`) gating every merge and every publish. Eight name the WCAG 2.2 Level A success criterion they implement; the other four say in the text of the finding that they are this project's own rule and not a criterion, because no Level A criterion requires unique page titles, unique ids, sequential heading levels, or a main landmark. [ADR 0004](docs/adr/0004-accessibility-and-weight-gates-without-a-browser.md) records why a Lighthouse score is not the gate and lists what a browser would catch that a static reader cannot: contrast as rendered, focus order and visible focus, computed ARIA roles, reflow. The formal assistive-technology review is still not performed and is still open (`docs/RESPONSIBLE-TECH-AUDITS.md` E) |
+| Accessibility | Applies: static semantic HTML pages, with twelve mechanical rules (`fhir_scorecard.accessibility`) gating every merge and every publish. Seven name the WCAG 2.2 Level A success criterion they implement; the other five say in the text of the finding that they are this project's own rule and not a criterion, because no Level A criterion requires unique page titles, unique ids, a top-level heading, sequential heading levels, or a main landmark. [ADR 0004](docs/adr/0004-accessibility-and-weight-gates-without-a-browser.md) records why a Lighthouse score is not the gate and lists what a browser would catch that a static reader cannot: contrast as rendered, focus order and visible focus, computed ARIA roles, reflow. The formal assistive-technology review is still not performed and is still open (`docs/RESPONSIBLE-TECH-AUDITS.md` E) |
 | Internationalization | N/A: findings quote English normative spec text for a specialist audience; no civic public-service workflow. `docs/I18N.md` |
 | AI Evaluation | Applies to the optional narration layer only ([ADR 0003](docs/adr/0003-ai-narration-outside-the-graded-path.md)): grading, the site, the Action, and the MCP server's tools call no model; `fhir-scorecard narrate` explains a published scorecard with claims that must quote the retained copies of the cited specification pages (`corpus/`), withholding any claim whose quote does not verify; `evals/ai/results/` records the measured grounding rate with provider, model, prompt version, date, and commit. A verified citation proves the passage exists, not that the sentence reads it correctly; no person has reviewed the prompt or the Spanish output |
 | Documentation | Applies: README, ROADMAP, CONTRIBUTING, SECURITY, CHANGELOG, CITATION.cff, ADRs (`docs/adr/`) |

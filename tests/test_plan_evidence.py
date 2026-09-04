@@ -218,3 +218,40 @@ def test_florida_members_sharing_a_family_share_its_endpoints() -> None:
         members["cigna-healthcare"]["endpoints"]
         == members["cigna-healthcare-of-florida"]["endpoints"]
     )
+
+
+def test_a_shipped_phase_is_not_described_as_future_work() -> None:
+    """The three-year section was a plan that got executed and never updated to say so.
+
+    It read "none of it is browsable. This phase renders it" while phase 2 above it read "the
+    record is now browsable at /history/", and "The floor is not met across the registry today"
+    against phase 5's "the floor puts 30 of 45 endpoints in the tables". A reader uses this
+    document to judge what is real, so a phase whose module ships has to say it shipped.
+    """
+    delivered = {
+        6: "audit",
+        7: "accessibility",
+        8: "archive",
+        9: "drift",
+        10: "leaderboard",
+        11: "coverage",
+        12: "over_time",
+        13: "snapshot",
+    }
+    src = ROOT / "src" / "fhir_scorecard"
+    for phase, module in delivered.items():
+        assert (src / f"{module}.py").is_file(), module
+        heading = f"### Phase {phase}:"
+        assert heading in ROADMAP, heading
+        # ROADMAP is whitespace-normalised, so a phase's section runs from its heading to the
+        # next one. The delivery statement must sit inside it, naming the module that ships.
+        section = ROADMAP.split(heading, 1)[1].split("### Phase ", 1)[0]
+        assert "**Delivered 20" in section, f"phase {phase} claims no delivery"
+        assert f"fhir_scorecard/{module}.py" in section, f"phase {phase} names no module"
+
+    # Phases 14 and 15 are blocked on something outside this repository and must stay that way,
+    # not quietly acquire a delivery line.
+    for phase in (14, 15):
+        section = ROADMAP.split(f"### Phase {phase}:", 1)[1].split("### Phase ", 1)[0]
+        assert "*Blocked on" in section, phase
+        assert "**Delivered" not in section, phase

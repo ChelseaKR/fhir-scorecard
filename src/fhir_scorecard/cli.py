@@ -293,7 +293,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
     return 0
 
 
-def _recheck(candidates_path: Path) -> int:
+def _recheck(candidates_path: Path, json_out: Path | None = None) -> int:
     try:
         candidates = load_candidates(candidates_path)
     except (OSError, ValueError) as exc:
@@ -301,6 +301,33 @@ def _recheck(candidates_path: Path) -> int:
         return 2
     results = [reprobe(c) for c in candidates]
     print(format_report(results))
+    if json_out is not None:
+        # A structured result, so the quarterly workflow can decide whether to open an issue
+        # without grepping the human report for a marker. It used to do exactly that, which put
+        # a third-party server's `software.name` in charge of the branch: a value containing
+        # "NOW ANSWERS" forced a false revival issue. What a payer publishes is evidence, never
+        # control flow.
+        try:
+            json_out.parent.mkdir(parents=True, exist_ok=True)
+            json_out.write_text(
+                json.dumps(
+                    {
+                        "revived": sum(1 for r in results if r.now_answers),
+                        "checked": len(results),
+                        "candidates": [
+                            {"id": r.candidate.candidate_id, "now_answers": r.now_answers}
+                            for r in results
+                        ],
+                    },
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            print(f"write error: {exc}", file=sys.stderr)
+            return 2
     # Exit 0 either way: a candidate that starts answering is news, not a failure.
     return 0
 
@@ -396,6 +423,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="re-probe previously rejected candidates; reports only, never edits the registry",
     )
     recheck.add_argument("--candidates", type=Path, default=Path("data/rejected.json"))
+    recheck.add_argument(
+        "--json-out",
+        type=Path,
+        default=None,
+        help="also write a machine-readable result here, for a caller that must branch on it",
+    )
     check = sub.add_parser(
         "check",
         help="grade one endpoint from its own public documents and optionally gate a build; "
@@ -528,7 +561,7 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
     remembering to skip a step.
     """
     if args.command == "recheck":
-        return _recheck(args.candidates)
+        return _recheck(args.candidates, args.json_out)
     if args.command == "check":
         return _cmd_check(args)
     if args.command == "mcp":

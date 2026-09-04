@@ -431,6 +431,37 @@ registration and approval, and Aspirus's gateway requires a subscription key. Th
 verification records say so individually; the pattern is noted here because it is the same finding
 four times.
 
+### A vantage split, measured (2026-09-04)
+
+The first publish carrying the Ohio and Wisconsin endpoints produced the evidence phase 14 of
+`ROADMAP.md` has been waiting for, and it was not sought deliberately.
+
+`ambetter-centene-provider-directory` answered an unauthenticated request from a residential
+vantage with a valid R4 CapabilityStatement, twice during curation and again after the publish.
+All three GitHub-hosted probing vantages received **HTTP 403** in the same hour. That is the
+shape of a source-address rule applied to one provider's address space: it hits ubuntu, macos and
+windows identically, because they are three hosts on one network, and no amount of sampling
+inside that network reveals it.
+
+This is exactly the argument phase 14 makes for an independent vantage, which is marked blocked
+because the project does not have one. It is no longer an argument from first principles; it is a
+measurement, on a named endpoint, with both readings taken within an hour of each other.
+
+Two consequences, both already handled and recorded here so the reasoning survives:
+
+* The endpoint's published page says the right thing rather than the confident wrong thing. It
+  reads "answered HTTP 403 from 3 of 3 vantages but returned no usable document: the endpoint is
+  running and refusing this request, which is not the same as being unreachable." An endpoint
+  that returns 403 completed DNS, TCP, TLS and HTTP; it is up and refusing, and the page says so
+  instead of guessing at an outage.
+* Its registry entry now states the split. A verification record reading "live CapabilityStatement
+  retrieved" beside a page reading "not observed" is confusing without it, and the confusion is
+  worth removing rather than explaining: the difference is the vantage, not the endpoint.
+
+Nothing here is a claim about why Centene's edge refuses that address space. Rate limiting, bot
+filtering and a deliberate allowlist all produce this result, and this project cannot tell them
+apart from outside.
+
 ## Wave thirteen: eight states at once (2026-09-04)
 
 Arizona, Michigan, Missouri, Oklahoma, Iowa, Kansas, Louisiana and North Carolina — 52 roster

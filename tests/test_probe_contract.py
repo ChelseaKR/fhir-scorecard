@@ -406,3 +406,43 @@ def test_the_published_promise_names_the_paths_the_code_enforces() -> None:
         text = (ROOT / name).read_text(encoding="utf-8")
         for path in DISCOVERY_PATHS:
             assert path.lstrip("/") in text, f"{name} does not name {path}"
+
+
+def test_the_published_request_bound_is_the_one_the_code_enforces() -> None:
+    """SECURITY.md is a promise to the servers being measured, so it has to be arithmetic.
+
+    It read "at most two unauthenticated GET requests per endpoint per probing run" while
+    `MAX_REDIRECTS` was 3, which permits four requests per document and eight per endpoint. The
+    two documents are still the only things this project asks for; a redirect is the server's
+    own instruction, and following it costs a GET that the promise did not account for.
+    """
+    from fhir_scorecard.fetch import DISCOVERY_PATHS, MAX_REDIRECTS
+
+    root = Path(__file__).resolve().parent.parent
+    security = " ".join((root / "SECURITY.md").read_text(encoding="utf-8").split())
+
+    worst_case = len(DISCOVERY_PATHS) * (MAX_REDIRECTS + 1)
+    words = {8: "eight", 3: "three", 2: "two"}
+    assert worst_case == 8
+    assert f"At most {words[MAX_REDIRECTS]} hops are followed per document" in security
+    assert f"worst case an operator can see from one probing run is {words[worst_case]}" in security
+    # The claim this replaced, which the code could not keep.
+    assert "at most two unauthenticated GET requests per endpoint" not in security
+
+
+def test_the_roadmap_names_kind_pages_the_build_actually_writes() -> None:
+    """`/ehr/` and `/reference/` were listed under a completed phase and both 404."""
+    import re
+
+    from fhir_scorecard.site import _KIND_SLUGS
+
+    root = Path(__file__).resolve().parent.parent
+    roadmap = " ".join((root / "ROADMAP.md").read_text(encoding="utf-8").split())
+    claimed = set(re.findall(r"`/([a-z-]+)/`", roadmap))
+    built = set(_KIND_SLUGS.values())
+    # Every kind slug the ROADMAP names must be one the generator writes. Other paths it
+    # mentions (/org/, /history/, /coverage/) are not kind pages and are left alone.
+    kindish = {slug for slug in claimed if slug.endswith(("s", "servers", "directories"))}
+    assert built <= claimed, f"ROADMAP omits kind pages the build writes: {built - claimed}"
+    assert "ehr" not in claimed and "reference" not in claimed
+    assert kindish >= built

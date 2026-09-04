@@ -222,7 +222,6 @@ CRITERION_BACKED = frozenset(
     {
         "A11Y_PAGE_NOT_IN_A_LANGUAGE",
         "A11Y_PAGE_NOT_TITLED",
-        "A11Y_NO_TOP_LEVEL_HEADING",
         "A11Y_IMAGE_WITHOUT_ALT",
         "A11Y_CONTROL_WITHOUT_NAME",
         "A11Y_LINK_WITHOUT_TEXT",
@@ -233,6 +232,7 @@ CRITERION_BACKED = frozenset(
 PROJECT_RULES = frozenset(
     {
         "A11Y_TITLE_NOT_UNIQUE",
+        "A11Y_NO_TOP_LEVEL_HEADING",
         "A11Y_HEADING_LEVEL_SKIPPED",
         "A11Y_DUPLICATE_ID",
         "A11Y_NO_MAIN_LANDMARK",
@@ -387,3 +387,37 @@ def test_a_control_named_without_a_label_element_is_accepted(
     is a real pattern; a rule that only understood <label for> would report all four."""
     _mutate(page, '<label for="q">Search</label>', "")
     assert _codes(_mutate(page, '<input id="q" name="q">', control)) == [], why
+
+
+def test_the_published_split_is_the_split_the_rules_actually_have() -> None:
+    """Seven and five, recomputed from the rule text and required of every document that says it.
+
+    The counts were stated in seven places and computed in none. `A11Y_NO_TOP_LEVEL_HEADING`
+    cited SC 1.3.1, which no more requires a top-level heading than it requires sequential
+    heading levels - the rule directly below it makes exactly that argument and is classed as
+    this project's own. A fabricated citation is the one thing this repository cannot publish,
+    so the miscount mattered more than its size.
+    """
+    root = Path(__file__).resolve().parent.parent
+    backed = sum(1 for text in A11Y_CODES.values() if "WCAG 2.2 SC" in text)
+    own = sum(1 for text in A11Y_CODES.values() if "this project's own rule" in text)
+    assert backed == len(CRITERION_BACKED) == 7
+    assert own == len(PROJECT_RULES) == 5
+    assert backed + own == len(A11Y_CODES) == 12
+
+    words = {7: "seven", 12: "twelve", 5: "five"}
+    for name in (
+        "README.md",
+        "ROADMAP.md",
+        "docs/RESPONSIBLE-TECH-AUDITS.md",
+        "docs/adr/0004-accessibility-and-weight-gates-without-a-browser.md",
+    ):
+        prose = " ".join((root / name).read_text(encoding="utf-8").split()).lower()
+        # Each document words the total differently ("twelve mechanical rules", "twelve rules
+        # over the built HTML"), so the number is what is required, not the phrasing.
+        assert words[len(A11Y_CODES)] in prose, name
+        assert words[backed] in prose, name
+        assert words[own] in prose, name
+        # The count that was wrong, in the shape each document used to write it.
+        assert "eight naming the wcag" not in prose, name
+        assert "eight name the wcag" not in prose, name

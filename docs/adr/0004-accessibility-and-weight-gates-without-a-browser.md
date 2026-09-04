@@ -36,22 +36,25 @@ plain semantic HTML.
 
 Gate on what a static reader can decide, and say plainly what that leaves out.
 
-`fhir_scorecard.accessibility` implements twelve rules over the built HTML. **Eight name the
+`fhir_scorecard.accessibility` implements twelve rules over the built HTML. **Seven name the
 WCAG 2.2 Level A success criterion they implement:** language of page (SC 3.1.1), page titled
-(SC 2.4.2), a top-level heading (SC 1.3.1), alt text present on every image (SC 1.1.1), an
-accessible name on every control and every link (SC 4.1.2, SC 2.4.4), and id references and
-same-page fragments that resolve (SC 1.3.1, SC 2.4.1).
+(SC 2.4.2), alt text present on every image (SC 1.1.1), an accessible name on every control and
+every link (SC 4.1.2, SC 2.4.4), and id references and same-page fragments that resolve
+(SC 1.3.1, SC 2.4.1).
 
-**Four are this project's own rule rather than a criterion, and each says so where it is
-defined:** unique page titles, no duplicated id, no skipped heading level, and a main landmark.
+**Five are this project's own rule rather than a criterion, and each says so where it is
+defined:** unique page titles, no duplicated id, a top-level heading, no skipped heading level,
+and a main landmark.
 A rule may cite a criterion only where the criterion requires what the rule reports, which is
 the standard the grading rules are already held to. It does not hold for these four. SC 2.4.2
 requires a title that describes the topic, not a unique one. SC 4.1.1 Parsing, which duplicate
 ids used to fall under, was removed in WCAG 2.2. SC 1.3.1 asks that structure conveyed through
 presentation be programmatically determined, which an h1 followed by an h3 already is, so no
-Level A criterion requires sequential heading levels. And SC 2.4.1 Bypass Blocks asks for a
-mechanism that bypasses repeated blocks, which a skip link provides whatever it points at, so no
-Level A criterion requires a `main` landmark. All four are still worth checking on a site
+Level A criterion requires sequential heading levels. The same sentence disposes of requiring an
+h1 at all: G141 offers headings as one *sufficient technique* for satisfying SC 1.3.1, which is
+not the same as the criterion requiring a top-level heading. And SC 2.4.1 Bypass Blocks asks for
+a mechanism that bypasses repeated blocks, which a skip link provides whatever it points at, so
+no Level A criterion requires a `main` landmark. All five are still worth checking on a site
 generated from one template set, where each is a generator defect rather than an authoring
 choice; they are checked under this project's own name.
 
@@ -96,3 +99,23 @@ runner.
 If a browser-driven check is ever wanted, the place for it is a separate non-gating job whose
 output is evidence for the open review, not a merge gate. This decision is about what may block
 a merge, not about what is worth measuring.
+
+## Amendment, 2026-09-04: the h1 rule was reclassified
+
+`A11Y_NO_TOP_LEVEL_HEADING` shipped citing WCAG 2.2 SC 1.3.1, and the decision above counted it
+among the criterion-backed rules. It is not one. SC 1.3.1 asks that structure conveyed through
+presentation be programmatically determinable; G141 offers headings as one *sufficient
+technique* for that, which is not the same as the criterion requiring a top-level heading. No
+Level A criterion does.
+
+This was already the argument two paragraphs above, made about `A11Y_HEADING_LEVEL_SKIPPED` and
+`A11Y_NO_MAIN_LANDMARK` and applied to demote both. It applies identically here and was not
+applied, so the split shipped as eight and four when the rules it describes are seven and five.
+
+Nothing about the gate's behaviour changes: the rule fires on exactly the same pages, and it is
+still worth keeping for exactly the reason the other own-rules are kept, since every page here
+is generated from one template set that always emits exactly one h1. What changes is the
+sentence a reader of the finding sees, and the counts in this ADR, the README, the ROADMAP and
+`docs/RESPONSIBLE-TECH-AUDITS.md`. Those counts are now recomputed from `A11Y_CODES` and
+asserted against each of those documents, so the next drift fails the build rather than waiting
+for a reader.

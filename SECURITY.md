@@ -2,9 +2,15 @@
 
 ## What this project does to endpoints
 
-It issues at most two unauthenticated GET requests per endpoint per probing run: `/metadata` and
+It asks each endpoint for exactly two documents per probing run: `/metadata` and
 `/.well-known/smart-configuration`. Both are public discovery documents that FHIR servers are
 expected to expose. Requests carry an identifying User-Agent with a contact address.
+
+Two documents is not always two requests, and the honest bound is worth stating: if a server
+answers with a redirect, following it costs another GET. At most three hops are followed per
+document (`fetch.MAX_REDIRECTS`), so the worst case an operator can see from one probing run is
+eight requests, and that case requires their own server to redirect three times on both paths.
+Two is the normal case and the only one this project asks for.
 
 It never authenticates, never registers for API access, never requests patient data, and never
 probes beyond those two paths. That last part holds on every hop, including a redirect: a

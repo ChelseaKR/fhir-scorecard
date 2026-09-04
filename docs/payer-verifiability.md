@@ -99,9 +99,11 @@ until the fourth probing wave, when twelve consecutive failures made the problem
 lost points for declaring exactly three resource types. That is a deliberate scoping decision
 with every resource fully documented. Narrow-but-complete now earns full credit.
 
-**Graded a public-by-design API as insecure.** Provider Directory APIs are required to be
-reachable *without* authentication. The grader marked Cigna's directory down for having no OAuth
-surface, which penalized correct behavior. Those findings are now not-applicable for that kind.
+**Graded a public-by-design API as insecure.** A Provider Directory API is meant to be readable
+by anyone - required to be, for Medicare Advantage organizations under 42 CFR 422.120, with
+parallel provisions for Medicaid and CHIP. The grader marked Cigna's directory down for having no
+OAuth surface, which penalized correct behavior. Those findings are now not-applicable for that
+kind, whether the publisher was compelled to be public or chose to be.
 
 **Graded R5 servers as failing R4.** The version check assumed R4 universally. Endpoints now
 declare which release they intend to serve and are checked against that.

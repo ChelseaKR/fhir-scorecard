@@ -55,9 +55,10 @@ _KIND_BLURBS = {
         "app they choose. These grades describe what each endpoint publicly declares."
     ),
     "payer_provider_directory": (
-        "Provider Directory APIs are required to be reachable without "
-        "authentication, so they are not graded on an authorization "
-        "surface they must not have."
+        "Provider Directory APIs are meant to be readable by anyone - required to be, for "
+        "Medicare Advantage organizations under 42 CFR 422.120, with parallel provisions for "
+        "Medicaid and CHIP - so they are not graded on an authorization surface they should "
+        "not have."
     ),
     "provider": "APIs published by health systems and provider organizations.",
     "ehr": (
@@ -1174,8 +1175,9 @@ _FINDING_DOCS = [
         "I2",
         "SMART discovery",
         "Is .well-known/smart-configuration present and complete?",
-        "Not applicable to Provider Directory APIs, which are required to be reachable without "
-        "authentication and are not scored on an authorization surface they must not have.",
+        "Not applicable to Provider Directory APIs, which are meant to be readable without "
+        "authentication - required to be, for Medicare Advantage organizations under 42 CFR "
+        "422.120 - and are not scored on an authorization surface they should not have.",
     ),
     (
         "I3",

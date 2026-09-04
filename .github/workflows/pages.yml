@@ -146,7 +146,7 @@ jobs:
         # sitemap entry answered, one correct canonical per page, structured data that parses
         # and carries what this site promises, no internal link to a path the build did not
         # write, and no page nothing links to. It also runs the twelve mechanical accessibility
-        # rules (src/fhir_scorecard/accessibility.py, ADR 0004: eight name a WCAG 2.2 Level A
+        # rules (src/fhir_scorecard/accessibility.py, ADR 0004: seven name a WCAG 2.2 Level A
         # criterion, four declare themselves this project's own) and the two transfer-size budgets
         # (src/fhir_scorecard/weight.py). The test suite runs the same three families against a
         # site built from fixtures; this runs them against the real one, which is the only build

@@ -454,10 +454,15 @@ def grade_interop(
             _US_CORE,
         )
 
-    # Provider Directory APIs are required to be reachable without authentication, so absence of
-    # SMART/OAuth is the correct design there, not a deficiency (calibration 2026-08-05). Scoring
-    # them on an authorization surface they must not have would penalize compliant behavior, so
-    # those findings are reported as not applicable and carry no points either way.
+    # A Provider Directory API is meant to be readable by anyone, so absence of SMART/OAuth is
+    # the correct design there rather than a deficiency (calibration 2026-08-05). Where it is a
+    # requirement it is 42 CFR 422.120's, which reaches Medicare Advantage organizations, with
+    # parallel provisions for Medicaid (431.70) and CHIP (457.760); it is not required of QHP
+    # issuers by 45 CFR 156.221, which is a Patient Access section. The scoring does not depend
+    # on which: a directory published without an authorization surface is doing the right thing
+    # whether a rule compelled it or the publisher chose it, and scoring it on an authorization
+    # surface it should not have would penalize that. Reported as not applicable, no points
+    # either way.
     public_by_design = kind == "payer_provider_directory"
 
     # Something arrived, but everything I1 and I3 read lives inside a CapabilityStatement. If it

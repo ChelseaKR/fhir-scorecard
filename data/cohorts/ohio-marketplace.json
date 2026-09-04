@@ -1,0 +1,174 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the issuer's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the issuer publishes a base URL that returns 404' and 'the issuer publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "ohio-marketplace",
+    "name": "Ohio marketplace issuer cohort",
+    "description": "The Patient Access and Provider Directory APIs of every issuer selling an individual-market qualified health plan on HealthCare.gov in Ohio for 2026, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Membership is CMS's own file, not a list assembled here. The QHP Landscape PY2026 Individual Medical dataset published by the Center for Consumer Information and Insurance Oversight lists every plan sold on HealthCare.gov; filtered to Ohio it carries 9,038 plan-county rows, 11 HIOS issuer IDs, and 11 issuer names. The roster was frozen before any URL was probed and is committed beside this file as ohio-marketplace.roster.csv.",
+    "Every member either points at registry endpoints or carries an exclusion with a dated review record and the source that was read. An exclusion is a statement about what this project could find on the date it looked, never a statement about whether an issuer meets an obligation."
+  ],
+  "sources": [
+    {
+      "label": "CMS / CCIIO: QHP Landscape PY2026 Individual Medical (individual_market_medical.zip, issued 2026-08-04, modified 2026-08-10)",
+      "url": "https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45",
+      "date": "2026-09-04"
+    }
+  ],
+  "members": [
+    {
+      "id": "ambetter-buckeye-health-plan",
+      "name": "Ambetter from Buckeye Health Plan (Centene)",
+      "roster_name": "Ambetter from Buckeye Health Plan",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "endpoints": [
+        "ambetter-centene-provider-directory"
+      ]
+    },
+    {
+      "id": "anthem-bcbs-ohio",
+      "name": "Anthem Blue Cross and Blue Shield (Elevance)",
+      "roster_name": "Anthem Blue Cross and Blue Shield",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "endpoints": [
+        "elevance-anthem-bcbs-patient-access",
+        "elevance-shared-provider-directory"
+      ]
+    },
+    {
+      "id": "antidote-health-plan-of-ohio",
+      "name": "Antidote Health Plan of Ohio, Inc.",
+      "roster_name": "Antidote Health Plan of Ohio, Inc.",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "excluded": {
+        "reason": "the plan publishes a CMS interoperability page of its own and withholds every base URL on it: 'Authorization server URL documentations are shared after successful organization registration and approval.' The gate is applied to the Provider Directory API too, which the same page groups under 'Public APIs' that 'still require registration but will be automatically approved'",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "read the plan's Technical Interoperability Guidelines page in full, and its one linked technical document (Patient Access API Quick Start Guide, doc PatAccessAPI-07/24), which names Solidarity LLC as the API vendor and carries no URL in its text or its PDF link annotations. Enumerated the site's own sitemap (250+ pages), the 2026 and 2024 Ohio provider manuals, the 2026 Ohio EOC, and fifteen Internet Archive captures of the retired /legal/interoperability-apis page between 2023-10 and 2026-03; every capture carries the same 'shared after registration' sentence. The only host in the plan's materials is a member web-app UI, from which a FHIR base cannot be derived without guessing",
+          "date": "2026-09-04",
+          "source": "https://www.antidotehealth.com/legal/interoperability"
+        }
+      }
+    },
+    {
+      "id": "caresource-ohio",
+      "name": "CareSource",
+      "roster_name": "CareSource",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "endpoints": [
+        "caresource-patient-access",
+        "caresource-provider-directory"
+      ]
+    },
+    {
+      "id": "medmutual",
+      "name": "Medical Mutual of Ohio",
+      "roster_name": "MedMutual",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "endpoints": [
+        "medmutual-provider-directory"
+      ]
+    },
+    {
+      "id": "molina-healthcare-ohio",
+      "name": "Molina Healthcare",
+      "roster_name": "Molina Healthcare",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "excluded": {
+        "reason": "Ohio's member site routes third-party developers to Molina's national developer portal with a bare 'click here to register' link and prints no hostname; that portal publishes no production endpoint for any state, and Ohio is not among the states its Servicing list names",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "read the Ohio marketplace data-sharing page and the national portal in full, then read the portal's own unauthenticated API listing, which returns exactly four APIs, every one a sandbox with a relative path and a null service URL. The portal's Servicing list names NY, AZ, VA, FL and MA individually and does not name Ohio, which falls only under a generic 'All Health Plans' row. Both linked PDFs were text-extracted: the 47-page vendor document (regenerated 2026-04-08) contains no occurrence of 'Molina', and the provider-directory document shows example URLs only for HL7's own reference server",
+          "date": "2026-09-04",
+          "source": "https://developer.interop.molinahealthcare.com/"
+        }
+      }
+    },
+    {
+      "id": "oscar-health-insurance-ohio",
+      "name": "Oscar Health Insurance (Oscar Buckeye State Insurance Corporation)",
+      "roster_name": "Oscar Health Insurance",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "excluded": {
+        "reason": "Oscar publishes two brand-level interoperability pages and no base URL on either; Patient Access is delegated to a third-party platform reachable only by creating an account with that vendor, and no Provider Directory API is documented anywhere on the site",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "swept all nineteen sitemaps listed in robots.txt (720,577 unique URLs) for api, fhir, interop, develop, directory and cms paths; exactly two interoperability pages exist and both were read in full. /interoperability, /developers, /provider-directory-api and /cms_provider_directory_api all return 404. The documentation names no legal entity, no state and no HIOS id, so it does not distinguish this issuer from Oscar Insurance Corporation of Ohio",
+          "date": "2026-09-04",
+          "source": "https://www.hioscar.com/cms_patient_access_developer_page"
+        }
+      }
+    },
+    {
+      "id": "oscar-insurance-corporation-of-ohio",
+      "name": "Oscar Insurance Corporation of Ohio",
+      "roster_name": "Oscar Insurance Corporation of Ohio",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "excluded": {
+        "reason": "the same two brand-level pages that cover the other Ohio Oscar issuer, publishing no base URL and naming no legal entity, state or HIOS id; nothing published distinguishes this entity from Oscar Health Insurance, and nothing supports asserting a shared endpoint either",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "reviewed independently of the sibling Oscar row and reached the same evidence: nineteen sitemaps swept, both interoperability pages read in full, no Provider Directory API page in existence, and no entity-level scoping anywhere in the documentation. Because no endpoint is published at all, whether the two Ohio entities share one is unanswerable from the publisher's own materials and is not resolved by inference",
+          "date": "2026-09-04",
+          "source": "https://www.hioscar.com/cms_patient_access_member_page"
+        }
+      }
+    },
+    {
+      "id": "paramount",
+      "name": "Paramount Health Care (Medical Mutual)",
+      "roster_name": "Paramount",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "endpoints": [
+        "paramount-interoperability"
+      ]
+    },
+    {
+      "id": "summacare",
+      "name": "SummaCare",
+      "roster_name": "SummaCare",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "excluded": {
+        "reason": "the base URLs are not printed: the vendor portal SummaCare names as its API documentation publishes a template, 'https://apis.ssctech.com/interop-[Healthplan]/open/fhir/R4/', plus a separate table mapping SummaCare to the abbreviation 'summa'. Every component is the publisher's and the substitution rule is the publisher's own instruction, but the finished string appears nowhere, so it is held out of the registry rather than assembled here",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "read SummaCare's own interoperability page, which links the SS&C Health portal as 'complete API documentation', then read that portal's shipped application sources because the route renders client-side. Recorded the template, the abbreviation table row 'summa | SummaCare', and the exclusion note beneath it, which names three other plans and not this one. Probed the assembled provider-directory address once for evidence: the host answered HTTP 401 to /metadata, on an API the same portal labels 'public'",
+          "date": "2026-09-04",
+          "source": "https://www.summacare.com/legal-and-privacy/interoperability"
+        }
+      }
+    },
+    {
+      "id": "unitedhealthcare-ohio",
+      "name": "UnitedHealthcare",
+      "roster_name": "UnitedHealthcare",
+      "programs": [
+        "oh-marketplace"
+      ],
+      "endpoints": [
+        "unitedhealthcare-provider-directory"
+      ]
+    }
+  ]
+}

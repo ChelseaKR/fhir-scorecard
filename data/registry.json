@@ -646,6 +646,219 @@
         "source": "https://22healthplan.com/api/"
       },
       "enabled": true
+    },
+    {
+      "id": "caresource-patient-access",
+      "name": "CareSource Patient Access API",
+      "kind": "payer",
+      "base_url": "https://orchestrateserver.caresource.careevolution.com/api/fhir/r4",
+      "verification": {
+        "method": "base URL printed verbatim under 'API endpoint:' on the CareEvolution-hosted specification page CareSource links as 'Patient Access Open API Specification' from its own state-scoped interoperability page (https://www.caresource.com/oh/about-us/legal/interoperability-apis/, accordion 'API Definition:'). Two independent reviews reached the same URL from the Ohio and Wisconsin pages; the identical spec links appear on all fourteen of CareSource's state-scoped pages, so this is one national surface rather than a per-state deployment. The state-agnostic page carries only marketing copy and no endpoint, which is why the state-prefixed URL is the citation. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "caresource-provider-directory",
+      "name": "CareSource Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://orchestrateserver.caresource.careevolution.com/api/fhir/provider-directory",
+      "verification": {
+        "method": "base URL printed verbatim under 'API endpoint:' on the specification page CareSource links as 'Provider Directory Open API Specification', and cited a second time in the same page's 'Authorization / Authentication:' accordion: 'CareSource supports non-authenticated public directory endpoints.' The spec page states 'Read-only. Does not require authentication.' Live CapabilityStatement retrieved unauthenticated",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "ghcscw-patient-access",
+      "name": "Group Health Cooperative-SCW Patient Access API",
+      "kind": "payer",
+      "base_url": "https://linkpoint.ghcscw.com/Interconnect-PRD-FHIR/api/FHIR/R4",
+      "verification": {
+        "method": "base URL printed in the cooperative's own three-column table (Data Type | FHIR Server Base URL | API Documentation) at https://ghcscw.com/developer-resources/, sole data row 'Clinical Data, Medical Claims, Pharmacy Claims', under a page framed explicitly around the CMS Interoperability and Patient Access rule. An Epic production Interconnect deployment serving clinical data alongside claims; recorded as the plan's payer surface because the publisher presents it under the payer rule and documents ExplanationOfBenefit as the resource of record. The published string carries zero-width spaces, evidently to defeat autolinking; they were stripped. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "network-health-patient-access",
+      "name": "Network Health Patient Access API",
+      "kind": "payer",
+      "base_url": "https://epicproxy.et1476.epichosted.com/APIPROXYPRD/api/FHIR/R4",
+      "verification": {
+        "method": "base URL published as a live link in the plan's own 'Developer Resources' table (API | Endpoint | Additional Information) at https://networkhealth.com/legal/interoperability-apis, row 'Patient Access API (claims, encounter, clinical, authorization)'; page footer 'Last Updated Aug 31, 2026'. Epic Payer Platform hosting, not the parent system's EHR: the plan's own Member Patient Access Guide (doc 7123-01-0826) tells members to select 'Network Health' as their health plan and sign in with Network Health portal credentials. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "mercycare-patient-access",
+      "name": "MercyCare Health Plans Patient Access API",
+      "kind": "payer",
+      "base_url": "https://epicproxy.mhsjvl.org/FHIRproxy/api/FHIR/R4",
+      "verification": {
+        "method": "base URL published by the plan at https://www.mercycarehealthplans.com/interoperability-patient-access-rule/, section 'App developers API support', under the literal anchor text 'Patient Access API'; corroborated by the plan's own developer-guidance .docx tabling this server against 'Clinical Data, Medical Claims'. Co-hosting disclosed: epicproxy.mhsjvl.org is Mercyhealth's Epic proxy, so the payer surface and the health system's EHR appear to share one Epic instance. Recorded as the payer API because the plan publishes it as such and asserts it carries the plan's medical claims. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "mercycare-provider-directory",
+      "name": "MercyCare Health Plans Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://mercycarefhir.healthsparq.com/api/provider-fhir-service/v1/fhir",
+      "verification": {
+        "method": "base URL printed verbatim after the literal label 'Endpoint:' in the plan's own PDF 'Welcome to the MercyCare FHIR Directory API', linked from its interoperability page as 'Developer guidance for provider directory FHIR API'. The document describes a public-token flow while stating 'the mandate requires this information to be publicly available'; the endpoint nonetheless answered an unauthenticated request. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "quartz-patient-access",
+      "name": "Quartz Patient Access API",
+      "kind": "payer",
+      "base_url": "https://epicproxy.hosp.wisc.edu/FhirProxy/UWHEALTH/api/FHIR/R4",
+      "verification": {
+        "method": "base URL printed in the plan's own table (Data Type | FHIR Server Base URL | API Documentation) at https://quartzbenefits.com/contact-quartz/interoperability-apis/, row 'Claims and other member data via the Patient Access API'. Caveat recorded rather than resolved: the host and its /UWHEALTH/ path segment belong to UW Health, a part-owner health system, so the same Epic instance may also serve that system's EHR data; the plan's own label is the basis for treating this as the payer surface. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "quartz-provider-directory",
+      "name": "Quartz Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://quartzfhir.healthsparq.com/api/provider-fhir-service/v1/fhir",
+      "verification": {
+        "method": "base URL published by the plan at https://quartzbenefits.com/contact-quartz/interoperability-apis/, section 'FHIR Provider Directory API', inside the numbered instruction table's curl example, alongside a public token service at the same host. The publisher writes the scheme as http://; only the scheme was changed to https to probe, with host and path verbatim. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "security-health-plan-patient-access",
+      "name": "Security Health Plan Member API",
+      "kind": "payer",
+      "base_url": "https://fhir.securityhealth.org/r4",
+      "verification": {
+        "method": "base URL printed literally on the plan's own domain at https://www.securityhealth.org/developer-third-party-application, section 'Developing with Security Health Plan APIs', under the heading 'Base URLs:', line 'Member API Base URL'. Page footer 'Copyright 2026 Security Health Plan of Wisconsin, Inc.' No template and no substitution. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "security-health-plan-provider-directory",
+      "name": "Security Health Plan Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://fhir.securityhealth.org/hspd/r4",
+      "verification": {
+        "method": "base URL printed literally on the same page and under the same 'Base URLs:' heading, line 'Provider Directory API Base URL'. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "medmutual-provider-directory",
+      "name": "Medical Mutual of Ohio Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://fhirprovider.medmutual.com/provider",
+      "verification": {
+        "method": "base URL published as the sole endpoint entry on Medical Mutual's Edifecs developer portal (tenant 'medical.mutual.of.ohio'), which the plan links from https://www.medmutual.com/About-Medical-Mutual/Interoperability-Information under the heading 'Developer Portal'. Portal record published 2026-01-05, FHIR R4, 292 published resource APIs. Medical Mutual states these APIs serve its Medicare Advantage and Individual ACA members. Its Patient Access base URL is not published publicly and is therefore not recorded. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "paramount-interoperability",
+      "name": "Paramount Health Care Interoperability API",
+      "kind": "payer",
+      "base_url": "https://portal.aidbox.myparamount.org",
+      "verification": {
+        "method": "base URL printed verbatim on the plan's own site at https://www.paramounthealthcare.com/Interoperability-APIs, section 'API Documentation' > 'Basic Requests', in the line 'For provider access, that is public'; the same host is printed on the next line for patient access, so one host serves both surfaces separated by OAuth scope rather than by address. Published with a '#/login' fragment, which is an Aidbox UI route never sent to the server. Now a Medical Mutual company, but the endpoint is published on Paramount's own domain under its own copyright, so no parent-document attribution is involved. Grade observed to move within one hour on 2026-09-04 (interop readiness 0 then 60 on two later probes), so its declaration is not stable across requests. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "ambetter-centene-provider-directory",
+      "name": "Centene Provider Directory API (Ambetter)",
+      "kind": "payer_provider_directory",
+      "base_url": "https://iopc-pd.api.centene.com/iopc/pd/fhir/providerdirectory",
+      "verification": {
+        "method": "base URL printed under the heading 'URL' in the 'Getting Started' document for the API 'FHIR - Provider Directory' on Centene's Partner Portal, whose catalog is served unauthenticated; Ambetter from Buckeye Health Plan's own Ohio page links that portal as 'our Partner Portal' and names that exact catalog entry. Attribution runs from the issuer outward: Centene's own documents name neither 'Ambetter' nor 'Buckeye', and the catalog entry is marked visibility Public, authentication None. Supersedes the retired production.api.centene.com addresses in data/rejected.json. Live CapabilityStatement retrieved unauthenticated",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "elevance-anthem-bcbs-patient-access",
+      "name": "Anthem Blue Cross Blue Shield Patient Access API (Elevance)",
+      "kind": "payer",
+      "base_url": "https://totalview.healthos.elevancehealth.com/resources/registered/AnthemBlueCrossBlueShield/api/v1/fhir",
+      "verification": {
+        "method": "base URL taken from the embedded link annotation of the row labelled 'Anthem Blue Cross Blue Shield' in the table 'FHIR Endpoints (Production Base URL)', section 'Patient Access API - Production Environment', of Elevance's Interoperability API Endpoint Support Document, Doc ID IO105, Version 15.0, effective 2025-11-18, status Active. Named for the operator and the brand rather than for a state on purpose: the table has thirteen brand rows and no state column, and the strings 'Ohio' and 'Wisconsin' appear nowhere in the document, so listing this URL once per state would put one address under several names. Two independent reviews, from the Ohio and Wisconsin rosters, reached this same row",
+        "date": "2026-09-04",
+        "basis": "publisher_documented",
+        "source": "https://www.anthem.com/content/dam/digital/developers-portal/Anthem-IOProviderDirectoryAndFormulary-API-Documentation.pdf",
+        "observed": "HTTP 401 to an unauthenticated GET of /metadata, matching the two sibling per-brand paths since 2026-08-19. A Patient Access API may require authentication for member data, so this is not a defect claim; what it records is that the conformance document is not retrievable, so nothing this endpoint declares can be checked from outside. The document is served byte-identically from anthem.com and wellpoint.com (SHA-256 f383858d13a0d138c9ccfeba52bfe9d1fcd023f70e281b212623e2f6214d3b62); the anthem.com copy is cited here because it is the Anthem-branded publisher"
+      },
+      "enabled": true
+    },
+    {
+      "id": "ghcscw-provider-directory",
+      "name": "Group Health Cooperative-SCW Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://publicfhir.ghcscw.com",
+      "verification": {
+        "method": "base URL printed in running prose at https://ghcscw.com/developer-resources/, section 'Provider Directory API': 'The Provider Directory API is publicly available and does not require application registration or authentication. The endpoint for this API is: https://publicfhir.ghcscw.com', followed by the resources it serves. The published string carries zero-width spaces, evidently to defeat autolinking; they were stripped",
+        "date": "2026-09-04",
+        "basis": "publisher_documented",
+        "source": "https://ghcscw.com/developer-resources/",
+        "observed": "no answer to an unauthenticated GET of /metadata on 2026-09-04. Not a dead name: the host resolves via CNAME to a live Azure Application Gateway (ghc-publicfhir-nc-agw.northcentralus.cloudapp.azure.com). A directory the publisher states requires no authentication was not readable on the date checked"
+      },
+      "enabled": true
+    },
+    {
+      "id": "aspirus-patient-access",
+      "name": "Aspirus Health Plan Patient Access API",
+      "kind": "payer",
+      "base_url": "https://prodpfotzinterop.healthtranzformdev.com/ug/patientaccess",
+      "verification": {
+        "method": "base URL read verbatim from servers[0].url of the OpenAPI 3.0.1 document published anonymously by Aspirus Health Plan's own branded developer portal, which the plan links from https://www.aspirushealthplan.com/insurance/Interoperability/ under 'Developers'. Catalog entry id 'patient-access'",
+        "date": "2026-09-04",
+        "basis": "publisher_documented",
+        "source": "https://www.aspirushealthplan.com/insurance/Interoperability/",
+        "observed": "no answer to an unauthenticated GET of /metadata on 2026-09-04. The host resolves; the sibling portal host presents an incomplete TLS chain, which is the likeliest cause"
+      },
+      "enabled": true
+    },
+    {
+      "id": "aspirus-provider-directory",
+      "name": "Aspirus Health Plan Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://prodpfotzinterop.healthtranzformdev.com/providerdirectory",
+      "verification": {
+        "method": "base URL read verbatim from servers[0].url of the OpenAPI 3.0.1 document for catalog entry 'pfo-provider-directory', published anonymously by the same Aspirus-branded developer portal linked from the plan's Interoperability page",
+        "date": "2026-09-04",
+        "basis": "publisher_documented",
+        "source": "https://www.aspirushealthplan.com/insurance/Interoperability/",
+        "observed": "no answer to an unauthenticated GET of /metadata on 2026-09-04. Separately, the gateway declares a subscription key required for this API, so the surface CMS intends to be readable without authentication would not be readable unauthenticated even once reachable"
+      },
+      "enabled": true
+    },
+    {
+      "id": "network-health-provider-directory",
+      "name": "Network Health Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://epicproxy.et1476.epichosted.com/APIPROXYPRD/api/FHIR/BulkPublish/Public/PlanNet",
+      "verification": {
+        "method": "base URL published as a live link in the plan's own 'Developer Resources' table at https://networkhealth.com/legal/interoperability-apis, row 'Provider Directory API', described there as a Da Vinci Plan Net public endpoint",
+        "date": "2026-09-04",
+        "basis": "publisher_documented",
+        "source": "https://networkhealth.com/legal/interoperability-apis",
+        "observed": "no CapabilityStatement retrieved on 2026-09-04. The published address is a Da Vinci PDEX Plan Net BulkPublish path rather than a conventional FHIR REST base, so this may be a shape the conformance check cannot read rather than an endpoint that is down; it is recorded as not retrievable from here, which is the narrower and supportable claim"
+      },
+      "enabled": true
     }
   ]
 }

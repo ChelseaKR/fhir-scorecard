@@ -50,6 +50,8 @@ NUMBER_WORDS = {
     "twelve": 12,
     "forty": 40,
     "forty-five": 45,
+    "fifty-three": 53,
+    "sixty-three": 63,
 }
 """Only the words this paragraph actually uses, plus enough neighbours that a changed count
 fails on the number rather than on a missing dictionary entry."""

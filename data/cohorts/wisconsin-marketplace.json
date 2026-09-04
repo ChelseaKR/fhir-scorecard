@@ -1,0 +1,173 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the issuer's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the issuer publishes a base URL that returns 404' and 'the issuer publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "wisconsin-marketplace",
+    "name": "Wisconsin marketplace issuer cohort",
+    "description": "The Patient Access and Provider Directory APIs of every issuer selling an individual-market qualified health plan on HealthCare.gov in Wisconsin for 2026, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Membership is CMS's own file, not a list assembled here. The QHP Landscape PY2026 Individual Medical dataset published by the Center for Consumer Information and Insurance Oversight lists every plan sold on HealthCare.gov; filtered to Wisconsin it carries 2,651 plan-county rows, 12 HIOS issuer IDs, and 12 issuer names. The roster was frozen before any URL was probed and is committed beside this file as wisconsin-marketplace.roster.csv.",
+    "Every member either points at registry endpoints or carries an exclusion with a dated review record and the source that was read. An exclusion is a statement about what this project could find on the date it looked, never a statement about whether an issuer meets an obligation."
+  ],
+  "sources": [
+    {
+      "label": "CMS / CCIIO: QHP Landscape PY2026 Individual Medical (individual_market_medical.zip, issued 2026-08-04, modified 2026-08-10)",
+      "url": "https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45",
+      "date": "2026-09-04"
+    }
+  ],
+  "members": [
+    {
+      "id": "anthem-bcbs-wisconsin",
+      "name": "Anthem Blue Cross and Blue Shield (Elevance)",
+      "roster_name": "Anthem Blue Cross and Blue Shield",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "endpoints": [
+        "elevance-anthem-bcbs-patient-access",
+        "elevance-shared-provider-directory"
+      ]
+    },
+    {
+      "id": "aspirus-health-plan",
+      "name": "Aspirus Health Plan",
+      "roster_name": "Aspirus Health Plan",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "endpoints": [
+        "aspirus-patient-access",
+        "aspirus-provider-directory"
+      ]
+    },
+    {
+      "id": "caresource-wisconsin",
+      "name": "CareSource (Common Ground Healthcare)",
+      "roster_name": "CareSource (Common Ground Healthcare)",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "endpoints": [
+        "caresource-patient-access",
+        "caresource-provider-directory"
+      ]
+    },
+    {
+      "id": "dean-health-plan",
+      "name": "Dean Health Plan by Medica",
+      "roster_name": "Dean Health Plan",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "excluded": {
+        "reason": "Dean's own site documents a Patient Access API delivered through a third-party platform and publishes no base URL, linking only to that vendor's generic help-center home; no Dean-published Provider Directory endpoint exists. Its parent does publish base URLs, but that document names only the parent and never names Dean, so it cannot be attributed to this row",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "read the plan's patient-access page and FAQ and enumerated its full site index for api, fhir, interop and developer paths, finding only those two pages; the provider page carries X12 EDI transactions and no FHIR. Enumerated the domain's Internet Archive history across all subdomains and found no developer or FHIR host has ever existed. Read the parent's 48-page endpoint document and confirmed zero occurrences of 'Dean', 'WellFirst' or 'SSM'. Both sites currently block automated clients, so publisher pages were read from Internet Archive captures of those same publisher URLs and a browser re-check is worth doing",
+          "date": "2026-09-04",
+          "source": "https://www.deancare.com/Members/Patient-access"
+        }
+      }
+    },
+    {
+      "id": "group-health-cooperative-scw",
+      "name": "Group Health Cooperative-SCW",
+      "roster_name": "Group Health Cooperative-SCW",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "endpoints": [
+        "ghcscw-patient-access",
+        "ghcscw-provider-directory"
+      ]
+    },
+    {
+      "id": "healthpartners-wisconsin",
+      "name": "HealthPartners",
+      "roster_name": "HealthPartners",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "endpoints": [
+        "healthpartners"
+      ]
+    },
+    {
+      "id": "medica",
+      "name": "Medica",
+      "roster_name": "Medica",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "excluded": {
+        "reason": "Medica does publish both base URLs in a document it hosts, but the live file is unreachable to automated clients and the version read was an Internet Archive capture from 2024-07-14. A 2024 snapshot is not evidence about what is published today, so the addresses are held out of the registry until the live document is confirmed current",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "the publisher's site refuses every programmatic request; the document was read from an Internet Archive capture of Medica's own URL, and its sections 3 and 4 print 'Base URL:' followed by a Patient Access and a Provider Directory address. Both were probed once: the host answers at the HTTP layer rather than failing to resolve, and neither served a conformance document. The document is national in scope, names no state, and Medica sells individual plans in Wisconsin, so it would cover this row once confirmed",
+          "date": "2026-09-04",
+          "source": "https://www.medica.com/privacy/third-party-app-registration"
+        }
+      }
+    },
+    {
+      "id": "mercycare-health-plans",
+      "name": "MercyCare Health Plans",
+      "roster_name": "MercyCare Health Plans",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "endpoints": [
+        "mercycare-patient-access",
+        "mercycare-provider-directory"
+      ]
+    },
+    {
+      "id": "network-health",
+      "name": "Network Health",
+      "roster_name": "Network Health",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "endpoints": [
+        "network-health-patient-access",
+        "network-health-provider-directory"
+      ]
+    },
+    {
+      "id": "quartz",
+      "name": "Quartz",
+      "roster_name": "Quartz",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "endpoints": [
+        "quartz-patient-access",
+        "quartz-provider-directory"
+      ]
+    },
+    {
+      "id": "security-health-plan",
+      "name": "Security Health Plan of Wisconsin",
+      "roster_name": "Security Health Plan",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "endpoints": [
+        "security-health-plan-patient-access",
+        "security-health-plan-provider-directory"
+      ]
+    },
+    {
+      "id": "unitedhealthcare-wisconsin",
+      "name": "UnitedHealthcare",
+      "roster_name": "UnitedHealthcare",
+      "programs": [
+        "wi-marketplace"
+      ],
+      "endpoints": [
+        "unitedhealthcare-provider-directory"
+      ]
+    }
+  ]
+}

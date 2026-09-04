@@ -44,7 +44,12 @@ SAMPLING_FRAME = _norm((ROOT / "docs" / "SAMPLING-FRAME.md").read_text(encoding=
 
 #: Cohorts whose denominator is a committed roster CSV, and the state that slices the
 #: national frame down to it.
-ROSTERED_COHORTS = {"texas-marketplace": "TX", "florida-marketplace": "FL"}
+ROSTERED_COHORTS = {
+    "texas-marketplace": "TX",
+    "florida-marketplace": "FL",
+    "ohio-marketplace": "OH",
+    "wisconsin-marketplace": "WI",
+}
 
 #: Spelled-out numbers the prose uses, so a sentence written in words stays tied to the
 #: count it came from.
@@ -55,12 +60,16 @@ WORDS = {
     6: "six",
     8: "eight",
     9: "nine",
+    10: "ten",
     15: "fifteen",
     23: "twenty-three",
     27: "twenty-seven",
     40: "forty",
     45: "forty-five",
+    53: "fifty-three",
     57: "fifty-seven",
+    63: "sixty-three",
+    80: "eighty",
 }
 
 
@@ -246,10 +255,10 @@ def test_the_coverage_populations_are_the_ones_the_docs_print() -> None:
         )
     )
 
-    assert tally[VERIFIED] == 13
-    assert tally[DOCUMENTED_UNREACHABLE] == 2
-    assert tally[NO_PUBLIC_URL_FOUND] == 15
-    assert tally[NOT_YET_REVIEWED] == 146
+    assert tally[VERIFIED] == 28
+    assert tally[DOCUMENTED_UNREACHABLE] == 3
+    assert tally[NO_PUBLIC_URL_FOUND] == 22
+    assert tally[NOT_YET_REVIEWED] == 123
 
     # README states them as a parenthesised run; ROADMAP as a named list. Both must carry the
     # computed numbers, not merely a total that two of them could be traded within.

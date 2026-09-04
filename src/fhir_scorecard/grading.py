@@ -548,7 +548,21 @@ def grade_interop(
     )
 
 
-_WEIGHTS = {"reachability": 0.35, "transparency": 0.35, "interop": 0.30}
+#: The three dimensions in published order, each with the title the site prints and the weight
+#: :func:`letter` actually applies.
+#:
+#: One definition, because there used to be two. The methodology page stated "35% / 35% / 30%"
+#: as literal HTML, and nothing connected those characters to this mapping: reordering the
+#: weights here left the whole suite green while the site went on publishing the old split as
+#: its method. A page that describes a calculation it is not reading is the one kind of drift
+#: this project cannot detect by reading either artifact alone, so the page renders from here.
+WEIGHTED_DIMENSIONS: tuple[tuple[str, str, float], ...] = (
+    ("reachability", "Reachability", 0.35),
+    ("transparency", "Capability transparency", 0.35),
+    ("interop", "Interop readiness", 0.30),
+)
+
+_WEIGHTS = {key: weight for key, _, weight in WEIGHTED_DIMENSIONS}
 
 
 def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:

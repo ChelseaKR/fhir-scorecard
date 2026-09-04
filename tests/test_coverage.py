@@ -96,10 +96,19 @@ def test_the_reviewed_population_is_the_two_states_that_were_reviewed() -> None:
 
 def test_the_reviewed_outcomes_match_the_cohorts_they_come_from() -> None:
     """15 of the 30 reviewed organizations publish a base URL, which is the README's six in
-    Texas plus nine in Florida."""
+    Texas plus nine in Florida.
+
+    Each population asserted on its own. This used to assert only that ``verified`` and
+    ``documented_unreachable`` *sum* to 15 - which is the population merge this project's whole
+    method forbids, sitting in the test guarding the two numbers it most needed to keep apart.
+    Flipping one ``verification_basis`` moved the split from 13/2 to 11/4 with the suite green
+    and both README and ROADMAP silently wrong.
+    """
     tally = counts(_committed())
-    assert tally[VERIFIED] + tally[DOCUMENTED_UNREACHABLE] == 15
+    assert tally[VERIFIED] == 13
+    assert tally[DOCUMENTED_UNREACHABLE] == 2
     assert tally[NO_PUBLIC_URL_FOUND] == 15
+    assert tally[NOT_YET_REVIEWED] == 146
 
 
 # --- the join key ---

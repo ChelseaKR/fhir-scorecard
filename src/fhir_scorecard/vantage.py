@@ -47,6 +47,12 @@ class VantageProbe:
     error: str | None = None
     capability: str | None = None  # raw /metadata body, when this vantage retrieved it
     smart: str | None = None  # raw SMART discovery body, when retrieved
+    # The HTTP status, when the endpoint answered with one. ``reachable`` is 2xx-only, which is
+    # the right test for "did we get a document", and the wrong one for "is this endpoint up".
+    # A server that replies 415 or 403 has completed DNS, TCP, TLS and HTTP; it is running and
+    # refusing this particular request, which is a different published sentence from one this
+    # run could not reach. Carried so the merge can tell those apart. See :func:`reconcile`.
+    status: int | None = None
 
     @property
     def network(self) -> str:
@@ -74,6 +80,14 @@ class Consensus:
     # local vantage was blocked.
     capability: str | None = None
     smart: str | None = None
+    # How many vantages got an HTTP answer of any status, including the ones whose answer was a
+    # refusal. Separate from ``agreeing``, which counts vantages that retrieved a document.
+    answered: int = 0
+    # Set when reachable vantages returned CapabilityStatements that are not byte-identical.
+    # One hostname in front of two backends is the alternation story this project already tells
+    # over time; seen across vantages in a single run it is the same fact, and discarding it
+    # silently is how the wrong one of the two gets published as the endpoint's declaration.
+    declaration_disagreement: str | None = None
 
     @property
     def unanimous(self) -> bool:
@@ -127,13 +141,21 @@ def collapse_by_vantage(probes: list[VantageProbe]) -> list[VantageProbe]:
                         (p.capability for p in reached if p.capability is not None), None
                     ),
                     smart=next((p.smart for p in reached if p.smart is not None), None),
+                    status=next((p.status for p in reached if p.status is not None), None),
                 )
             )
         else:
             errors = sorted({p.error for p in group if p.error})
             collapsed.append(
                 VantageProbe(
-                    vantage=vantage, reachable=False, elapsed_ms=0, error="; ".join(errors) or None
+                    vantage=vantage,
+                    reachable=False,
+                    elapsed_ms=0,
+                    error="; ".join(errors) or None,
+                    # An answering-but-refusing sample still demonstrates the endpoint is up,
+                    # so its status outlives the collapse even though none of the samples in
+                    # this group retrieved a document.
+                    status=next((p.status for p in group if p.status is not None), None),
                 )
             )
     return collapsed
@@ -162,7 +184,22 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
         # say so rather than settle it. The failure modes are shown either way: identical errors
         # everywhere read very differently from a scattered mix.
         joined = "; ".join(sorted({p.error or "unknown" for p in failed}))
-        if len(networks) == 1:
+        answered = [p for p in failed if p.status is not None]
+        if answered:
+            # The endpoint answered. Whatever else this run failed to do, it did not fail to
+            # reach the host: an HTTP status means DNS resolved, TCP connected, TLS completed
+            # and the server chose a response. Saying "cannot separate down from blocked" here
+            # would be the 2026-08-05 misdiagnosis with its sign reversed - and it would print
+            # the very status that disproves it. What this run did not get is a document.
+            statuses = ", ".join(
+                str(s) for s in sorted({p.status for p in answered if p.status is not None})
+            )
+            detail = (
+                f"answered HTTP {statuses} from {len(answered)} of {len(probes)} vantages but "
+                f"returned no usable document: the endpoint is running and refusing this "
+                f"request, which is not the same as being unreachable: {joined}"
+            )
+        elif len(networks) == 1:
             detail = (
                 f"not reached from any of the {len(probes)} vantages tried, all on one "
                 f"network ({networks[0]}), so this run cannot separate an endpoint that is "
@@ -180,19 +217,26 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
             agreeing=0,
             networks=len(networks),
             detail=detail,
+            answered=len(answered),
         )
 
     # Median latency across the vantages that succeeded: one slow network path should not
     # define the number, and neither should one unusually fast one.
     median = _median([p.elapsed_ms for p in reached])
 
+    reached_networks = sorted({p.network for p in reached})
+
     if failed:
         names = ", ".join(sorted(p.vantage for p in failed))
         why = "; ".join(sorted({p.error or "unknown" for p in failed}))
+        # No attribution. This used to close with "which is a property of that network rather
+        # than of the endpoint", and that is a claim no run can make: a 403, a 429 or a geo
+        # rule is the endpoint's policy toward that source, not the network misbehaving. The
+        # asymmetry this module rests on is that one vantage failing proves nothing - which
+        # cuts both ways, and means it cannot prove whose fault the failure was either.
         detail = (
             f"reachable from {len(reached)} of {len(probes)} vantages; "
-            f"failed from {names} ({why}), which is a property of that network "
-            "rather than of the endpoint"
+            f"not reached from {names} ({why})"
         )
     elif len(probes) > 1 and len(networks) == 1:
         detail = (
@@ -205,22 +249,75 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
     else:
         detail = f"reachable from {probes[0].vantage}"
 
-    # ``is not None``, not truthiness: a vantage that reached the endpoint and got back an
-    # empty body has retrieved a document, just an empty one, which is a different fact from a
-    # vantage that retrieved nothing. A bare truthiness check skipped the first kind of vantage
-    # looking for a "real" document and landed on ``None`` if no other vantage had one, which
-    # then read downstream as nothing having been retrieved at all.
-    borrowed = next((p for p in reached if p.capability is not None), None)
+    capability, disagreement = _agreed_capability(reached)
+    if disagreement is not None:
+        # Published, not just recorded. Two vantages seeing two different declarations in one
+        # run is the same fact the alternation rule reports over time - one hostname in front
+        # of more than one backend - and a reader looking at a grade derived from one of them
+        # is entitled to know the other existed.
+        detail = f"{detail}. {disagreement}"
     return Consensus(
         reachable=True,
         elapsed_ms=median,
         vantages=len(probes),
         agreeing=len(reached),
-        networks=len(networks),
+        # Counted over the vantages that actually reached the endpoint, not over every vantage
+        # that reported. A median computed from one reachable vantage was being published as
+        # "median across 1 reachable vantages across 3 networks", which describes a breadth of
+        # agreement the number does not have.
+        networks=len(reached_networks),
         detail=detail,
-        capability=borrowed.capability if borrowed else None,
-        smart=borrowed.smart if borrowed else None,
+        capability=capability,
+        # Borrowed independently of the CapabilityStatement. It used to be taken from whichever
+        # probe supplied the capability, so a vantage-local block on /.well-known - a WAF rule,
+        # a transient 5xx - discarded a peer's complete SMART document and published "absent or
+        # incomplete" about a named payer. That is up to 35 of 100 interop points, wider than a
+        # letter band, decided by which probe happened to be first.
+        smart=next((p.smart for p in reached if p.smart is not None), None),
+        answered=sum(1 for p in probes if p.status is not None or p.reachable),
+        declaration_disagreement=disagreement,
     )
+
+
+def _agreed_capability(reached: list[VantageProbe]) -> tuple[str | None, str | None]:
+    """The document the most vantages returned, and a note when they did not all agree.
+
+    Selection used to be ``next(p for p in reached if p.capability is not None)`` - first in
+    list order, and list order is the order ``probes/*.json`` happened to glob. A vantage whose
+    network answers with a 200 interstitial sorts before a vantage that retrieved the real
+    CapabilityStatement purely on filename, and then defines the grade, every finding, and the
+    drift fingerprint that decides whether this endpoint is recorded as having changed.
+
+    Majority instead, ties broken by vantage label so the result is deterministic rather than
+    merely different. ``is not None``, not truthiness, throughout: a vantage that reached the
+    endpoint and got back an empty body retrieved a document, just an empty one, and that is a
+    different fact from a vantage that retrieved nothing at all.
+    """
+    holders = [p for p in reached if p.capability is not None]
+    if not holders:
+        return None, None
+
+    by_document: dict[str, list[VantageProbe]] = {}
+    for probe in holders:
+        by_document.setdefault(probe.capability or "", []).append(probe)
+
+    def rank(item: tuple[str, list[VantageProbe]]) -> tuple[int, str]:
+        _, group = item
+        return (-len(group), min(p.vantage for p in group))
+
+    document, group = min(by_document.items(), key=rank)
+    if len(by_document) == 1:
+        return document, None
+
+    counts = ", ".join(
+        f"{len(g)} from {', '.join(sorted(p.vantage for p in g))}"
+        for _, g in sorted(by_document.items(), key=rank)
+    )
+    disagreement = (
+        f"{len(holders)} vantages returned {len(by_document)} different CapabilityStatements "
+        f"this run ({counts}); the one {len(group)} agreed on is graded"
+    )
+    return document, disagreement
 
 
 def write_probes(path: Path, vantage: str, probes: dict[str, VantageProbe]) -> None:
@@ -270,6 +367,10 @@ def load_probe_files(paths: list[Path]) -> dict[str, list[VantageProbe]]:
                         else None
                     ),
                     smart=entry.get("smart") if isinstance(entry.get("smart"), str) else None,
+                    # Read defensively: probe files written before this field existed simply
+                    # do not carry it, and a vantage running an older revision is exactly the
+                    # case this loader is built to tolerate.
+                    status=(entry.get("status") if isinstance(entry.get("status"), int) else None),
                 )
             )
     return by_endpoint

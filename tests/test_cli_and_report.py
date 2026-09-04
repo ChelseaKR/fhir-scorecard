@@ -646,3 +646,98 @@ def test_probes_out_records_this_runs_observations(tmp_path: Path) -> None:
     assert loaded["alpha"][0].vantage == "runner-1"
     assert loaded["alpha"][0].reachable
     assert loaded["alpha"][0].capability  # documents carried for peers to borrow
+
+
+def test_a_peers_smart_document_is_used_when_this_vantage_could_not_fetch_it(
+    tmp_path: Path,
+) -> None:
+    """35 of 100 interop points used to turn on which probe happened to be first in a list.
+
+    The SMART document was borrowed from whichever probe supplied the CapabilityStatement, so a
+    vantage-local block on /.well-known - a WAF rule, a transient 5xx - published "SMART
+    absent or incomplete" about a named payer while a peer vantage held the complete document
+    that same run. Weighted, that is wider than a letter band.
+    """
+    registry = _registry(tmp_path)
+    fixtures = tmp_path / "fixtures"
+    (fixtures / "alpha").mkdir(parents=True)
+    # This vantage retrieves /metadata and is blocked on /.well-known: no smart.json fixture.
+    (fixtures / "alpha" / "metadata.json").write_text(json.dumps(good_capability()))
+
+    peer = tmp_path / "probes-peer.json"
+    peer.write_text(
+        json.dumps(
+            {
+                "vantage": "peer/1",
+                "probes": {
+                    "alpha": {
+                        "vantage": "peer/1",
+                        "reachable": True,
+                        "elapsed_ms": 120,
+                        "capability": json.dumps(good_capability()),
+                        "smart": json.dumps(good_smart()),
+                    }
+                },
+            }
+        )
+    )
+
+    out = tmp_path / "site"
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(registry),
+                "--offline",
+                "--fixtures",
+                str(fixtures),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+                "--probes-in",
+                str(peer),
+            ]
+        )
+        == 0
+    )
+    card = json.loads((out / "scorecards.json").read_text())["scorecards"][0]
+    interop = next(d for d in card["dimensions"] if d["key"] == "interop")
+    i2 = next(f for f in interop["findings"] if f["code"] == "I2")
+    assert i2["ok"], "the peer retrieved a complete SMART document; it demonstrably exists"
+    assert i2["points"] == 35
+    assert "absent or incomplete" not in i2["message"]
+
+
+def test_with_no_peer_a_failed_smart_fetch_still_grades_as_absent(tmp_path: Path) -> None:
+    """The fallback is narrow on purpose: one vantage missing it settles nothing only because
+    another vantage found it. With nobody holding the document, this run asked and got nothing,
+    and that remains an observation about the endpoint."""
+    registry = _registry(tmp_path)
+    fixtures = tmp_path / "fixtures"
+    (fixtures / "alpha").mkdir(parents=True)
+    (fixtures / "alpha" / "metadata.json").write_text(json.dumps(good_capability()))
+
+    out = tmp_path / "site"
+    assert (
+        main(
+            [
+                "grade",
+                "--registry",
+                str(registry),
+                "--offline",
+                "--fixtures",
+                str(fixtures),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "h.json"),
+            ]
+        )
+        == 0
+    )
+    card = json.loads((out / "scorecards.json").read_text())["scorecards"][0]
+    interop = next(d for d in card["dimensions"] if d["key"] == "interop")
+    i2 = next(f for f in interop["findings"] if f["code"] == "I2")
+    assert not i2["ok"] and i2["points"] == 0

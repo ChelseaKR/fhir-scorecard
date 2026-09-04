@@ -162,6 +162,10 @@ def _grade_endpoint(
         error=metadata.error,
         capability=metadata.body.decode("utf-8", "replace") if metadata.ok else None,
         smart=smart.body.decode("utf-8", "replace") if smart.ok else None,
+        # Recorded whether or not the fetch produced a document: a refusal with a status is
+        # still proof the endpoint answered, and the merge needs it to avoid describing a
+        # running server as one it could not reach.
+        status=metadata.status,
     )
     probes_seen[endpoint.endpoint_id] = mine
     all_probes = [mine, *other_probes.get(endpoint.endpoint_id, [])]
@@ -174,8 +178,17 @@ def _grade_endpoint(
     if metadata.ok:
         facts = parse_capability(metadata.body)
         # This run reached the host, so it did ask for the SMART document: a failed SMART fetch
-        # is an observation that it is absent or unusable, and grades as one.
-        smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
+        # is an observation that it is absent or unusable, and grades as one -- unless another
+        # vantage holds the document, in which case it demonstrably exists and this vantage's
+        # failure to get it is a fact about this vantage. That is the asymmetry the whole module
+        # rests on: one vantage retrieving something settles that it is there, and one vantage
+        # missing it settles nothing.
+        if smart.ok:
+            smart_facts = parse_smart(smart.body)
+        elif consensus is not None and consensus.smart is not None:
+            smart_facts = parse_smart(consensus.smart.encode("utf-8"))
+        else:
+            smart_facts = parse_smart(b"")
     elif consensus is not None and consensus.capability is not None:
         # This vantage was blocked but another retrieved the documents: grade their content
         # rather than scoring zero for material we simply never received. ``is not None``, not

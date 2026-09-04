@@ -298,7 +298,10 @@ def test_consensus_rescues_a_vantage_local_failure(
     )
     assert card.reachable
     assert card.grade != "F"
-    assert "property of that network" in card.vantage_note
+    assert "not reached from home" in card.vantage_note
+    # And no attribution: naming the failing vantage and its cause is what this run observed;
+    # deciding whether the network or the endpoint caused it is not.
+    assert "property of that network" not in card.vantage_note
     r1 = next(f for f in card.dimensions[0].findings if f.code == "R1")
     assert r1.ok
 

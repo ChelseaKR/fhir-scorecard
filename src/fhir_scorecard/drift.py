@@ -165,13 +165,36 @@ def endpoint_count(history: dict[str, Any]) -> int:
 
 
 def load_history(path: Path) -> dict[str, Any]:
+    """Read the availability record, or raise saying why this run must not continue.
+
+    An absent file is a first run and returns ``{}``. A file that exists and cannot be read is
+    something else entirely, and the difference is not cosmetic: the daily workflow restores
+    ``data/history.json`` from the ``capability-history`` branch, so an unreadable restore that
+    fell back to ``{}`` would be indistinguishable from a first run. Every endpoint would be
+    recorded as first seen today, every availability window would reset below
+    ``MIN_OBSERVATIONS_TO_REPORT``, the drift log would be dropped, and the next
+    :func:`save_history` would write that over the real record on the branch it came from.
+
+    ``ensure_mode`` cannot catch it either, because ``{}`` carries no ``_meta`` to disagree with.
+    So the check belongs here, and it fails closed: this module's own rule is that a run says what
+    it could not do rather than publishing a claim it cannot support.
+    """
     if not path.is_file():
         return {}
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-    except ValueError:
-        return {}
-    return raw if isinstance(raw, dict) else {}
+    except ValueError as exc:
+        raise ValueError(
+            f"{path} exists but is not readable JSON ({exc}); refusing to continue, because "
+            "treating an unreadable record as an empty one would republish every endpoint as "
+            "first seen today and overwrite the record this run could not read"
+        ) from exc
+    if not isinstance(raw, dict):
+        raise ValueError(
+            f"{path} holds {type(raw).__name__}, not an object; refusing to continue rather "
+            "than starting a fresh record over one this run could not read"
+        )
+    return raw
 
 
 def save_history(path: Path, history: dict[str, Any]) -> None:

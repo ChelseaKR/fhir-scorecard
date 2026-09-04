@@ -15,9 +15,9 @@ unusable with a screen reader.
 
 Each rule names the success criterion it implements, or says plainly that it is this project's
 own rule rather than a criterion, which is the same standard the grading rules are held to.
-Eight name a criterion; four are this project's own. A rule wearing a criterion number that does
+Seven name a criterion; five are this project's own. A rule wearing a criterion number that does
 not require it would be a fabricated citation, which is the one thing this repository cannot
-publish, so the four say so in the text a reader of a finding sees.
+publish, so the five say so in the text a reader of a finding sees.
 """
 
 from __future__ import annotations
@@ -44,7 +44,13 @@ A11Y_CODES: dict[str, str] = {
         "here describes a different endpoint, organization, category or cohort"
     ),
     "A11Y_NO_TOP_LEVEL_HEADING": (
-        "the page has no h1 (WCAG 2.2 SC 1.3.1 Info and Relationships, Level A)"
+        "the page has no h1. No Level A criterion requires one: SC 1.3.1 Info and "
+        "Relationships asks that structure conveyed through presentation be programmatically "
+        "determined, and G141 offers headings as one sufficient technique for doing that, "
+        "which is not the same as requiring a top-level heading. So this is this project's "
+        "own rule, by the same argument the skipped-level rule below makes, and it is here "
+        "because every page is generated from one template set that always emits exactly one "
+        "h1: a page without one is a defect in the generator"
     ),
     "A11Y_HEADING_LEVEL_SKIPPED": (
         "a heading is more than one level below the heading before it. No Level A criterion "

@@ -12,7 +12,7 @@ def _p(vantage: str, reachable: bool, ms: int = 100, error: str | None = None) -
 
 def test_one_reaching_vantage_settles_reachability() -> None:
     """The rule that matters: reaching an endpoint anywhere proves it is up; failing to reach
-    it from one network proves only that the network could not get there."""
+    it from one network proves only that this run did not get there from there."""
     c = reconcile(
         [
             _p("home", False, error="TLS certificate verification failed"),
@@ -21,9 +21,23 @@ def test_one_reaching_vantage_settles_reachability() -> None:
     )
     assert c.reachable
     assert not c.unanimous
-    assert "failed from home" in c.detail
-    assert "property of that network" in c.detail
+    assert "not reached from home" in c.detail
     assert "TLS certificate" in c.detail
+
+
+def test_a_failed_vantage_is_named_without_being_blamed() -> None:
+    """Which vantage failed and why, and no claim about whose fault it was.
+
+    The sentence used to close "which is a property of that network rather than of the
+    endpoint". A 403, a 429 or a geo rule is the endpoint's policy toward that source, so the
+    clause asserted the opposite of the truth in exactly the cases it was most confident. The
+    module's own asymmetry forbids it: one vantage failing proves nothing, which includes
+    proving who caused the failure.
+    """
+    c = reconcile([_p("home", False, error="HTTP 403"), _p("ci", True, 200)])
+    assert "property of that network" not in c.detail
+    assert "rather than of the endpoint" not in c.detail
+    assert "not reached from home (HTTP 403)" in c.detail
 
 
 def test_unanimous_failure_is_stated_as_such_with_causes() -> None:
@@ -220,3 +234,154 @@ def test_duplicate_vantage_with_empty_body_keeps_it_rather_than_losing_it() -> N
     )
     assert c.reachable
     assert c.capability == ""
+
+
+def test_an_endpoint_that_answered_is_never_described_as_possibly_down() -> None:
+    """The founding incident with its sign reversed, which is how it nearly recurred.
+
+    ``reachable`` is 2xx-only, so an endpoint answering HTTP 415 from every vantage - the real
+    Capital Blue Cross shape - fell into the all-failed branch and published "this run cannot
+    separate an endpoint that is down from one that does not answer this network", quoting the
+    status that disproves the sentence. A server that returns 415 completed DNS, TCP, TLS and
+    HTTP. It is running and refusing this request.
+    """
+    c = reconcile(
+        [
+            VantageProbe("github-actions/ubuntu", False, 120, error="HTTP 415", status=415),
+            VantageProbe("github-actions/macos", False, 130, error="HTTP 415", status=415),
+        ]
+    )
+    assert not c.reachable, "no document was retrieved, so nothing content-bearing is claimed"
+    assert c.answered == 2
+    assert "answered HTTP 415" in c.detail
+    assert "running and refusing this request" in c.detail
+    assert "cannot separate an endpoint that is down" not in c.detail
+
+
+def test_a_genuine_all_vantage_failure_still_says_it_cannot_separate_the_two() -> None:
+    """The clause is right when nothing answered; it was only wrong when something did."""
+    c = reconcile(
+        [
+            VantageProbe("github-actions/ubuntu", False, 0, error="DNS did not resolve"),
+            VantageProbe("github-actions/macos", False, 0, error="DNS did not resolve"),
+        ]
+    )
+    assert c.answered == 0
+    assert "cannot separate an endpoint that is down" in c.detail
+
+
+def test_the_graded_declaration_is_the_one_most_vantages_returned() -> None:
+    """Selection used to be first-in-list-order, and list order is ``probes/*.json`` glob order.
+
+    A vantage whose network answers with a 200 interstitial sorts before a vantage holding the
+    real CapabilityStatement purely on filename, and then defines the grade, every finding, and
+    the drift fingerprint. Majority instead, and the disagreement is recorded rather than
+    silently discarded - across vantages in one run it is the same fact the alternation rule
+    already tells over time.
+    """
+    real = '{"resourceType":"CapabilityStatement"}'
+    interstitial = "<html>blocked by proxy</html>"
+    c = reconcile(
+        [
+            VantageProbe("aaa-proxy/1", True, 100, capability=interstitial),
+            VantageProbe("mmm-good/1", True, 100, capability=real),
+            VantageProbe("zzz-good/1", True, 100, capability=real),
+        ]
+    )
+    assert c.capability == real
+    assert c.declaration_disagreement is not None
+    assert "3 different" not in c.declaration_disagreement
+    assert "2 different CapabilityStatements" in c.declaration_disagreement
+    assert "aaa-proxy/1" in c.declaration_disagreement
+
+
+def test_agreeing_vantages_record_no_disagreement() -> None:
+    real = '{"resourceType":"CapabilityStatement"}'
+    c = reconcile(
+        [
+            VantageProbe("a/1", True, 100, capability=real),
+            VantageProbe("b/1", True, 100, capability=real),
+        ]
+    )
+    assert c.capability == real
+    assert c.declaration_disagreement is None
+
+
+def test_a_tie_between_declarations_is_broken_deterministically() -> None:
+    """Two backends, one from each vantage: the result must not depend on argument order."""
+    one, two = '{"a":1}', '{"a":2}'
+    first = reconcile(
+        [
+            VantageProbe("a/1", True, 100, capability=one),
+            VantageProbe("b/1", True, 100, capability=two),
+        ]
+    )
+    second = reconcile(
+        [
+            VantageProbe("b/1", True, 100, capability=two),
+            VantageProbe("a/1", True, 100, capability=one),
+        ]
+    )
+    assert first.capability == second.capability == one
+    assert first.declaration_disagreement == second.declaration_disagreement
+
+
+def test_the_smart_document_is_borrowed_independently_of_the_capability() -> None:
+    """It used to come from whichever probe supplied the CapabilityStatement.
+
+    So a vantage-local block on /.well-known discarded a peer's complete SMART document and
+    published "absent or incomplete" about a named payer - up to 35 of 100 interop points,
+    wider than a letter band, decided by which probe happened to be first in the list.
+    ``collapse_by_vantage`` already did this correctly six lines away.
+    """
+    c = reconcile(
+        [
+            VantageProbe("has-capability/1", True, 100, capability='{"a":1}', smart=None),
+            VantageProbe("has-smart/1", True, 100, capability=None, smart='{"token_endpoint":"x"}'),
+        ]
+    )
+    assert c.capability == '{"a":1}'
+    assert c.smart == '{"token_endpoint":"x"}'
+
+
+def test_networks_are_counted_over_the_vantages_that_reached_the_endpoint() -> None:
+    """A median over one vantage was published as "across 3 networks", which describes a breadth
+    of agreement the number does not have."""
+    c = reconcile(
+        [
+            VantageProbe("alpha/1", True, 500, capability="{}"),
+            VantageProbe("beta/1", False, 0, error="HTTP 403"),
+            VantageProbe("gamma/1", False, 0, error="HTTP 403"),
+        ]
+    )
+    assert c.agreeing == 1
+    assert c.networks == 1, "one reachable vantage sits on one network, whatever the others saw"
+
+
+def test_a_probe_file_written_before_status_existed_still_loads(tmp_path: Path) -> None:
+    path = tmp_path / "probes.json"
+    path.write_text(
+        json.dumps(
+            {
+                "vantage": "old/1",
+                "probes": {"x": {"vantage": "old/1", "reachable": True, "elapsed_ms": 10}},
+            }
+        )
+    )
+    loaded = load_probe_files([path])
+    assert loaded["x"][0].status is None
+    assert loaded["x"][0].reachable
+
+
+def test_a_disagreement_between_vantages_is_published_not_merely_recorded() -> None:
+    """A reader looking at a grade derived from one of two declarations is entitled to know
+    the other existed."""
+    c = reconcile(
+        [
+            VantageProbe("a/1", True, 100, capability='{"v":1}'),
+            VantageProbe("b/1", True, 100, capability='{"v":2}'),
+        ]
+    )
+    assert c.declaration_disagreement is not None
+    assert c.declaration_disagreement in c.detail
+    assert "different CapabilityStatements" in c.detail

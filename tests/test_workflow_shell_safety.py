@@ -94,3 +94,90 @@ def test_every_multiline_run_block_fails_on_the_first_failed_command() -> None:
                 f"{REQUIRED_FIRST_STATEMENT!r}. Without pipefail a failing command on the "
                 "left of a pipe is reported as success."
             )
+
+
+#: Interpolations that are safe to expand into a shell, because GitHub controls their value and
+#: no third party can influence it. Everything else must reach a script through `env:`, where it
+#: arrives as a variable rather than as text pasted into the program before bash parses it.
+_ALLOWED_INTERPOLATIONS = frozenset({"github.token", "matrix.os"})
+
+_INTERPOLATION = re.compile(r"\$\{\{\s*([^}]+?)\s*\}\}")
+
+
+def _jobs(text: str) -> list[tuple[str, str]]:
+    """(name, body) for each job, found by indentation under the top-level ``jobs:`` key.
+
+    Written by hand because this package has no runtime dependencies and the test suite does not
+    get a YAML parser for one assertion. Only the shape these files actually use is supported:
+    two-space job names under ``jobs:``, which is what every workflow here is written in.
+    """
+    if "\njobs:\n" not in text:
+        return []
+    block = text.split("\njobs:\n", 1)[1]
+    found: list[tuple[str, str]] = []
+    name: str | None = None
+    body: list[str] = []
+    for line in block.split("\n"):
+        if line and not line.startswith(" ") and not line.startswith("#"):
+            break  # a new top-level key ends the jobs block
+        match = re.match(r"^  ([A-Za-z0-9_-]+):\s*$", line)
+        if match:
+            if name is not None:
+                found.append((name, "\n".join(body)))
+            name, body = match.group(1), []
+        elif name is not None:
+            body.append(line)
+    if name is not None:
+        found.append((name, "\n".join(body)))
+    return found
+
+
+def test_no_run_block_pastes_an_untrusted_expression_into_a_shell() -> None:
+    """`${{ }}` inside `run:` is textual substitution performed before bash sees the script.
+
+    This suite already required `shell: bash` and `set -euo pipefail`, which is about a script
+    failing honestly, not about what the script is. Nothing checked the actual injection vector.
+    These files are clean today by discipline alone, and `action.yml` ships to consumers'
+    runners, so the discipline is worth a gate: a value reaching a shell must come through
+    `env:`, where bash receives a variable rather than a program someone else helped write.
+    """
+    offenders: list[str] = []
+    for path in _scanned():
+        text = path.read_text(encoding="utf-8")
+        for run_line, body in _blocks(text):
+            for line in body:
+                for expression in _INTERPOLATION.findall(line):
+                    if expression not in _ALLOWED_INTERPOLATIONS:
+                        offenders.append(f"{path.name}:{run_line}: ${{{{ {expression} }}}}")
+    assert not offenders, (
+        "these run blocks interpolate a template expression directly into the shell; pass the "
+        "value through `env:` instead: " + "; ".join(offenders)
+    )
+
+
+def test_every_job_bounds_its_own_runtime() -> None:
+    """A hung job holds a runner for the six-hour default. `pages.yml` probes 45 third-party
+    servers from three OS images, so the default is six hours per image."""
+    missing: list[str] = []
+    for path in sorted(WORKFLOWS.glob("*.yml")):
+        for job, section in _jobs(path.read_text(encoding="utf-8")):
+            if re.search(r"(?m)^    uses:", section):
+                # A job that calls a reusable workflow has no `runs-on` of its own, and GitHub
+                # rejects `timeout-minutes` on it. The called workflow bounds its own jobs.
+                continue
+            if "timeout-minutes:" not in section:
+                missing.append(f"{path.name}:{job}")
+    assert not missing, f"jobs with no timeout-minutes: {missing}"
+
+
+def test_the_job_scan_finds_the_jobs_it_is_meant_to_bound() -> None:
+    """The scan is indentation-based, so a vacuous pass is the failure mode to guard."""
+    found = {
+        f"{path.name}:{job}"
+        for path in sorted(WORKFLOWS.glob("*.yml"))
+        for job, _ in _jobs(path.read_text(encoding="utf-8"))
+    }
+    assert {"pages.yml:probe", "pages.yml:grade", "pages.yml:deploy"} <= found
+    assert {"verify.yml:verify", "security.yml:codeql"} <= found
+    # `on:` keys sit at the same indentation as job names and are not jobs.
+    assert not any(name.endswith((":schedule", ":workflow_dispatch", ":push")) for name in found)

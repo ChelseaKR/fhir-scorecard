@@ -113,6 +113,29 @@ def test_fetch_network_error_fails_closed() -> None:
     assert not result.ok and result.error == "connection timed out"
 
 
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "https://exa\nmple.test/metadata",
+        "https://exa mple.test/metadata",
+        "https://example.test:notaport/metadata",
+        "https://exa​mple.test/metadata",
+    ],
+)
+def test_a_url_urllib_will_not_build_is_one_endpoint_failing_not_the_run(base_url: str) -> None:
+    """These do not descend from OSError, so they escaped the retrieval handler entirely.
+
+    ``http.client.InvalidURL`` is an ``HTTPException`` and a non-latin-1 hostname raises
+    ``UnicodeEncodeError``; either one propagated out of the grading loop, and because history
+    and the probe artifact are written after that loop completes, a single bad ``base_url``
+    cost the run every other endpoint's observation for the day.
+    """
+    result = fetch_json(base_url, timeout=1)
+    assert not result.ok
+    assert result.status is None
+    assert result.error is not None and result.error.startswith("malformed URL: ")
+
+
 def test_expects_defaults_to_r4_and_validates(tmp_path: Path) -> None:
     """Endpoints are graded against the FHIR release they intend to serve."""
     from fhir_scorecard.registry import version_prefix

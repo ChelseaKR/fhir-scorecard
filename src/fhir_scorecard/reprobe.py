@@ -76,11 +76,38 @@ def reprobe(candidate: Candidate) -> ReprobeResult:
         candidate=candidate,
         now_answers=True,
         detail=(
-            f"CapabilityStatement present: fhirVersion {facts.fhir_version}, "
+            f"CapabilityStatement present: fhirVersion {_safe(facts.fhir_version)}, "
             f"{facts.resource_count} resource types, "
-            f"software {facts.software_name or 'unstated'}"
+            f"software {_safe(facts.software_name) or 'unstated'}"
         ),
     )
+
+
+#: Longest remote-supplied string this report will quote.
+_MAX_QUOTED = 120
+
+
+def _safe(value: str | None) -> str:
+    """A remote server's string, bounded and stripped of anything that could restructure a report.
+
+    ``format_report``'s output is not only read by people. ``recheck.yml`` greps it for a marker
+    and pastes it inside a fenced block in a GitHub issue, so a server controls text that reaches
+    both a branch decision and rendered Markdown. A ``software.name`` containing the marker forces
+    a false revival issue; one containing a newline and a fence escapes the block and injects
+    arbitrary Markdown into this repository's issues. Neither is exotic - it is a free-text field
+    on a third-party server this project deliberately does not trust.
+
+    Control characters go, backticks go, and the value is capped. The workflow no longer branches
+    on this prose either (it reads a structured field), so this bounds what gets *quoted* rather
+    than being the only thing standing between a payer's string and a decision.
+    """
+    if value is None:
+        return ""
+    cleaned = "".join(" " if ch < " " or ch == "\x7f" else ch for ch in value)
+    cleaned = cleaned.replace("`", "'").strip()
+    if len(cleaned) > _MAX_QUOTED:
+        cleaned = cleaned[:_MAX_QUOTED] + "..."
+    return cleaned
 
 
 def format_report(results: list[ReprobeResult]) -> str:

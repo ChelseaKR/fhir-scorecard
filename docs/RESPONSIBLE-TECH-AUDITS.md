@@ -110,8 +110,8 @@ is the bias surface. Mitigations in place:
 
 Half of what this section used to record as open is now closed, and the half that is still open
 is the more important half. An automated gate exists: `fhir_scorecard.accessibility` runs twelve
-mechanical rules over every built page - eight naming the WCAG 2.2 Level A success criterion
-they implement, four declaring themselves this project's own rule rather than a criterion - and
+mechanical rules over every built page - seven naming the WCAG 2.2 Level A success criterion
+they implement, five declaring themselves this project's own rule rather than a criterion - and
 it blocks both a merge and a publish. **No formal assistive-technology review has
 been performed.** That is still open, and the gate does not stand in for it: it decides only what
 a static reader can decide from markup, and

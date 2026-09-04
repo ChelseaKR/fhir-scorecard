@@ -21,6 +21,7 @@ against a real socket and fails if any of it regresses.
 
 from __future__ import annotations
 
+import http.client
 import socket
 import ssl
 import time
@@ -46,8 +47,12 @@ MAX_BODY_BYTES = 5_000_000
 DISCOVERY_PATHS = ("/metadata", "/.well-known/smart-configuration")
 
 #: Redirect hops allowed before giving up. urllib's default is 10, which would let a server turn
-#: one probe into eleven requests; the contract says at most two requests per endpoint per run,
-#: and a short bound keeps a redirect loop from being expensive for the operator being graded.
+#: one probe into eleven requests. This project asks each endpoint for two documents per run, and
+#: a redirect the server itself sends costs another GET on top, so this bound is what keeps the
+#: worst case an operator can see small and statable: at most four requests per document, eight
+#: per endpoint per run, which is the number SECURITY.md publishes. Changing it changes a promise
+#: made to the servers being measured, so `tests/test_probe_contract.py` requires the two to
+#: agree.
 MAX_REDIRECTS = 3
 
 
@@ -206,6 +211,25 @@ def fetch_json(
         elapsed = int((time.monotonic() - started) * 1000)
         return FetchResult(
             url=url, ok=False, status=None, elapsed_ms=elapsed, body=b"", error=describe_error(exc)
+        )
+    except (http.client.HTTPException, ValueError) as exc:
+        # A base URL urllib refuses to turn into a request at all. These do not descend from
+        # OSError: `http.client.InvalidURL` is an HTTPException, and a non-latin-1 hostname
+        # raises UnicodeEncodeError, so both escaped the clause above and propagated out of the
+        # grading loop. Measured against four shapes a registry could hold - a control character
+        # or space in the host, a non-numeric port, and a zero-width space - every one of them
+        # ended the whole run before any observation was saved.
+        #
+        # It is a retrieval failure like any other: this endpoint could not be asked, and the
+        # other forty-four still can be.
+        elapsed = int((time.monotonic() - started) * 1000)
+        return FetchResult(
+            url=url,
+            ok=False,
+            status=None,
+            elapsed_ms=elapsed,
+            body=b"",
+            error=f"malformed URL: {exc}",
         )
 
 

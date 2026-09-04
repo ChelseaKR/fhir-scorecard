@@ -162,6 +162,10 @@ def _grade_endpoint(
         error=metadata.error,
         capability=metadata.body.decode("utf-8", "replace") if metadata.ok else None,
         smart=smart.body.decode("utf-8", "replace") if smart.ok else None,
+        # Recorded whether or not the fetch produced a document: a refusal with a status is
+        # still proof the endpoint answered, and the merge needs it to avoid describing a
+        # running server as one it could not reach.
+        status=metadata.status,
     )
     probes_seen[endpoint.endpoint_id] = mine
     all_probes = [mine, *other_probes.get(endpoint.endpoint_id, [])]
@@ -174,8 +178,17 @@ def _grade_endpoint(
     if metadata.ok:
         facts = parse_capability(metadata.body)
         # This run reached the host, so it did ask for the SMART document: a failed SMART fetch
-        # is an observation that it is absent or unusable, and grades as one.
-        smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
+        # is an observation that it is absent or unusable, and grades as one -- unless another
+        # vantage holds the document, in which case it demonstrably exists and this vantage's
+        # failure to get it is a fact about this vantage. That is the asymmetry the whole module
+        # rests on: one vantage retrieving something settles that it is there, and one vantage
+        # missing it settles nothing.
+        if smart.ok:
+            smart_facts = parse_smart(smart.body)
+        elif consensus is not None and consensus.smart is not None:
+            smart_facts = parse_smart(consensus.smart.encode("utf-8"))
+        else:
+            smart_facts = parse_smart(b"")
     elif consensus is not None and consensus.capability is not None:
         # This vantage was blocked but another retrieved the documents: grade their content
         # rather than scoring zero for material we simply never received. ``is not None``, not
@@ -293,7 +306,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
     return 0
 
 
-def _recheck(candidates_path: Path) -> int:
+def _recheck(candidates_path: Path, json_out: Path | None = None) -> int:
     try:
         candidates = load_candidates(candidates_path)
     except (OSError, ValueError) as exc:
@@ -301,6 +314,33 @@ def _recheck(candidates_path: Path) -> int:
         return 2
     results = [reprobe(c) for c in candidates]
     print(format_report(results))
+    if json_out is not None:
+        # A structured result, so the quarterly workflow can decide whether to open an issue
+        # without grepping the human report for a marker. It used to do exactly that, which put
+        # a third-party server's `software.name` in charge of the branch: a value containing
+        # "NOW ANSWERS" forced a false revival issue. What a payer publishes is evidence, never
+        # control flow.
+        try:
+            json_out.parent.mkdir(parents=True, exist_ok=True)
+            json_out.write_text(
+                json.dumps(
+                    {
+                        "revived": sum(1 for r in results if r.now_answers),
+                        "checked": len(results),
+                        "candidates": [
+                            {"id": r.candidate.candidate_id, "now_answers": r.now_answers}
+                            for r in results
+                        ],
+                    },
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            print(f"write error: {exc}", file=sys.stderr)
+            return 2
     # Exit 0 either way: a candidate that starts answering is news, not a failure.
     return 0
 
@@ -396,6 +436,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="re-probe previously rejected candidates; reports only, never edits the registry",
     )
     recheck.add_argument("--candidates", type=Path, default=Path("data/rejected.json"))
+    recheck.add_argument(
+        "--json-out",
+        type=Path,
+        default=None,
+        help="also write a machine-readable result here, for a caller that must branch on it",
+    )
     check = sub.add_parser(
         "check",
         help="grade one endpoint from its own public documents and optionally gate a build; "
@@ -494,13 +540,14 @@ def _prepare_history(args: argparse.Namespace) -> tuple[Path, dict[str, Any]] | 
     """Open the run's history file, or return why this run must not write to it.
 
     An offline run must never append "did not answer" to a record of live observations, and a
-    live run must never continue one a fixture run started.
+    live run must never continue one a fixture run started. A record that exists and cannot be
+    read stops the run for the same reason: see :func:`fhir_scorecard.drift.load_history`.
     """
     path = _history_path(args)
-    history = load_history(path)
     try:
+        history = load_history(path)
         ensure_mode(history, offline=args.offline)
-    except ValueError as exc:
+    except (OSError, ValueError) as exc:
         return str(exc)
     if args.offline and args.history is None:
         print(f"offline run: history goes to {path}, not data/history.json", file=sys.stderr)
@@ -528,7 +575,7 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
     remembering to skip a step.
     """
     if args.command == "recheck":
-        return _recheck(args.candidates)
+        return _recheck(args.candidates, args.json_out)
     if args.command == "check":
         return _cmd_check(args)
     if args.command == "mcp":
@@ -726,36 +773,48 @@ def main(argv: list[str] | None = None) -> int:
             )
             for e in endpoints
         ]
-    save_history(history_path, history)
-    if args.probes_out is not None:
-        write_probes(args.probes_out, args.vantage, probes_seen)
-
+    # History is saved before the site is written, and stays there. The observation is a fact
+    # about whether the endpoint answered, which is true whether or not this run manages to
+    # render a page from it, and `_record_observation` replaces any existing row for the same
+    # date, so a re-run after a failed write does not double-count the day.
     generated_at = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
-    args.out.mkdir(parents=True, exist_ok=True)
-    (args.out / "scorecards.json").write_text(
-        to_json(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
-    )
-    (args.out / "index.html").write_text(
-        render_html(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
-    )
-    _write_site(
-        scorecards,
-        endpoints,
-        args.out,
-        args.origin,
-        generated_at,
-        cohorts,
-        history,
-        cohorts_path,
-    )
-    write_dataset(
-        args.out,
-        scorecards,
-        endpoints,
-        origin=args.origin.rstrip("/"),
-        generated_at=generated_at,
-        vantage=run_vantage,
-    )
+    try:
+        save_history(history_path, history)
+        if args.probes_out is not None:
+            write_probes(args.probes_out, args.vantage, probes_seen)
+
+        args.out.mkdir(parents=True, exist_ok=True)
+        (args.out / "scorecards.json").write_text(
+            to_json(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
+        )
+        (args.out / "index.html").write_text(
+            render_html(scorecards, generated_at=generated_at, vantage=run_vantage),
+            encoding="utf-8",
+        )
+        _write_site(
+            scorecards,
+            endpoints,
+            args.out,
+            args.origin,
+            generated_at,
+            cohorts,
+            history,
+            cohorts_path,
+        )
+        write_dataset(
+            args.out,
+            scorecards,
+            endpoints,
+            origin=args.origin.rstrip("/"),
+            generated_at=generated_at,
+            vantage=run_vantage,
+        )
+    except OSError as exc:
+        # Exit 2, not 1. `docs/ci-action.md` reserves 1 for "a threshold the caller set was not
+        # met", so a full disk or an unwritable --out surfacing as 1 tells a CI consumer that a
+        # graded endpoint failed its gate. It did not; the tool did.
+        print(f"write error: {exc}", file=sys.stderr)
+        return 2
 
     for s in scorecards:
         print(f"{s.grade}  {s.endpoint_id}")

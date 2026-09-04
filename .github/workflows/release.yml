@@ -46,6 +46,7 @@ jobs:
   release-tests:
     needs: authorize
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     timeout-minutes: 20
     # Every job below checks out the authorized commit through this variable rather than
     # inlining `needs.authorize.outputs.release-commit` into `ref:`, and then asserts that the

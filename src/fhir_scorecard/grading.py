@@ -454,10 +454,15 @@ def grade_interop(
             _US_CORE,
         )
 
-    # Provider Directory APIs are required to be reachable without authentication, so absence of
-    # SMART/OAuth is the correct design there, not a deficiency (calibration 2026-08-05). Scoring
-    # them on an authorization surface they must not have would penalize compliant behavior, so
-    # those findings are reported as not applicable and carry no points either way.
+    # A Provider Directory API is meant to be readable by anyone, so absence of SMART/OAuth is
+    # the correct design there rather than a deficiency (calibration 2026-08-05). Where it is a
+    # requirement it is 42 CFR 422.120's, which reaches Medicare Advantage organizations, with
+    # parallel provisions for Medicaid (431.70) and CHIP (457.760); it is not required of QHP
+    # issuers by 45 CFR 156.221, which is a Patient Access section. The scoring does not depend
+    # on which: a directory published without an authorization surface is doing the right thing
+    # whether a rule compelled it or the publisher chose it, and scoring it on an authorization
+    # surface it should not have would penalize that. Reported as not applicable, no points
+    # either way.
     public_by_design = kind == "payer_provider_directory"
 
     # Something arrived, but everything I1 and I3 read lives inside a CapabilityStatement. If it
@@ -548,7 +553,21 @@ def grade_interop(
     )
 
 
-_WEIGHTS = {"reachability": 0.35, "transparency": 0.35, "interop": 0.30}
+#: The three dimensions in published order, each with the title the site prints and the weight
+#: :func:`letter` actually applies.
+#:
+#: One definition, because there used to be two. The methodology page stated "35% / 35% / 30%"
+#: as literal HTML, and nothing connected those characters to this mapping: reordering the
+#: weights here left the whole suite green while the site went on publishing the old split as
+#: its method. A page that describes a calculation it is not reading is the one kind of drift
+#: this project cannot detect by reading either artifact alone, so the page renders from here.
+WEIGHTED_DIMENSIONS: tuple[tuple[str, str, float], ...] = (
+    ("reachability", "Reachability", 0.35),
+    ("transparency", "Capability transparency", 0.35),
+    ("interop", "Interop readiness", 0.30),
+)
+
+_WEIGHTS = {key: weight for key, _, weight in WEIGHTED_DIMENSIONS}
 
 
 def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:

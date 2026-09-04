@@ -17,7 +17,12 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from fhir_scorecard.cohort import Cohort, CohortMember
-from fhir_scorecard.grading import NOT_OBSERVED, Finding, Scorecard
+from fhir_scorecard.grading import (
+    NOT_OBSERVED,
+    WEIGHTED_DIMENSIONS,
+    Finding,
+    Scorecard,
+)
 
 DEFAULT_ORIGIN = "https://fhir.chelseakr.com"
 
@@ -50,9 +55,10 @@ _KIND_BLURBS = {
         "app they choose. These grades describe what each endpoint publicly declares."
     ),
     "payer_provider_directory": (
-        "Provider Directory APIs are required to be reachable without "
-        "authentication, so they are not graded on an authorization "
-        "surface they must not have."
+        "Provider Directory APIs are meant to be readable by anyone - required to be, for "
+        "Medicare Advantage organizations under 42 CFR 422.120, with parallel provisions for "
+        "Medicaid and CHIP - so they are not graded on an authorization surface they should "
+        "not have."
     ),
     "provider": "APIs published by health systems and provider organizations.",
     "ehr": (
@@ -1199,8 +1205,9 @@ _FINDING_DOCS = [
         "I2",
         "SMART discovery",
         "Is .well-known/smart-configuration present and complete?",
-        "Not applicable to Provider Directory APIs, which are required to be reachable without "
-        "authentication and are not scored on an authorization surface they must not have.",
+        "Not applicable to Provider Directory APIs, which are meant to be readable without "
+        "authentication - required to be, for Medicare Advantage organizations under 42 CFR "
+        "422.120 - and are not scored on an authorization surface they should not have.",
     ),
     (
         "I3",
@@ -1282,6 +1289,12 @@ def how_we_grade_page(origin: str) -> Page:
         f"<p>{html.escape(detail)}</p></div></section>"
         for code, title, question, detail in _FINDING_DOCS
     )
+    # Rendered from the weights `letter()` applies, never restated. See WEIGHTED_DIMENSIONS.
+    bars = "\n".join(
+        f"<p><span>{html.escape(title)}</span><strong>{round(weight * 100)}%</strong>"
+        f'<i style="--weight:{round(weight * 100)}%"></i></p>'
+        for _, title, weight in WEIGHTED_DIMENSIONS
+    )
     body = f"""
 <nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list"><li class="usa-breadcrumb__list-item"><a href="/" class="usa-breadcrumb__link"><span>Home</span></a></li></ol></nav>
 <p class="eyebrow">Transparent by design</p>
@@ -1294,9 +1307,7 @@ observed</strong>, with the reason and the vantages that tried, because nothing 
 observed and grading a document nobody retrieved would be an accusation this project cannot
 support. <strong>F</strong> means the opposite: the endpoint answered, and what it declares falls
 short across the checks below.</p></div><div class="weight-bars">
-<p><span>Reachability</span><strong>35%</strong><i style="--weight:35%"></i></p>
-<p><span>Capability transparency</span><strong>35%</strong><i style="--weight:35%"></i></p>
-<p><span>Interop readiness</span><strong>30%</strong><i style="--weight:30%"></i></p>
+{bars}
 </div></section>
 <h2>Findings</h2>
 <div class="method-list">{rows}</div>

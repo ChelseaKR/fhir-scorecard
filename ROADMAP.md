@@ -58,8 +58,9 @@ read.*
       citations, availability, drift history, and verification provenance
 - [x] **Per-organization pages** at `/org/<slug>/` for organizations with more than one surface
       (Cigna already has Patient Access plus Provider Directory)
-- [x] **Kind index pages** at `/payers/`, `/ehr/`, `/reference/`, since "payer FHIR API status"
-      is the query that should land somewhere useful
+- [x] **Kind index pages** at `/payers/`, `/provider-directories/`, `/providers/`,
+      `/ehr-vendors/` and `/reference-servers/`, since "payer FHIR API status" is the query
+      that should land somewhere useful
 - [x] `sitemap.xml`, `robots.txt`, canonical URLs, and per-page titles and meta descriptions
       written from the data rather than templated boilerplate
 - [x] **JSON-LD**: `Dataset` on the index, `WebAPI` / `Organization` on endpoint pages
@@ -122,7 +123,7 @@ read.*
       says why: its score is a weighted average of a moving rule set, it is not
       deterministic, and it needs a browser and an npm toolchain in a package with no
       runtime dependencies. What ships instead is twelve mechanical rules over the built
-      HTML - eight naming the WCAG 2.2 Level A criterion they implement, four declaring
+      HTML - seven naming the WCAG 2.2 Level A criterion they implement, five declaring
       themselves this project's own rule rather than a criterion - plus two
       transfer-size budgets measured from the published site. The ADR lists what a browser
       would catch that this cannot, and the assistive-technology review stays open
@@ -194,6 +195,15 @@ document is written - the items are the ones already argued for above, not new a
 and it inherits every constraint stated there, including the one that governs: registry
 growth is gated on payers publishing base URLs, and no phase below pretends otherwise.
 
+**Where this stands.** Phases 6 through 11 and 13 are delivered and each carries its
+delivery date below; phase 12 is delivered with two halves deliberately open, named in its
+own entry. Each was written before it was built, and each is kept here in the tense it was
+written in, because the argument for building it is the reason it looks the way it does. A
+*Delivered* line says what shipped and where the code lives; where a phase's own prose says
+something is missing that now exists, the delivered line is the current statement and the
+paragraph beneath it is the plan it was built from. Phases 14 and 15 remain blocked on
+something outside this repository, and say so under their own headings.
+
 Three years is the honest horizon because two of the phases cannot be hurried. A
 conformance-over-time report needs time to have passed, and the frame's remaining states
 need a person with a browser. Where a phase is blocked on something this project does not
@@ -203,6 +213,9 @@ see the whole shape and not just the reachable part.
 Each phase is one pull request. `make verify` is the gate for all of them.
 
 ### Phase 6: the site is a contract, and the contract is checked
+
+**Delivered 2026-08-27** in `src/fhir_scorecard/audit.py`, run by
+`fhir-scorecard audit-site`.
 
 *Delivers:* the **SEO config validation** item from phase 4, built as a first-class command
 rather than a CI script. `fhir-scorecard audit-site <dir>` walks a built site and fails on:
@@ -219,6 +232,9 @@ defect and asserts the audit fails on it, and the audit passes on the real offli
 A check that cannot be shown failing does not ship.
 
 ### Phase 7: accessibility and page weight, as gates rather than intentions
+
+**Delivered 2026-08-28** in `src/fhir_scorecard/accessibility.py` and
+`src/fhir_scorecard/weight.py`.
 
 *Delivers:* the **accessibility budget** half of phase 4, and the transfer-size budget the
 README's Performance row currently declines to claim. Both run over the built site in the
@@ -239,6 +255,8 @@ half of it this closed.
 
 ### Phase 8: the archive surface
 
+**Delivered 2026-08-28** in `src/fhir_scorecard/archive.py`, published at `/history/`.
+
 *Delivers:* the open half of phase 2's **historical archive**. The `capability-history`
 branch has accrued one commit per day on which an observation changed since 2026-08-05;
 none of it is browsable. This phase renders it: an archive index, a per-endpoint
@@ -255,6 +273,9 @@ gates; and every figure on them is recomputed from `history.json` by a test.
 
 ### Phase 9: the drift timeline
 
+**Delivered 2026-08-28** in `src/fhir_scorecard/drift.py`, published on each observation
+record.
+
 *Delivers:* phase 5's **drift timeline**. `drift.py` already records what changed, when it
 was first seen, and when a declaration returned to a state it held before. The endpoint page
 shows the latest state and nothing else. This phase publishes the sequence: what this
@@ -269,6 +290,8 @@ state reads as a return and not as a new change; and no timeline entry exists th
 `history.json` does not carry.
 
 ### Phase 10: the availability leaderboard, floored
+
+**Delivered 2026-08-28** in `src/fhir_scorecard/leaderboard.py`, published at `/availability/`.
 
 *Delivers:* phase 5's **availability leaderboard**, under the condition phase 5 attached to
 it: the 14-observation floor. The floor is not met across the registry today and will not be
@@ -285,6 +308,8 @@ below the floor.
 
 ### Phase 11: the coverage tracker
 
+**Delivered 2026-08-28** in `src/fhir_scorecard/coverage.py`, published at `/coverage/`.
+
 *Delivers:* the open page of phase 5's **coverage tracker**. The denominator exists: 176
 state-issuer organizations across 30 states under `data/frames/`, with per-state review
 status in `docs/SAMPLING-FRAME.md`. The page counts four populations and never merges any
@@ -300,6 +325,11 @@ ever summed into one figure; and the page states the reviewed fraction of the fr
 same breath as any rate it prints.
 
 ### Phase 12: conformance over time
+
+**Delivered 2026-08-28** in `src/fhir_scorecard/over_time.py`, published at `/over-time/`,
+with two halves deliberately open: the write-up front door is a piece of writing and is not
+generated, and the report cannot say whether grades moved, because `history.json` has never
+retained a grade.
 
 *Delivers:* phase 5's **conformance-over-time report**, in the half a program can produce:
 the computed sections of a dated report - who was observed in each month of the window, who
@@ -328,6 +358,8 @@ payload with no figure typed by hand; a window containing no change says so rath
 printing an empty table; and the report is regenerable byte-for-byte from committed inputs.
 
 ### Phase 13: dated dataset snapshots, and the signature that is not this project's to make
+
+**Delivered 2026-08-28** in `src/fhir_scorecard/snapshot.py`, run by `fhir-scorecard snapshot`.
 
 *Delivers:* the deterministic half of phase 2's **monthly dated dataset release**: a
 snapshot builder that assembles the published dataset for a stated date into one dated

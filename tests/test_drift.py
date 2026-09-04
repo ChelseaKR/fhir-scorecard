@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 from conftest import good_capability
 
 from fhir_scorecard.capability import parse_capability
@@ -87,10 +88,20 @@ def test_history_round_trip(tmp_path: Path) -> None:
     assert loaded["x"]["first_seen"] == "2026-08-04"
 
 
-def test_corrupt_history_fails_open_to_empty(tmp_path: Path) -> None:
+def test_an_unreadable_history_stops_the_run_rather_than_reseeding(tmp_path: Path) -> None:
+    """An absent record is a first run; an unreadable one is not, and the difference is the
+    whole point. Failing open to ``{}`` made a bad restore from ``capability-history``
+    indistinguishable from a first run, which republishes every endpoint as first seen today
+    and then writes that over the record it could not read."""
     path = tmp_path / "history.json"
     path.write_text("{not json")
-    assert load_history(path) == {}
+    with pytest.raises(ValueError, match="not readable JSON"):
+        load_history(path)
+
+    path.write_text("[]")
+    with pytest.raises(ValueError, match="holds list, not an object"):
+        load_history(path)
+
     assert load_history(tmp_path / "missing.json") == {}
 
 

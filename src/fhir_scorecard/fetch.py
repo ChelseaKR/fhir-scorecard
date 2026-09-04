@@ -21,6 +21,7 @@ against a real socket and fails if any of it regresses.
 
 from __future__ import annotations
 
+import http.client
 import socket
 import ssl
 import time
@@ -206,6 +207,25 @@ def fetch_json(
         elapsed = int((time.monotonic() - started) * 1000)
         return FetchResult(
             url=url, ok=False, status=None, elapsed_ms=elapsed, body=b"", error=describe_error(exc)
+        )
+    except (http.client.HTTPException, ValueError) as exc:
+        # A base URL urllib refuses to turn into a request at all. These do not descend from
+        # OSError: `http.client.InvalidURL` is an HTTPException, and a non-latin-1 hostname
+        # raises UnicodeEncodeError, so both escaped the clause above and propagated out of the
+        # grading loop. Measured against four shapes a registry could hold - a control character
+        # or space in the host, a non-numeric port, and a zero-width space - every one of them
+        # ended the whole run before any observation was saved.
+        #
+        # It is a retrieval failure like any other: this endpoint could not be asked, and the
+        # other forty-four still can be.
+        elapsed = int((time.monotonic() - started) * 1000)
+        return FetchResult(
+            url=url,
+            ok=False,
+            status=None,
+            elapsed_ms=elapsed,
+            body=b"",
+            error=f"malformed URL: {exc}",
         )
 
 

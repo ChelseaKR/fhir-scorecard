@@ -494,13 +494,14 @@ def _prepare_history(args: argparse.Namespace) -> tuple[Path, dict[str, Any]] | 
     """Open the run's history file, or return why this run must not write to it.
 
     An offline run must never append "did not answer" to a record of live observations, and a
-    live run must never continue one a fixture run started.
+    live run must never continue one a fixture run started. A record that exists and cannot be
+    read stops the run for the same reason: see :func:`fhir_scorecard.drift.load_history`.
     """
     path = _history_path(args)
-    history = load_history(path)
     try:
+        history = load_history(path)
         ensure_mode(history, offline=args.offline)
-    except ValueError as exc:
+    except (OSError, ValueError) as exc:
         return str(exc)
     if args.offline and args.history is None:
         print(f"offline run: history goes to {path}, not data/history.json", file=sys.stderr)
@@ -726,36 +727,48 @@ def main(argv: list[str] | None = None) -> int:
             )
             for e in endpoints
         ]
-    save_history(history_path, history)
-    if args.probes_out is not None:
-        write_probes(args.probes_out, args.vantage, probes_seen)
-
+    # History is saved before the site is written, and stays there. The observation is a fact
+    # about whether the endpoint answered, which is true whether or not this run manages to
+    # render a page from it, and `_record_observation` replaces any existing row for the same
+    # date, so a re-run after a failed write does not double-count the day.
     generated_at = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
-    args.out.mkdir(parents=True, exist_ok=True)
-    (args.out / "scorecards.json").write_text(
-        to_json(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
-    )
-    (args.out / "index.html").write_text(
-        render_html(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
-    )
-    _write_site(
-        scorecards,
-        endpoints,
-        args.out,
-        args.origin,
-        generated_at,
-        cohorts,
-        history,
-        cohorts_path,
-    )
-    write_dataset(
-        args.out,
-        scorecards,
-        endpoints,
-        origin=args.origin.rstrip("/"),
-        generated_at=generated_at,
-        vantage=run_vantage,
-    )
+    try:
+        save_history(history_path, history)
+        if args.probes_out is not None:
+            write_probes(args.probes_out, args.vantage, probes_seen)
+
+        args.out.mkdir(parents=True, exist_ok=True)
+        (args.out / "scorecards.json").write_text(
+            to_json(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
+        )
+        (args.out / "index.html").write_text(
+            render_html(scorecards, generated_at=generated_at, vantage=run_vantage),
+            encoding="utf-8",
+        )
+        _write_site(
+            scorecards,
+            endpoints,
+            args.out,
+            args.origin,
+            generated_at,
+            cohorts,
+            history,
+            cohorts_path,
+        )
+        write_dataset(
+            args.out,
+            scorecards,
+            endpoints,
+            origin=args.origin.rstrip("/"),
+            generated_at=generated_at,
+            vantage=run_vantage,
+        )
+    except OSError as exc:
+        # Exit 2, not 1. `docs/ci-action.md` reserves 1 for "a threshold the caller set was not
+        # met", so a full disk or an unwritable --out surfacing as 1 tells a CI consumer that a
+        # graded endpoint failed its gate. It did not; the tool did.
+        print(f"write error: {exc}", file=sys.stderr)
+        return 2
 
     for s in scorecards:
         print(f"{s.grade}  {s.endpoint_id}")

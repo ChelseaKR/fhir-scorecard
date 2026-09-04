@@ -646,3 +646,69 @@ def test_probes_out_records_this_runs_observations(tmp_path: Path) -> None:
     assert loaded["alpha"][0].vantage == "runner-1"
     assert loaded["alpha"][0].reachable
     assert loaded["alpha"][0].capability  # documents carried for peers to borrow
+
+
+def test_an_unwritable_out_directory_is_a_tool_error_not_a_failed_threshold(
+    tmp_path: Path,
+) -> None:
+    """Exit 1 means "a threshold the caller set was not met" and nothing else.
+
+    ``docs/ci-action.md`` promises that, so a full disk or a read-only ``--out`` surfacing as 1
+    would tell a CI consumer that the endpoint it graded had failed its gate. It had not; the
+    tool could not write. An uncaught ``OSError`` exits 1 by way of a traceback, which is both
+    the wrong code and the wrong shape of message.
+    """
+    registry = _registry(tmp_path)
+    (tmp_path / "fixtures").mkdir()
+    readonly = tmp_path / "readonly"
+    readonly.mkdir(mode=0o500)
+    try:
+        code = main(
+            [
+                "grade",
+                "--registry",
+                str(registry),
+                "--offline",
+                "--fixtures",
+                str(tmp_path / "fixtures"),
+                "--out",
+                str(readonly / "site"),
+                "--history",
+                str(tmp_path / "h.json"),
+            ]
+        )
+    finally:
+        readonly.chmod(0o700)
+    assert code == 2
+
+
+def test_a_grade_run_refuses_an_unreadable_history(tmp_path: Path) -> None:
+    """The refusal reaches the exit code, instead of the run starting a fresh record.
+
+    Failing open to ``{}`` was not a local matter: the daily workflow restores
+    ``data/history.json`` from the ``capability-history`` branch, so an unreadable restore
+    looked exactly like a first run, and the site would republish every endpoint as first seen
+    today before writing that back over the record it could not read.
+    """
+    registry = _registry(tmp_path)
+    (tmp_path / "fixtures").mkdir()
+    history = tmp_path / "history.json"
+    history.write_text("{not json")
+    out = tmp_path / "site"
+    code = main(
+        [
+            "grade",
+            "--registry",
+            str(registry),
+            "--offline",
+            "--fixtures",
+            str(tmp_path / "fixtures"),
+            "--out",
+            str(out),
+            "--history",
+            str(history),
+        ]
+    )
+    assert code == 2
+    assert not out.exists(), "a run that could not read the record must not publish one"
+    assert history.read_text() == "{not json", "and must not overwrite what it could not read"

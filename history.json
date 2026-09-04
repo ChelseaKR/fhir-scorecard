@@ -324,6 +324,114 @@
       }
     ]
   },
+  "amerihealth-caritas-next-la-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 22,
+      "resources_with_interactions": 22,
+      "software_name": "AmeriHealth Caritas",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "50246b48e28560aa",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "amerihealth-caritas-next-la-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 6,
+      "resources_with_interactions": 6,
+      "software_name": "AmeriHealth Caritas",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "64b21519c9b1ff51",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "amerihealth-caritas-next-nc-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 22,
+      "resources_with_interactions": 22,
+      "software_name": "AmeriHealth Caritas",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "50246b48e28560aa",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "amerihealth-caritas-next-nc-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 6,
+      "resources_with_interactions": 6,
+      "software_name": "AmeriHealth Caritas",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "64b21519c9b1ff51",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
   "amerihealth-caritas-next-patient-access": {
     "events": [],
     "fingerprint": {
@@ -672,6 +780,69 @@
       }
     ]
   },
+  "bcbs-arizona-patient-access": {
+    "first_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": false
+      }
+    ]
+  },
+  "bcbs-kansas-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 13,
+      "profile_digest": "6a12a706a9844cec",
+      "resource_count": 8,
+      "resources_with_interactions": 8,
+      "software_name": "InterSystems HealthShare Provider Directory FHIR Server",
+      "software_version": "2025.1.0HSPD.1005.0"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "f77db3f7da4acc8a",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "bcbs-louisiana-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 47,
+      "profile_digest": "e55449568eb40a17",
+      "resource_count": 59,
+      "resources_with_interactions": 59,
+      "software_name": "Epic",
+      "software_version": "May 2026"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "0ade5a6bc074c189",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
   "bcbs-mn": {
     "events": [],
     "fingerprint": {
@@ -808,6 +979,141 @@
       {
         "digest": "0b609ec47c1bc423",
         "first_seen": "2026-08-05"
+      }
+    ]
+  },
+  "bcbsm-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 28,
+      "resources_with_interactions": 28,
+      "software_name": "HAPI FHIR Server",
+      "software_version": "7.6.0"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "4565a7a0e07d745a",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "bcbsnc-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 54,
+      "profile_digest": "362f990a5ce16ea1",
+      "resource_count": 20,
+      "resources_with_interactions": 20,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "a6c589da740f4fd4",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "bcbsnc-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 1,
+      "profile_digest": "39395f566c57829b",
+      "resource_count": 6,
+      "resources_with_interactions": 6,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "e622c747446e1725",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "bluekc-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.0",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 12,
+      "resources_with_interactions": 12,
+      "software_name": "BlueKC FHIR Server",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "58c22fe518ee61d4",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "bluekc-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 5,
+      "resources_with_interactions": 5,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "aa000dfcc2fa8cb3",
+        "first_seen": "2026-09-04"
       }
     ]
   },
@@ -1813,6 +2119,87 @@
       },
       {
         "digest": "bf274fe957cc8b1e",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "communitycare-provider-directory-commercial": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 37,
+      "profile_digest": "ddeec79541ef2a78",
+      "resource_count": 144,
+      "resources_with_interactions": 144,
+      "software_name": "1up FHIR Server",
+      "software_version": "4.0.1 3.6.1 v1.0.0-rc+202507231200 459de5a"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "b99a5160b9716da4",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "communitycare-provider-directory-qhp": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 37,
+      "profile_digest": "ddeec79541ef2a78",
+      "resource_count": 144,
+      "resources_with_interactions": 144,
+      "software_name": "1up FHIR Server",
+      "software_version": "4.0.1 3.6.1 v1.0.0-rc+202507231200 459de5a"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "b99a5160b9716da4",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "cox-healthplans-interoperability": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 37,
+      "profile_digest": "ddeec79541ef2a78",
+      "resource_count": 144,
+      "resources_with_interactions": 144,
+      "software_name": "1up FHIR Server",
+      "software_version": "4.0.1 3.9.0 v1.0.0-rc+202607151200 bc93922"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "854895185068d46e",
         "first_seen": "2026-09-04"
       }
     ]
@@ -4104,7 +4491,7 @@
         "digest": "fd27f793f6196414",
         "first_return": "2026-08-11",
         "last_return": "2026-09-04",
-        "returns": 12,
+        "returns": 13,
         "state_first_seen": "2026-08-08"
       }
     ],
@@ -4124,7 +4511,7 @@
       "resource_count": 24,
       "resources_with_interactions": 24,
       "software_name": "HAPI FHIR Server",
-      "software_version": "5.4.1.13_edfx"
+      "software_version": "5.4.1.11_edfx"
     },
     "first_seen": "2026-08-08",
     "last_seen": "2026-09-04",
@@ -4280,12 +4667,6 @@
     "events": [
       {
         "changes": [
-          "software_version: '5.1.29-c6ef164' -> '5.1.29-296dc48'"
-        ],
-        "date": "2026-08-11"
-      },
-      {
-        "changes": [
           "software_version: '5.1.29-296dc48' -> '5.1.29-ca6e7b2'"
         ],
         "date": "2026-08-12"
@@ -4397,6 +4778,12 @@
           "software_version: '5.1.36-4ab2b1f' -> '5.1.36-0f24cc6'"
         ],
         "date": "2026-09-04"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.36-0f24cc6' -> '5.1.36-98d642f'"
+        ],
+        "date": "2026-09-04"
       }
     ],
     "fingerprint": {
@@ -4407,7 +4794,7 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "medplum",
-      "software_version": "5.1.36-0f24cc6"
+      "software_version": "5.1.36-98d642f"
     },
     "first_seen": "2026-08-05",
     "last_seen": "2026-09-04",
@@ -4531,10 +4918,6 @@
     ],
     "states": [
       {
-        "digest": "bf73b3ee49c0efb8",
-        "first_seen": "2026-08-08"
-      },
-      {
         "digest": "ba820bcdf936c289",
         "first_seen": "2026-08-08"
       },
@@ -4624,6 +5007,10 @@
       },
       {
         "digest": "caca980c2f49c5d0",
+        "first_seen": "2026-09-04"
+      },
+      {
+        "digest": "3ed70356a010a7e5",
         "first_seen": "2026-09-04"
       }
     ]
@@ -4881,6 +5268,42 @@
       {
         "digest": "3da078919289e8c8",
         "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "priority-health-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 37,
+      "profile_digest": "ddeec79541ef2a78",
+      "resource_count": 144,
+      "resources_with_interactions": 144,
+      "software_name": "1up FHIR Server",
+      "software_version": "4.0.1 3.9.0 v1.0.0-rc+202607151200 bc93922"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "854895185068d46e",
+        "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "priority-health-provider-directory": {
+    "first_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": false
       }
     ]
   },
@@ -6032,6 +6455,33 @@
       {
         "digest": "16d39fa547c36fe0",
         "first_seen": "2026-08-05"
+      }
+    ]
+  },
+  "wellmark-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 90,
+      "profile_digest": "8b0224bc41ec62c1",
+      "resource_count": 24,
+      "resources_with_interactions": 24,
+      "software_name": "Amazon HealthLake FHIR Server",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-09-04",
+    "last_seen": "2026-09-04",
+    "observations": [
+      {
+        "date": "2026-09-04",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "9c4331ce28cabe7a",
+        "first_seen": "2026-09-04"
       }
     ]
   },

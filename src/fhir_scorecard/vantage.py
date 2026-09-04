@@ -30,6 +30,9 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from fhir_scorecard.capability import parse_capability
+from fhir_scorecard.drift import fingerprint
+
 
 @dataclass(frozen=True)
 class VantageProbe:
@@ -279,8 +282,29 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
     )
 
 
+def _declaration_key(document: str) -> str:
+    """What this document *declares*, as a comparable key, ignoring how it was rendered.
+
+    Compared on the drift fingerprint rather than on bytes, and the difference is not academic.
+    ``drift.py`` fingerprints declared facts precisely so "a server that merely re-renders its
+    CapabilityStatement does not read as changed", and byte equality across vantages fails that
+    test for the same reasons it fails across days: a generation timestamp, a request id, a
+    load balancer serving two equally-current renderings, or a dict that serialised in a
+    different order. Measured on the live registry, byte comparison called 19 of 45 endpoints
+    disagreeing in one run - including three-of-three unique documents from a reference server
+    that plainly does not serve three different declarations.
+
+    A document that cannot be parsed is keyed by its own bytes: two unparseable responses are
+    only the same non-answer if they are the same non-answer.
+    """
+    facts = parse_capability(document.encode("utf-8"))
+    if not facts.parsed or not facts.resource_type_ok:
+        return "unparseable:" + document
+    return json.dumps(fingerprint(facts), sort_keys=True)
+
+
 def _agreed_capability(reached: list[VantageProbe]) -> tuple[str | None, str | None]:
-    """The document the most vantages returned, and a note when they did not all agree.
+    """The declaration the most vantages returned, and a note when they did not all agree.
 
     Selection used to be ``next(p for p in reached if p.capability is not None)`` - first in
     list order, and list order is the order ``probes/*.json`` happened to glob. A vantage whose
@@ -288,34 +312,42 @@ def _agreed_capability(reached: list[VantageProbe]) -> tuple[str | None, str | N
     CapabilityStatement purely on filename, and then defines the grade, every finding, and the
     drift fingerprint that decides whether this endpoint is recorded as having changed.
 
-    Majority instead, ties broken by vantage label so the result is deterministic rather than
-    merely different. ``is not None``, not truthiness, throughout: a vantage that reached the
-    endpoint and got back an empty body retrieved a document, just an empty one, and that is a
-    different fact from a vantage that retrieved nothing at all.
+    Majority instead, over declarations rather than bytes (see :func:`_declaration_key`), ties
+    broken by vantage label so the result is deterministic rather than merely different.
+    ``is not None``, not truthiness, throughout: a vantage that reached the endpoint and got
+    back an empty body retrieved a document, just an empty one, and that is a different fact
+    from a vantage that retrieved nothing at all.
     """
     holders = [p for p in reached if p.capability is not None]
     if not holders:
         return None, None
 
-    by_document: dict[str, list[VantageProbe]] = {}
+    by_declaration: dict[str, list[VantageProbe]] = {}
     for probe in holders:
-        by_document.setdefault(probe.capability or "", []).append(probe)
+        by_declaration.setdefault(_declaration_key(probe.capability or ""), []).append(probe)
 
     def rank(item: tuple[str, list[VantageProbe]]) -> tuple[int, str]:
         _, group = item
         return (-len(group), min(p.vantage for p in group))
 
-    document, group = min(by_document.items(), key=rank)
-    if len(by_document) == 1:
+    _, group = min(by_declaration.items(), key=rank)
+    # Within the winning group every document declares the same thing, so which one is graded
+    # cannot change a finding; pick by vantage label so the published bytes are still stable.
+    document = min(group, key=lambda p: p.vantage).capability
+    if len(by_declaration) == 1:
         return document, None
 
-    counts = ", ".join(
-        f"{len(g)} from {', '.join(sorted(p.vantage for p in g))}"
-        for _, g in sorted(by_document.items(), key=rank)
+    counts = "; ".join(
+        f"{', '.join(sorted(p.vantage for p in g))}"
+        for _, g in sorted(by_declaration.items(), key=rank)
     )
+    if len(group) == 1:
+        agreement = "no two agreed, so the first by vantage name is graded"
+    else:
+        agreement = f"the {len(group)} agreeing vantages are graded"
     disagreement = (
-        f"{len(holders)} vantages returned {len(by_document)} different CapabilityStatements "
-        f"this run ({counts}); the one {len(group)} agreed on is graded"
+        f"{len(holders)} vantages returned {len(by_declaration)} different declarations this "
+        f"run ({counts}); {agreement}"
     )
     return document, disagreement
 

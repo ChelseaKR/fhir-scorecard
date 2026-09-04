@@ -270,6 +270,76 @@ def test_a_genuine_all_vantage_failure_still_says_it_cannot_separate_the_two() -
     assert "cannot separate an endpoint that is down" in c.detail
 
 
+def test_a_re_rendered_document_is_not_a_disagreement() -> None:
+    """Compared on what a document declares, not on its bytes.
+
+    Byte comparison shipped for one publish and called 19 of 45 live endpoints disagreeing in a
+    single run - including three-of-three unique documents from a reference server that plainly
+    does not serve three different declarations. A generation timestamp, a request id, or a
+    differently-ordered dict is the server re-rendering, which is exactly what `drift.py`
+    fingerprints declared facts to ignore: "a server that merely re-renders its
+    CapabilityStatement does not read as changed". The same has to hold across vantages.
+    """
+    import json as _json
+
+    def doc(**over: object) -> str:
+        d: dict[str, object] = {
+            "resourceType": "CapabilityStatement",
+            "fhirVersion": "4.0.1",
+            "software": {"name": "S", "version": "1.0"},
+            "rest": [
+                {
+                    "mode": "server",
+                    "resource": [{"type": "Patient", "interaction": [{"code": "read"}]}],
+                }
+            ],
+        }
+        d.update(over)
+        return _json.dumps(d)
+
+    stamped_a, stamped_b = doc(date="2026-09-04T16:19:00Z"), doc(date="2026-09-04T16:19:31Z")
+    reordered = _json.dumps(_json.loads(stamped_a), sort_keys=True)
+    c = reconcile(
+        [
+            VantageProbe("gh/ubuntu", True, 100, capability=stamped_a),
+            VantageProbe("gh/macos", True, 100, capability=stamped_b),
+            VantageProbe("gh/windows", True, 100, capability=reordered),
+        ]
+    )
+    assert c.declaration_disagreement is None
+    assert "different declarations" not in c.detail
+
+    # And a real difference is still caught: the same server one version apart.
+    real = reconcile(
+        [
+            VantageProbe("gh/ubuntu", True, 100, capability=doc()),
+            VantageProbe("gh/macos", True, 100, capability=doc()),
+            VantageProbe(
+                "gh/windows", True, 100, capability=doc(software={"name": "S", "version": "2.0"})
+            ),
+        ]
+    )
+    assert real.declaration_disagreement is not None
+    assert "2 different declarations" in real.declaration_disagreement
+    assert _json.loads(real.capability or "{}")["software"]["version"] == "1.0"
+
+
+def test_when_no_two_vantages_agree_the_note_says_so() -> None:
+    """ "the one 1 agreed on is graded" was the sentence this produced, which is not English
+    and overstates besides: nothing was agreed."""
+    one, two, three = '{"a":1}', '{"a":2}', '{"a":3}'
+    c = reconcile(
+        [
+            VantageProbe("c/1", True, 100, capability=three),
+            VantageProbe("a/1", True, 100, capability=one),
+            VantageProbe("b/1", True, 100, capability=two),
+        ]
+    )
+    assert c.declaration_disagreement is not None
+    assert "no two agreed" in c.declaration_disagreement
+    assert c.capability == one, "the first by vantage name, deterministically"
+
+
 def test_the_graded_declaration_is_the_one_most_vantages_returned() -> None:
     """Selection used to be first-in-list-order, and list order is ``probes/*.json`` glob order.
 
@@ -291,7 +361,7 @@ def test_the_graded_declaration_is_the_one_most_vantages_returned() -> None:
     assert c.capability == real
     assert c.declaration_disagreement is not None
     assert "3 different" not in c.declaration_disagreement
-    assert "2 different CapabilityStatements" in c.declaration_disagreement
+    assert "2 different declarations" in c.declaration_disagreement
     assert "aaa-proxy/1" in c.declaration_disagreement
 
 
@@ -384,4 +454,4 @@ def test_a_disagreement_between_vantages_is_published_not_merely_recorded() -> N
     )
     assert c.declaration_disagreement is not None
     assert c.declaration_disagreement in c.detail
-    assert "different CapabilityStatements" in c.detail
+    assert "different declarations" in c.detail

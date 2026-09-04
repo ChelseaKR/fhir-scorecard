@@ -123,7 +123,7 @@ a pass that can do that properly.
 | Frame | Roster | Retrieved | Status |
 |---|---|---|---|
 | California payer cohort | DHCS Medi-Cal managed care plan roster + Covered California issuer list, deduplicated to 27 organizations | 2026-08-07 | Published at `/california/` |
-| Federal marketplace frame (national) | CMS/CCIIO **QHP Landscape PY2026 Individual Medical**: every issuer selling an individual-market QHP on HealthCare.gov, in every federally-facilitated-exchange state. 30 states, 176 state-issuer organizations, 183 HIOS issuer IDs, 97,082 plan-county rows; the per-issuer roster is committed at `data/frames/qhp-landscape-py2026-individual-medical.csv` | 2026-08-19 | Reviewed a state at a time. Texas (15 organizations) at `/texas-marketplace/`, Florida (15 organizations) at `/florida-marketplace/`; the other 28 states' 146 state-issuer organizations are **not yet reviewed**, which is a statement about this project's progress and never about what those issuers publish |
+| Federal marketplace frame (national) | CMS/CCIIO **QHP Landscape PY2026 Individual Medical**: every issuer selling an individual-market QHP on HealthCare.gov, in every federally-facilitated-exchange state. 30 states, 176 state-issuer organizations, 183 HIOS issuer IDs, 97,082 plan-county rows; the per-issuer roster is committed at `data/frames/qhp-landscape-py2026-individual-medical.csv` | 2026-08-19 | Reviewed a state at a time. Texas (15 organizations) at `/texas-marketplace/`, Florida (15 organizations) at `/florida-marketplace/`, Ohio (11 organizations) at `/ohio-marketplace/`, Wisconsin (12 organizations) at `/wisconsin-marketplace/`; the other 26 states' 123 state-issuer organizations are **not yet reviewed**, which is a statement about this project's progress and never about what those issuers publish |
 | National and reference surfaces | Not a frame. EHR vendor sandboxes, reference servers, and one federal API are listed individually for calibration, are graded only within their own kind, and are never counted in a cohort rate | - | `data/registry.json` |
 
 A cohort is added by writing its roster and sources into `data/cohorts/`, not by adding endpoints
@@ -142,7 +142,7 @@ found and read by a person, which is why cohorts are published per state as they
 rather than all at once. Until a state is reviewed, its issuers are carried as **not yet
 reviewed** - a fact about this project, never rendered as "publishes nothing", which is a fact
 about an issuer that only a completed review can establish. The two must never be merged, and
-the frame's coverage arithmetic (2 of 30 states, 30 of 176 state-issuer organizations reviewed)
+the frame's coverage arithmetic (4 of 30 states, 53 of 176 state-issuer organizations reviewed)
 is recomputed from the committed roster by `tests/test_plan_evidence.py` rather than maintained
 by hand.
 

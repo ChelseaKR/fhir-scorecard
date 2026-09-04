@@ -31,6 +31,8 @@ _PROGRAM_LABELS = {
     "covered-ca": "Covered California",
     "tx-marketplace": "Texas individual marketplace (HealthCare.gov)",
     "fl-marketplace": "Florida individual marketplace (HealthCare.gov)",
+    "oh-marketplace": "Ohio individual marketplace (HealthCare.gov)",
+    "wi-marketplace": "Wisconsin individual marketplace (HealthCare.gov)",
 }
 
 #: Human-readable name per registry kind. Public because grades and availability are only

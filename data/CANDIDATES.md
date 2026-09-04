@@ -377,3 +377,56 @@ issuer whose interoperability documentation itself sits behind a bot challenge t
 scripted client (Health First) - the compliance page about public access is not publicly
 readable by the tools that would check it. The Health First pages were read from same-day
 Wayback Machine captures rather than skipped, and the exclusion says so.
+
+## Wave eleven and twelve: Ohio and Wisconsin marketplace issuers (2026-09-04)
+
+The two largest not-yet-reviewed states in the federal-marketplace frame, reviewed together:
+Ohio's 11 issuer organizations (9,038 plan-county rows) and Wisconsin's 12 (2,651). Both rosters
+are exact state slices of the committed frame, frozen before any URL was probed.
+
+**Outcome: 18 endpoints added, 16 of the 23 organizations mapped to an endpoint.** Thirteen
+answered an unauthenticated request; five are documented and did not, and are recorded on the
+`publisher_documented` basis with what was observed. Every base URL was re-probed independently
+after the review that found it, because two reviews in this wave hit proxy-cache mis-serves — one
+fetch of one issuer's page returned a different Wisconsin issuer's page entirely. Nothing was
+entered on a single fetch.
+
+Wisconsin is the best-publishing state reviewed so far: 10 of 12 organizations map to an endpoint,
+against Florida's 9 of 15, Texas's 6 of 15 and Ohio's 6 of 11.
+
+Held out of the registry deliberately, both recorded as cohort exclusions with their evidence:
+
+* **SummaCare (OH).** The vendor portal SummaCare names as its API documentation publishes a
+  template, `https://apis.ssctech.com/interop-[Healthplan]/open/fhir/R4/`, plus a separate table
+  mapping SummaCare to the abbreviation `summa`. Every component is the publisher's and the
+  substitution rule is the publisher's own instruction, but the finished string appears nowhere.
+  Assembling it here would be this project writing the URL. The assembled address was probed once
+  for evidence and answered HTTP 401, on an API the same portal labels public.
+* **Medica (WI).** Both base URLs are printed under their own section headings in a document
+  Medica hosts, but the live file refuses every automated request and the version read was an
+  Internet Archive capture from 2024-07-14. A two-year-old snapshot is not evidence about what is
+  published today.
+
+Three things this wave found about **already-published** records, none of them acted on here:
+
+1. **The Texas and Florida Ambetter exclusions are probably wrong.** Both say reading a base URL
+   "requires a Centene account" because the partner portal returns a 1,128-byte shell to an
+   unregistered visitor. That shell is a single-page application, not a paywall: the portal's
+   catalog is served unauthenticated, publishes a production Provider Directory endpoint marked
+   visibility Public and authentication None, and that endpoint answers. Ohio's Ambetter row is
+   recorded against it. Texas and Florida deserve a re-review on the same basis.
+2. **CHRISTUS's registered base URL is correct and its documentation is what is short.** Three
+   plans on the HealthSparq platform now appear here: MercyCare and Quartz both publish a base
+   ending `/api/provider-fhir-service/v1/fhir` and both answer; CHRISTUS publishes the same path
+   without the `/v1/fhir` segment and does not. CHRISTUS's own page, fetched 2026-09-04 and stamped
+   "Last Updated 6/24/26", prints the short form, so the registry transcribed it faithfully. The
+   registry is not changed. What is now knowable, and was not before, is *why* the documented
+   address fails, which is the kind of thing a correction should tell an owner.
+3. **Paramount's declaration is not stable across requests.** Three probes within one hour on
+   2026-09-04 returned interop readiness 0, then 60, then 60. Recorded on the entry.
+
+Four issuers in this wave document a Provider Directory API that a stranger cannot read: Medica
+documents client-credentials for it, SummaCare's returns 401, Antidote gates it behind email
+registration and approval, and Aspirus's gateway requires a subscription key. Their exclusion and
+verification records say so individually; the pattern is noted here because it is the same finding
+four times.

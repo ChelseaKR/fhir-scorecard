@@ -1,0 +1,113 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the issuer's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the issuer publishes a base URL that returns 404' and 'the issuer publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "arizona-marketplace",
+    "name": "Arizona marketplace issuer cohort",
+    "description": "The Patient Access and Provider Directory APIs of every issuer selling an individual-market qualified health plan on HealthCare.gov in Arizona for 2026, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Membership is CMS's own file, not a list assembled here. Filtered to Arizona, the QHP Landscape PY2026 Individual Medical dataset carries 574 plan-county rows, 7 HIOS issuer IDs, and 7 issuer names. The roster was frozen before any URL was probed and is committed beside this file as arizona-marketplace.roster.csv.",
+    "Every member either points at registry endpoints or carries an exclusion with a dated review record and the source that was read. An exclusion is a statement about what this project could find on the date it looked, never a statement about whether an issuer meets an obligation.",
+    "Several members point at endpoints already in the registry. Where a carrier publishes one national surface, the same entry is cited from more than one cohort rather than duplicated, because listing one address under several names would misstate how many endpoints exist."
+  ],
+  "sources": [
+    {
+      "label": "CMS / CCIIO: QHP Landscape PY2026 Individual Medical (individual_market_medical.zip, issued 2026-08-04, modified 2026-08-10)",
+      "url": "https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45",
+      "date": "2026-09-04"
+    }
+  ],
+  "members": [
+    {
+      "id": "ambetter-arizona-complete-health",
+      "name": "Ambetter from Arizona Complete Health (Centene)",
+      "roster_name": "Ambetter from Arizona Complete Health",
+      "programs": [
+        "az-marketplace"
+      ],
+      "endpoints": [
+        "ambetter-centene-provider-directory"
+      ]
+    },
+    {
+      "id": "antidote-health-plan-of-arizona",
+      "name": "Antidote Health Plan of Arizona, Inc.",
+      "roster_name": "Antidote Health Plan of Arizona, Inc.",
+      "programs": [
+        "az-marketplace"
+      ],
+      "excluded": {
+        "reason": "the plan's interoperability page describes its APIs and withholds every base URL, releasing endpoint documentation only after organization registration and approval by email; the same gate is applied to the Provider Directory API, which the page groups under public APIs that still require registration",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "the sibling Ohio entity was reviewed in full on the same corporate site, including its one linked technical document, its sitemap, its provider manuals and fifteen Internet Archive captures of the retired endpoint page; the interoperability guidelines are corporate rather than per-state and carry no base URL for any state",
+          "date": "2026-09-04",
+          "source": "https://www.antidotehealth.com/legal/interoperability"
+        }
+      }
+    },
+    {
+      "id": "bcbs-arizona",
+      "name": "Blue Cross Blue Shield of Arizona",
+      "roster_name": "Blue Cross Blue Shield of Arizona",
+      "programs": [
+        "az-marketplace"
+      ],
+      "endpoints": [
+        "bcbs-arizona-patient-access"
+      ]
+    },
+    {
+      "id": "cigna-arizona",
+      "name": "Cigna HealthCare of Arizona, Inc",
+      "roster_name": "Cigna HealthCare of Arizona, Inc",
+      "programs": [
+        "az-marketplace"
+      ],
+      "endpoints": [
+        "cigna-patientaccess",
+        "cigna-provider-directory"
+      ]
+    },
+    {
+      "id": "imperial-arizona",
+      "name": "Imperial Insurance Companies, Inc.",
+      "roster_name": "Imperial Insurance Companies, Inc.",
+      "programs": [
+        "az-marketplace"
+      ],
+      "endpoints": [
+        "imperial-patient-access",
+        "imperial-provider-directory"
+      ]
+    },
+    {
+      "id": "oscar-arizona",
+      "name": "Oscar Health Plan, Inc.",
+      "roster_name": "Oscar Health Plan, Inc.",
+      "programs": [
+        "az-marketplace"
+      ],
+      "excluded": {
+        "reason": "Oscar publishes two brand-level interoperability pages and no base URL on either; Patient Access is delegated to a third-party platform reachable only by creating an account with that vendor, and no Provider Directory API is documented anywhere on the site.",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "reviewed across every state on this wave's rosters: both pages read in full, /cms_provider_directory_api and /provider-directory-api confirmed 404 on the review date, and the documentation confirmed to name no legal entity, no state and no HIOS id, so it does not scope to any particular roster row",
+          "date": "2026-09-04",
+          "source": "https://www.hioscar.com/cms_patient_access_developer_page"
+        }
+      }
+    },
+    {
+      "id": "unitedhealthcare-arizona",
+      "name": "UnitedHealthcare",
+      "roster_name": "UnitedHealthcare",
+      "programs": [
+        "az-marketplace"
+      ],
+      "endpoints": [
+        "unitedhealthcare-provider-directory"
+      ]
+    }
+  ]
+}

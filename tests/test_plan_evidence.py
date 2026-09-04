@@ -49,6 +49,14 @@ ROSTERED_COHORTS = {
     "florida-marketplace": "FL",
     "ohio-marketplace": "OH",
     "wisconsin-marketplace": "WI",
+    "arizona-marketplace": "AZ",
+    "michigan-marketplace": "MI",
+    "missouri-marketplace": "MO",
+    "oklahoma-marketplace": "OK",
+    "iowa-marketplace": "IA",
+    "kansas-marketplace": "KS",
+    "louisiana-marketplace": "LA",
+    "north-carolina-marketplace": "NC",
 }
 
 #: Spelled-out numbers the prose uses, so a sentence written in words stays tied to the
@@ -61,6 +69,8 @@ WORDS = {
     8: "eight",
     9: "nine",
     10: "ten",
+    12: "twelve",
+    13: "thirteen",
     15: "fifteen",
     23: "twenty-three",
     27: "twenty-seven",
@@ -69,7 +79,10 @@ WORDS = {
     53: "fifty-three",
     57: "fifty-seven",
     63: "sixty-three",
+    69: "sixty-nine",
     80: "eighty",
+    81: "eighty-one",
+    132: "one hundred and thirty-two",
 }
 
 
@@ -174,14 +187,15 @@ def test_the_roadmap_counts_are_the_registry_and_cohort_counts() -> None:
     assert f"**{len(eps)} endpoints**" in ROADMAP
     assert f"across **{WORDS[len(cohorts)]} cohort pages**" in ROADMAP
     assert f"**{total_included} of {total_members} roster organizations" in ROADMAP
-    ca, tx, fl = (
-        cohorts["california"],
-        cohorts["texas-marketplace"],
-        cohorts["florida-marketplace"],
-    )
+    ca = cohorts["california"]
+    # Named cohorts were listed individually while there were three of them. With thirteen the
+    # document states California's roster and the marketplace total instead, and both are
+    # recomputed here so neither can drift from the cohort files.
+    marketplace = sum(len(c.members) for cid, c in cohorts.items() if cid != "california")
+    marketplace_states = sum(1 for cid in cohorts if cid != "california")
     assert (
-        f"California's {len(ca.members)} organizations, Texas's {len(tx.members)}, "
-        f"Florida's {len(fl.members)}" in ROADMAP
+        f"California's {len(ca.members)} organizations, and {marketplace} marketplace roster "
+        f"organizations across {WORDS[marketplace_states]} states" in ROADMAP
     )
     assert f"{WORDS[len(eps)].capitalize()} endpoints with a defensible method" in ROADMAP
     # The stale figure this test exists to prevent from returning.
@@ -255,10 +269,10 @@ def test_the_coverage_populations_are_the_ones_the_docs_print() -> None:
         )
     )
 
-    assert tally[VERIFIED] == 28
-    assert tally[DOCUMENTED_UNREACHABLE] == 3
-    assert tally[NO_PUBLIC_URL_FOUND] == 22
-    assert tally[NOT_YET_REVIEWED] == 123
+    assert tally[VERIFIED] == 61
+    assert tally[DOCUMENTED_UNREACHABLE] == 6
+    assert tally[NO_PUBLIC_URL_FOUND] == 38
+    assert tally[NOT_YET_REVIEWED] == 71
 
     # README states them as a parenthesised run; ROADMAP as a named list. Both must carry the
     # computed numbers, not merely a total that two of them could be traded within.

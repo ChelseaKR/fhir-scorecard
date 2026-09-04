@@ -205,9 +205,9 @@ roster committed beside the cohort as `florida-marketplace.roster.csv`. Nine of 
 a base URL this project could verify from the organization's own documentation, which inverts the
 Texas result, and the smallest issuers are among the cleanest publishers: a brand-new one-county
 plan prints its base URLs in the open while three national names publish nothing a stranger can
-reach. The frame behind all four marketplace cohorts is national - 176 state-issuer organizations
+reach. The frame behind the twelve marketplace cohorts is national - 176 state-issuer organizations
 across 30 federally-facilitated-exchange states, committed under `data/frames/` - of which those
-cohorts have reviewed 53; the other 123 are *not yet reviewed*, a statement about this
+cohorts have reviewed 105; the other 71 are *not yet reviewed*, a statement about this
 project's progress that is never rendered as "publishes nothing"
 (see [docs/SAMPLING-FRAME.md](docs/SAMPLING-FRAME.md)).
 
@@ -252,8 +252,8 @@ from the fingerprint would invent a measurement nobody took.
 `/coverage/` answers the question the frame was built for: how much of the federal marketplace
 has a publicly checkable FHIR endpoint at all. Every one of the 176 state-issuer organizations
 lands in exactly one of four populations, and no two of them are ever added together: publishes
-a base URL a conformance document was retrieved from (28), publishes one that did not answer
-(3), was reviewed and publishes none a stranger can read (22), and not yet reviewed (123). The
+a base URL a conformance document was retrieved from (61), publishes one that did not answer
+(6), was reviewed and publishes none a stranger can read (38), and not yet reviewed (71). The
 fourth is a fact about this project's progress, never about an issuer, and `publishing_rate`
 raises rather than compute a rate over a set that contains one.
 
@@ -363,12 +363,12 @@ the grounding fractions.
 
 v0.1.0, tagged and released. Changes merged since that tag are collected under
 Unreleased in [CHANGELOG.md](CHANGELOG.md); what a version names is the composite
-GitHub Action and the distribution behind it, not the daily site rebuild. Sixty-three
+GitHub Action and the distribution behind it, not the daily site rebuild. Eighty-one
 endpoints across payers, payer provider directories, a federal provider
-API, EHR vendor sandboxes, and reference servers, in five curated cohorts (California payers,
-Texas marketplace issuers, Florida marketplace issuers, Ohio marketplace issuers, Wisconsin
-marketplace issuers). Fifty-three were verified from a retrieved
-conformance document; ten are listed on the organization's own publication of a base URL that does
+API, EHR vendor sandboxes, and reference servers, in thirteen curated cohorts (California payers
+and the marketplace issuers of Texas, Florida, Ohio, Wisconsin, Arizona, Michigan, Missouri,
+Oklahoma, Iowa, Kansas, Louisiana and North Carolina). Sixty-nine were verified from a retrieved
+conformance document; twelve are listed on the organization's own publication of a base URL that does
 not answer, which is a finding about the public record rather than a gap in this one. Registry
 curation continues one roster at a time - see [docs/SAMPLING-FRAME.md](docs/SAMPLING-FRAME.md) -
 because payer base URLs are not predictable from company names. Grades are observational snapshots of public surfaces, not audits,

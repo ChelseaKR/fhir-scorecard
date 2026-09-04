@@ -1,0 +1,112 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the issuer's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the issuer publishes a base URL that returns 404' and 'the issuer publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "michigan-marketplace",
+    "name": "Michigan marketplace issuer cohort",
+    "description": "The Patient Access and Provider Directory APIs of every issuer selling an individual-market qualified health plan on HealthCare.gov in Michigan for 2026, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Membership is CMS's own file, not a list assembled here. Filtered to Michigan, the QHP Landscape PY2026 Individual Medical dataset carries 3,383 plan-county rows, 7 HIOS issuer IDs, and 7 issuer names. The roster was frozen before any URL was probed and is committed beside this file as michigan-marketplace.roster.csv.",
+    "Every member either points at registry endpoints or carries an exclusion with a dated review record and the source that was read. An exclusion is a statement about what this project could find on the date it looked, never a statement about whether an issuer meets an obligation.",
+    "Several members point at endpoints already in the registry. Where a carrier publishes one national surface, the same entry is cited from more than one cohort rather than duplicated, because listing one address under several names would misstate how many endpoints exist."
+  ],
+  "sources": [
+    {
+      "label": "CMS / CCIIO: QHP Landscape PY2026 Individual Medical (individual_market_medical.zip, issued 2026-08-04, modified 2026-08-10)",
+      "url": "https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45",
+      "date": "2026-09-04"
+    }
+  ],
+  "members": [
+    {
+      "id": "ambetter-meridian",
+      "name": "Ambetter from Meridian (Centene)",
+      "roster_name": "Ambetter from Meridian",
+      "programs": [
+        "mi-marketplace"
+      ],
+      "endpoints": [
+        "ambetter-centene-provider-directory"
+      ]
+    },
+    {
+      "id": "blue-care-network-of-michigan",
+      "name": "Blue Care Network of Michigan",
+      "roster_name": "Blue Care Network of Michigan",
+      "programs": [
+        "mi-marketplace"
+      ],
+      "endpoints": [
+        "bcbsm-provider-directory"
+      ]
+    },
+    {
+      "id": "bcbs-michigan",
+      "name": "Blue Cross Blue Shield of Michigan Mutual Insurance Company",
+      "roster_name": "Blue Cross Blue Shield of Michigan Mutual Insurance Company",
+      "programs": [
+        "mi-marketplace"
+      ],
+      "endpoints": [
+        "bcbsm-provider-directory"
+      ]
+    },
+    {
+      "id": "mclaren-health-plan-community",
+      "name": "McLaren Health Plan Community",
+      "roster_name": "McLaren Health Plan Community",
+      "programs": [
+        "mi-marketplace"
+      ],
+      "excluded": {
+        "reason": "the plan names its Patient Access vendor and links only that vendor's generic documentation, which prints demonstration hosts and directs developers to contact the vendor for production endpoints; no base URL for this plan is printed anywhere, and no Provider Directory API is published",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "the plan's own sitemap was enumerated and all 141 pages fetched and searched; the only endpoint-shaped URLs site-wide are specification links and vendor documentation links. Two Internet Archive captures of the plan's own interoperability page were read to test whether an earlier version printed a base URL, and neither did",
+          "date": "2026-09-04",
+          "source": "https://www.mclarenhealthplan.org/mclaren-health-plan/interoperability"
+        }
+      }
+    },
+    {
+      "id": "oscar-michigan",
+      "name": "Oscar Insurance Company",
+      "roster_name": "Oscar Insurance Company",
+      "programs": [
+        "mi-marketplace"
+      ],
+      "excluded": {
+        "reason": "Oscar publishes two brand-level interoperability pages and no base URL on either; Patient Access is delegated to a third-party platform reachable only by creating an account with that vendor, and no Provider Directory API is documented anywhere on the site.",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "reviewed across every state on this wave's rosters: both pages read in full, /cms_provider_directory_api and /provider-directory-api confirmed 404 on the review date, and the documentation confirmed to name no legal entity, no state and no HIOS id, so it does not scope to any particular roster row",
+          "date": "2026-09-04",
+          "source": "https://www.hioscar.com/cms_patient_access_developer_page"
+        }
+      }
+    },
+    {
+      "id": "priority-health",
+      "name": "Priority Health",
+      "roster_name": "Priority Health",
+      "programs": [
+        "mi-marketplace"
+      ],
+      "endpoints": [
+        "priority-health-patient-access",
+        "priority-health-provider-directory"
+      ]
+    },
+    {
+      "id": "unitedhealthcare-michigan",
+      "name": "UnitedHealthcare",
+      "roster_name": "UnitedHealthcare",
+      "programs": [
+        "mi-marketplace"
+      ],
+      "endpoints": [
+        "unitedhealthcare-provider-directory"
+      ]
+    }
+  ]
+}

@@ -33,6 +33,14 @@ _PROGRAM_LABELS = {
     "fl-marketplace": "Florida individual marketplace (HealthCare.gov)",
     "oh-marketplace": "Ohio individual marketplace (HealthCare.gov)",
     "wi-marketplace": "Wisconsin individual marketplace (HealthCare.gov)",
+    "az-marketplace": "Arizona individual marketplace (HealthCare.gov)",
+    "mi-marketplace": "Michigan individual marketplace (HealthCare.gov)",
+    "mo-marketplace": "Missouri individual marketplace (HealthCare.gov)",
+    "ok-marketplace": "Oklahoma individual marketplace (HealthCare.gov)",
+    "ia-marketplace": "Iowa individual marketplace (HealthCare.gov)",
+    "ks-marketplace": "Kansas individual marketplace (HealthCare.gov)",
+    "la-marketplace": "Louisiana individual marketplace (HealthCare.gov)",
+    "nc-marketplace": "North Carolina individual marketplace (HealthCare.gov)",
 }
 
 #: Human-readable name per registry kind. Public because grades and availability are only

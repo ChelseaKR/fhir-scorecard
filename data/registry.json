@@ -859,6 +859,210 @@
         "observed": "no CapabilityStatement retrieved on 2026-09-04. The published address is a Da Vinci PDEX Plan Net BulkPublish path rather than a conventional FHIR REST base, so this may be a shape the conformance check cannot read rather than an endpoint that is down; it is recorded as not retrievable from here, which is the narrower and supportable claim"
       },
       "enabled": true
+    },
+    {
+      "id": "bcbsm-provider-directory",
+      "name": "Blue Cross Blue Shield of Michigan Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api.interopstation.com/bcbsm/fhir",
+      "verification": {
+        "method": "base URL is the common prefix of ten absolute URLs printed verbatim on the plan's own page (bcbsm.com/important-information/privacy-practices/patient-access/, section 'API Endpoints', eight under 'Provider Directory:' and two under 'Drug Formulary:'), and is also the prefix of the printed capability-statement URL. Two independent reviews reached it. Serves Blue Cross Blue Shield of Michigan and Blue Care Network jointly: the page lede and the linked FAQ (doc Y0074_IGPtAccAPIFAQ_C FVNR 0621) name both, and no Blue Care Network-specific base exists. Vendor is MiHIN's InterOp Station. The member claims base is not published and requires portal credentials, so no Patient Access entry is recorded. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "priority-health-patient-access",
+      "name": "Priority Health Patient Access API",
+      "kind": "payer",
+      "base_url": "https://api.priorityfhir.com/r4",
+      "verification": {
+        "method": "base URL taken from the plan's own developer page (priorityhealth.com/developers, section 'Regulatory documentation', anchor 'Priority Health Patient Access API capabilities statement'), which prints the capability-statement URL; the base is that string minus the spec-defined /metadata suffix. Vendor 1upHealth, named by the plan. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "cox-healthplans-interoperability",
+      "name": "Cox HealthPlans Interoperability API",
+      "kind": "payer",
+      "base_url": "https://api.coxhealthplanfhir.com/r4",
+      "verification": {
+        "method": "base URL published by the plan at coxhealthmedicareadvantage.com/interoperability/, which prints the capability-statement address and labels it as covering both the Patient Access and Provider Directory APIs; the base is that string minus /metadata. The page sits on the plan's Medicare Advantage domain but speaks throughout as Cox HealthPlans and its FAQ extends the rule to ACA marketplace coverage, which is this roster entry. Host is plan-branded rather than a vendor template. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "bcbs-louisiana-patient-access",
+      "name": "Louisiana Blue Patient Access API",
+      "kind": "payer",
+      "base_url": "https://epicproxy.et1288.epichosted.com/FHIRProxy/api/FHIR/R4/",
+      "verification": {
+        "method": "base URL printed verbatim in the anchor href of the 'Patient Access' row of the plan's own API / Base URL table at lablue.com/footer/third-party-apps. Blue Cross and Blue Shield of Louisiana now trades as Louisiana Blue and bcbsla.com redirects there. Epic-hosted, published by the plan and scoped by it to Medicare Advantage and Commercial coverages. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "communitycare-provider-directory-qhp",
+      "name": "CommunityCare Provider Directory API (marketplace)",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api.communitycarefhir.com/r4/public-prod-qhp",
+      "verification": {
+        "method": "base URL is the printed prefix of seven hyperlinked resource URLs under the sub-heading 'Individual & Family Plans purchased through Healthcare.gov' in the 'Provider Directory API' section of ccok.com/members/interoperability.asp, which is this roster entry's book of business. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "communitycare-provider-directory-commercial",
+      "name": "CommunityCare Provider Directory API (commercial)",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api.communitycarefhir.com/r4/public-prod-comm",
+      "verification": {
+        "method": "base URL is the printed prefix of seven hyperlinked resource URLs under the sub-heading 'Commercial Plans' in the same 'Provider Directory API' section. Recorded separately from the marketplace book because the publisher separates them. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "bcbsnc-patient-access",
+      "name": "Blue Cross and Blue Shield of North Carolina Patient Access API",
+      "kind": "payer",
+      "base_url": "https://apiservices-ext.bcbsnc.com/fhir/prod/R4/patientaccess",
+      "verification": {
+        "method": "base URL printed as host plus basePath in the OpenAPI definition rendered on the plan's own developer-portal API reference (developer.bcbsnc.com), reached from bcbsnc.com/policies-best-practices/api-access. Issuer identity confirmed by the definition's own x-ibm-name. Registration and OAuth are required to retrieve member data, but the production base URL itself is printed publicly. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "bcbsnc-provider-directory",
+      "name": "Blue Cross and Blue Shield of North Carolina Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://apiservices-ext.bcbsnc.com/fhir/prod/R4/providerdirectory",
+      "verification": {
+        "method": "base URL printed as host plus basePath in the OpenAPI definition on the same developer portal, and repeated in every printed example response. The definition states the API 'does not require authorization to access the data on the server'. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "wellmark-patient-access",
+      "name": "Wellmark Patient Access API",
+      "kind": "payer",
+      "base_url": "https://apigw.wellmark.com/patient-access-api/v1",
+      "verification": {
+        "method": "base URL assembled from two strings the publisher itself printed: wellmark.com/developer links 'Developer technical documentation' at apigw.wellmark.com/patient-access-api/v1/docs/, and the OpenAPI document served there declares its own servers entry as /patient-access-api/v1, which resolves against that host. Scoped by Wellmark to ACA marketplace members. Documentation names the corporate brand rather than the legal entity, and Wellmark Health Plan of Iowa is the only Wellmark entity on the Iowa roster. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "bcbs-kansas-provider-directory",
+      "name": "Blue Cross and Blue Shield of Kansas Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api.secure.bcbsks.com/bcbsks/fhir-prov-dire/api/v4",
+      "verification": {
+        "method": "base URL printed on the plan's own Azure API Management developer portal (api-developer.secure.bcbsks.com/Interoperability, 'API Overview' then 'Endpoints', the 'Production:' line for the Provider Directory API), reached from bcbsks.com/help/interoperability/developer-api. The same section states these APIs do not require a subscription key. The path in the only Internet Archive capture of that page is superseded and does not answer, which is why the live page is the citation. Live CapabilityStatement retrieved Grade instability recorded on the curation date: repeat probes returned different interop-readiness scores while reachability held, which means this host served different profile declarations on different requests. That is the alternation this project already names, and no single probe's letter is the whole picture.",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "bluekc-patient-access",
+      "name": "Blue KC Patient Access API",
+      "kind": "payer",
+      "base_url": "https://data.bluekc.com/api/v1/FHIR/R4",
+      "verification": {
+        "method": "base URL printed verbatim in three production example URLs under the 'Production' sub-heading of data.bluekc.com/pa_quickstart.html, the plan's own developer portal, linked from bluekc.com under 'For Developers'. Not state-scoped: one portal serves Blue KC's whole service area across Missouri and Kansas, and nothing on it distinguishes the two. The sandbox base printed on the same page is excluded. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "bluekc-provider-directory",
+      "name": "Blue KC Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://bluekc.sapphirethreesixtyfive.com/fhir",
+      "verification": {
+        "method": "base URL printed as finished, non-sandbox request URLs across three worked-example pages on Blue KC's own developer portal, and as the Swagger link href on its Provider Directory page. Vendor is Sapphire Digital, named and linked by Blue KC, which prints the finished URLs rather than a template. The portal states the directory 'does not require a user authentication to use'. Live CapabilityStatement retrieved Grade instability recorded on the curation date: repeat probes returned different interop-readiness scores while reachability held, which means this host served different profile declarations on different requests. That is the alternation this project already names, and no single probe's letter is the whole picture.",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "amerihealth-caritas-next-la-patient-access",
+      "name": "AmeriHealth Caritas Next Louisiana Patient Access API",
+      "kind": "payer",
+      "base_url": "https://api-ext.amerihealthcaritas.com/LAEX/patient-api",
+      "verification": {
+        "method": "base URL printed in the row labelled 'LAEX, AmeriHealth Caritas Next, Louisiana' of the same publisher-hosted API documentation table that carries this project's already-registered Florida rows. Recorded separately from Florida rather than folded into it: each of these endpoints returns a distinct CapabilityStatement whose implementation.url matches its own base, so the byte-identical-duplicate precedent set by the Florida entries does not apply. This endpoint answers slowly and timed out repeatedly before responding. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "amerihealth-caritas-next-la-provider-directory",
+      "name": "AmeriHealth Caritas Next Louisiana Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api-ext.amerihealthcaritas.com/LAEX/provider-api",
+      "verification": {
+        "method": "base URL printed in the same 'LAEX, AmeriHealth Caritas Next, Louisiana' row of the publisher's API documentation table. Distinct CapabilityStatement, implementation.url matching this base. Answers slowly, with repeated timeouts before responding. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "amerihealth-caritas-next-nc-patient-access",
+      "name": "AmeriHealth Caritas Next North Carolina Patient Access API",
+      "kind": "payer",
+      "base_url": "https://api-ext.amerihealthcaritas.com/NCEX/patient-api",
+      "verification": {
+        "method": "base URL printed in the row labelled 'NCEX, AmeriHealth Caritas Next, North Carolina' of the publisher's own API documentation table. Distinct CapabilityStatement declaring twenty-two resource types, implementation.url matching this base. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "amerihealth-caritas-next-nc-provider-directory",
+      "name": "AmeriHealth Caritas Next North Carolina Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api-ext.amerihealthcaritas.com/NCEX/provider-api",
+      "verification": {
+        "method": "base URL printed in the same 'NCEX, AmeriHealth Caritas Next, North Carolina' row. Distinct CapabilityStatement, implementation.url matching this base. Live CapabilityStatement retrieved",
+        "date": "2026-09-04"
+      },
+      "enabled": true
+    },
+    {
+      "id": "bcbs-arizona-patient-access",
+      "name": "Blue Cross Blue Shield of Arizona Patient Access API",
+      "kind": "payer",
+      "base_url": "https://azblue.innovaccer.com/fhir/",
+      "verification": {
+        "method": "base URL printed verbatim on the plan's own page at azblue.com/interoperability, section 'For App Developers': 'The base URL for our APIs is https://azblue.innovaccer.com/fhir/'. Vendor is Innovaccer; the plan prints the finished address itself rather than pointing at a template",
+        "date": "2026-09-04",
+        "basis": "publisher_documented",
+        "source": "https://www.azblue.com/interoperability",
+        "observed": "HTTP 403 to an unauthenticated GET of /metadata on 2026-09-04. The address is published without qualification, so what this records is that a stranger following the plan's own instructions retrieves no conformance document. No Provider Directory base URL is published anywhere on the site, although the same page asserts the capability"
+      },
+      "enabled": true
+    },
+    {
+      "id": "priority-health-provider-directory",
+      "name": "Priority Health Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://eppoa.spectrumhealth.org/FHIRProxy/api/FHIR/BulkPublish/Public/PlanNet",
+      "verification": {
+        "method": "base URL printed verbatim as the href of three anchors labelled with Priority Health's own Medicare contract IDs, under the heading 'FHIR Provider Directory API Endpoints' on priorityhealth.com/developers. Hosted on the parent system's Epic proxy but published by the plan and labelled with the plan's contracts, so it is the payer surface rather than a health-system EHR endpoint",
+        "date": "2026-09-04",
+        "basis": "publisher_documented",
+        "source": "https://www.priorityhealth.com/developers",
+        "observed": "no CapabilityStatement retrieved on 2026-09-04. The published address is a Da Vinci Plan-Net BulkPublish path rather than a conventional FHIR REST base, so this may be a shape the conformance check cannot read rather than an endpoint that is down; it is recorded as not retrievable from here, which is the narrower and supportable claim"
+      },
+      "enabled": true
     }
   ]
 }

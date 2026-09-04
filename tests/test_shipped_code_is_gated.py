@@ -105,3 +105,34 @@ def test_the_local_hooks_mirror_the_gate_of_record() -> None:
             assert _covers(scope, path), (
                 f"the pre-commit ruff hooks skip {path}; their scope is {scope}"
             )
+
+
+def test_the_hooks_run_the_versions_the_lockfile_and_the_workflow_pin() -> None:
+    """A local pass and a CI pass have to mean the same thing, and `ruff format` moves.
+
+    `.pre-commit-config.yaml` pinned ruff v0.16.2 while `uv.lock` resolved 0.16.4, so a
+    contributor whose hook reformatted a file could still fail `make format` in CI, or pass
+    locally on formatting CI would reject. Dependabot has no `pre-commit` ecosystem, so nothing
+    was ever going to notice: the skew is structural rather than a one-off, which is why it is
+    asserted here instead of being bumped and forgotten.
+    """
+    root = Path(__file__).resolve().parent.parent
+    hooks = (root / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    lock = (root / "uv.lock").read_text(encoding="utf-8")
+    security = (root / ".github" / "workflows" / "security.yml").read_text(encoding="utf-8")
+
+    locked_ruff = re.search(r'\[\[package\]\]\nname = "ruff"\nversion = "([^"]+)"', lock)
+    assert locked_ruff, "uv.lock does not pin ruff"
+    hook_ruff = re.search(r"ruff-pre-commit\n\s+rev: [0-9a-f]{40} # v([0-9.]+)", hooks)
+    assert hook_ruff, ".pre-commit-config.yaml does not pin a ruff-pre-commit revision"
+    assert hook_ruff.group(1) == locked_ruff.group(1), (
+        f"pre-commit runs ruff v{hook_ruff.group(1)} but uv.lock pins {locked_ruff.group(1)}; "
+        "`ruff format` output differs between versions, so the two gates disagree"
+    )
+
+    hook_gitleaks = re.search(r"gitleaks\n\s+rev: [0-9a-f]{40} # v([0-9.]+)", hooks)
+    workflow_gitleaks = re.search(r"GL=([0-9.]+)", security)
+    assert hook_gitleaks and workflow_gitleaks
+    assert hook_gitleaks.group(1) == workflow_gitleaks.group(1), (
+        "the pre-commit secret scan and the CI secret scan run different gitleaks versions"
+    )

@@ -14,16 +14,26 @@ permissions: {}
 jobs:
   recheck:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false # this job opens an issue with GH_TOKEN; it never pushes
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - name: Install
-        run: python -m pip install -e .
+        # `uv sync --locked`, not `pip install -e .`. The pip form resolved hatchling and its
+        # transitive build dependencies from PyPI at build time - unpinned, unhashed, and never
+        # seen by `make audit`, which scans the locked set. This job holds a write token and
+        # parses documents fetched from 45 third-party servers, and it is the job that produces
+        # the citable dataset, so it installs exactly what the lockfile pins like every other
+        # job that matters. `--no-dev` because nothing here runs the linters or the test suite.
+        run: uv sync --locked --no-dev
       - name: Re-probe rejected candidates
         id: recheck
         # `set -euo pipefail` is load-bearing here, not boilerplate. The default shell is
@@ -37,12 +47,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m fhir_scorecard.cli recheck --candidates data/rejected.json | tee report.txt
-          if grep -q "NOW ANSWERS" report.txt; then
-            echo "revived=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "revived=false" >> "$GITHUB_OUTPUT"
-          fi
+          uv run python -m fhir_scorecard.cli recheck \
+            --candidates data/rejected.json \
+            --json-out recheck.json | tee report.txt
+          # Branch on the structured result, never on the report. This used to
+          # `grep -q "NOW ANSWERS" report.txt`, and that string is assembled from a
+          # third-party server's `software.name`: a payer publishing a name containing
+          # the marker forced a false revival issue in this repository. What a payer
+          # publishes is evidence, and evidence does not get to steer control flow.
+          revived="$(uv run python -c 'import json;print("true" if json.load(open("recheck.json"))["revived"] else "false")')"
+          echo "revived=$revived" >> "$GITHUB_OUTPUT"
       - name: Open an issue when a candidate revives
         if: steps.recheck.outputs.revived == 'true'
         env:

@@ -19,7 +19,7 @@ repos:
         args: ["--fix=lf"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 7c55798a78262d14b2074abf623d8a992ebb70d4 # v0.16.2 -- keep in step with pyproject.toml's `ruff>=0.15` floor
+    rev: aab412d509121cb5f7533134b7e67f9fab59c682 # v0.16.4 -- must equal the ruff uv.lock pins
     hooks:
       - id: ruff-check
         # Scoped to src/tests/action, mirroring `make lint`. `action/` is included

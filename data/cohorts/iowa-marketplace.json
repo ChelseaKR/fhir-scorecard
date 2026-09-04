@@ -1,0 +1,106 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the issuer's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the issuer publishes a base URL that returns 404' and 'the issuer publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "iowa-marketplace",
+    "name": "Iowa marketplace issuer cohort",
+    "description": "The Patient Access and Provider Directory APIs of every issuer selling an individual-market qualified health plan on HealthCare.gov in Iowa for 2026, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Membership is CMS's own file, not a list assembled here. Filtered to Iowa, the QHP Landscape PY2026 Individual Medical dataset carries 3,991 plan-county rows, 6 HIOS issuer IDs, and 6 issuer names. The roster was frozen before any URL was probed and is committed beside this file as iowa-marketplace.roster.csv.",
+    "Every member either points at registry endpoints or carries an exclusion with a dated review record and the source that was read. An exclusion is a statement about what this project could find on the date it looked, never a statement about whether an issuer meets an obligation.",
+    "Several members point at endpoints already in the registry. Where a carrier publishes one national surface, the same entry is cited from more than one cohort rather than duplicated, because listing one address under several names would misstate how many endpoints exist."
+  ],
+  "sources": [
+    {
+      "label": "CMS / CCIIO: QHP Landscape PY2026 Individual Medical (individual_market_medical.zip, issued 2026-08-04, modified 2026-08-10)",
+      "url": "https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45",
+      "date": "2026-09-04"
+    }
+  ],
+  "members": [
+    {
+      "id": "ambetter-iowa",
+      "name": "Ambetter Health (Centene)",
+      "roster_name": "Ambetter Health",
+      "programs": [
+        "ia-marketplace"
+      ],
+      "endpoints": [
+        "ambetter-centene-provider-directory"
+      ]
+    },
+    {
+      "id": "avera-health-plans",
+      "name": "Avera Health Plans",
+      "roster_name": "Avera Health Plans",
+      "programs": [
+        "ia-marketplace"
+      ],
+      "excluded": {
+        "reason": "the plan names its Patient Access vendor but neither the plan nor the vendor prints a finished base URL for it; the vendor's only published addresses are a testing environment it describes as containing synthetic data, which this project does not count as production",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "all 192 pages of the plan's own site were crawled and searched for endpoint-shaped URLs; the only hosts found are a member-portal login page and the vendor's documentation. The vendor link now redirects to a rebranded marketing page, so the plan's documented path to instructions is partially broken. The plan's interoperability pages were last modified in 2022",
+          "date": "2026-09-04",
+          "source": "https://www.averahealthplans.com/insurance/about/legal-privacy-notices/patient-access-api-for-developers/"
+        }
+      }
+    },
+    {
+      "id": "medica-iowa",
+      "name": "Medica",
+      "roster_name": "Medica",
+      "programs": [
+        "ia-marketplace"
+      ],
+      "excluded": {
+        "reason": "Medica publishes both base URLs in a document it hosts, but the live file is unreachable to automated clients: every request returns a bot-challenge page. The version read was an Internet Archive capture of Medica's own URL from 2024-07-14, and a 2024 snapshot is not evidence about what is published today, so the addresses are held out of the registry until the live document is confirmed current.",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "two independent reviews reached the same document and the same conclusion. The second recovered the document's current publisher URL from Medica's own HTML, which is what a person with a browser would need to confirm the live version; the challenge was not defeated and no live read was obtained",
+          "date": "2026-09-04",
+          "source": "https://www.medica.com/privacy/third-party-app-registration"
+        }
+      }
+    },
+    {
+      "id": "oscar-iowa",
+      "name": "Oscar Insurance Company",
+      "roster_name": "Oscar Insurance Company",
+      "programs": [
+        "ia-marketplace"
+      ],
+      "excluded": {
+        "reason": "Oscar publishes two brand-level interoperability pages and no base URL on either; Patient Access is delegated to a third-party platform reachable only by creating an account with that vendor, and no Provider Directory API is documented anywhere on the site.",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "reviewed across every state on this wave's rosters: both pages read in full, /cms_provider_directory_api and /provider-directory-api confirmed 404 on the review date, and the documentation confirmed to name no legal entity, no state and no HIOS id, so it does not scope to any particular roster row",
+          "date": "2026-09-04",
+          "source": "https://www.hioscar.com/cms_patient_access_developer_page"
+        }
+      }
+    },
+    {
+      "id": "unitedhealthcare-iowa",
+      "name": "UnitedHealthcare",
+      "roster_name": "UnitedHealthcare",
+      "programs": [
+        "ia-marketplace"
+      ],
+      "endpoints": [
+        "unitedhealthcare-provider-directory"
+      ]
+    },
+    {
+      "id": "wellmark-health-plan-of-iowa",
+      "name": "Wellmark Health Plan of Iowa, Inc.",
+      "roster_name": "Wellmark Health Plan of Iowa, Inc.",
+      "programs": [
+        "ia-marketplace"
+      ],
+      "endpoints": [
+        "wellmark-patient-access"
+      ]
+    }
+  ]
+}

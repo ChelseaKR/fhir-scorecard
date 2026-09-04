@@ -45,7 +45,7 @@ COHORT_DIR = DATA / "cohorts"
 
 #: The states whose issuers have actually been reviewed. Named once so the join-key test
 #: cannot silently drift out of step with the cohorts on disk.
-REVIEWED_STATES = {"TX", "FL", "OH", "WI"}
+REVIEWED_STATES = {"TX", "FL", "OH", "WI", "AZ", "MI", "MO", "OK", "IA", "KS", "LA", "NC"}
 
 
 def _text(markup: str) -> str:
@@ -93,14 +93,13 @@ def test_the_reviewed_population_is_the_states_that_were_reviewed() -> None:
     organizations reviewed."""
     orgs = _committed()
     reviewed = [org for org in orgs if org.reviewed]
-    assert len(reviewed) == 53
-    assert {org.state for org in reviewed} == {"TX", "FL", "OH", "WI"}
-    assert counts(orgs)[NOT_YET_REVIEWED] == 123
+    assert len(reviewed) == 105
+    assert {org.state for org in reviewed} == REVIEWED_STATES
+    assert counts(orgs)[NOT_YET_REVIEWED] == 71
 
 
 def test_the_reviewed_outcomes_match_the_cohorts_they_come_from() -> None:
-    """31 of the 53 reviewed organizations publish a base URL: six in Texas, nine in Florida,
-    six in Ohio and ten in Wisconsin.
+    """67 of the 105 reviewed organizations publish a base URL, across twelve states.
 
     Each population asserted on its own. This used to assert only that ``verified`` and
     ``documented_unreachable`` *sum* to 15 - which is the population merge this project's whole
@@ -109,10 +108,10 @@ def test_the_reviewed_outcomes_match_the_cohorts_they_come_from() -> None:
     and both README and ROADMAP silently wrong.
     """
     tally = counts(_committed())
-    assert tally[VERIFIED] == 28
-    assert tally[DOCUMENTED_UNREACHABLE] == 3
-    assert tally[NO_PUBLIC_URL_FOUND] == 22
-    assert tally[NOT_YET_REVIEWED] == 123
+    assert tally[VERIFIED] == 61
+    assert tally[DOCUMENTED_UNREACHABLE] == 6
+    assert tally[NO_PUBLIC_URL_FOUND] == 38
+    assert tally[NOT_YET_REVIEWED] == 71
 
 
 # --- the join key ---
@@ -140,12 +139,23 @@ def test_the_reviewed_rows_come_from_the_committed_roster_files() -> None:
     be published against the right row rather than against any row sharing a name."""
     by_cohort = read_reviewed_rows_by_cohort(COHORT_DIR)
     assert set(by_cohort) == {
-        "florida-marketplace",
-        "ohio-marketplace",
-        "texas-marketplace",
-        "wisconsin-marketplace",
+        f"{s}-marketplace"
+        for s in (
+            "arizona",
+            "florida",
+            "iowa",
+            "kansas",
+            "louisiana",
+            "michigan",
+            "missouri",
+            "north-carolina",
+            "ohio",
+            "oklahoma",
+            "texas",
+            "wisconsin",
+        )
     }
-    assert len({row for rows in by_cohort.values() for row in rows}) == 53
+    assert len({row for rows in by_cohort.values() for row in rows}) == 105
     for roster in sorted(COHORT_DIR.glob("*" + ROSTER_SUFFIX)):
         with roster.open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
@@ -202,7 +212,7 @@ def test_a_cohort_without_a_roster_file_reviews_no_frame_rows() -> None:
 def test_a_rate_over_reviewed_organizations_is_computed() -> None:
     reviewed = [org for org in _committed() if org.reviewed]
     verified, denominator = publishing_rate(reviewed)
-    assert (verified, denominator) == (28, 53)
+    assert (verified, denominator) == (61, 105)
 
 
 def test_a_rate_over_the_whole_frame_is_refused() -> None:
@@ -263,9 +273,9 @@ def test_an_excluded_member_carries_the_reason_the_review_recorded() -> None:
 
 def test_the_page_states_the_reviewed_fraction_beside_any_rate() -> None:
     body = _text(page(_committed(), DEFAULT_ORIGIN).body)
-    assert "Of the 53 organizations reviewed so far, 28 publish a base URL" in body
-    assert "53 of 176 organizations, in 4 of 30 states" in body
-    assert "The other 123 have not been looked at" in body
+    assert "Of the 105 organizations reviewed so far, 61 publish a base URL" in body
+    assert "105 of 176 organizations, in 12 of 30 states" in body
+    assert "The other 71 have not been looked at" in body
 
 
 def test_the_page_never_prints_a_population_total_that_includes_the_unreviewed() -> None:
@@ -274,8 +284,8 @@ def test_the_page_never_prints_a_population_total_that_includes_the_unreviewed()
     body = _text(page(_committed(), DEFAULT_ORIGIN).body)
     for forbidden in (
         "of 176 publish",
-        "28 of 176",
-        "22 of 176",
+        "61 of 176",
+        "38 of 176",
         "publish a base URL this project retrieved a conformance document from. That figure is over 176",
     ):
         assert forbidden not in body

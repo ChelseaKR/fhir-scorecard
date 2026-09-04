@@ -1,0 +1,95 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the issuer's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the issuer publishes a base URL that returns 404' and 'the issuer publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "louisiana-marketplace",
+    "name": "Louisiana marketplace issuer cohort",
+    "description": "The Patient Access and Provider Directory APIs of every issuer selling an individual-market qualified health plan on HealthCare.gov in Louisiana for 2026, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Membership is CMS's own file, not a list assembled here. Filtered to Louisiana, the QHP Landscape PY2026 Individual Medical dataset carries 2,218 plan-county rows, 6 HIOS issuer IDs, and 6 issuer names. The roster was frozen before any URL was probed and is committed beside this file as louisiana-marketplace.roster.csv.",
+    "Every member either points at registry endpoints or carries an exclusion with a dated review record and the source that was read. An exclusion is a statement about what this project could find on the date it looked, never a statement about whether an issuer meets an obligation.",
+    "Several members point at endpoints already in the registry. Where a carrier publishes one national surface, the same entry is cited from more than one cohort rather than duplicated, because listing one address under several names would misstate how many endpoints exist."
+  ],
+  "sources": [
+    {
+      "label": "CMS / CCIIO: QHP Landscape PY2026 Individual Medical (individual_market_medical.zip, issued 2026-08-04, modified 2026-08-10)",
+      "url": "https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45",
+      "date": "2026-09-04"
+    }
+  ],
+  "members": [
+    {
+      "id": "ambetter-louisiana",
+      "name": "Ambetter from Louisiana Healthcare Connections (Centene)",
+      "roster_name": "Ambetter from Louisiana Healthcare Connections",
+      "programs": [
+        "la-marketplace"
+      ],
+      "endpoints": [
+        "ambetter-centene-provider-directory"
+      ]
+    },
+    {
+      "id": "amerihealth-caritas-next-louisiana",
+      "name": "AmeriHealth Caritas Next",
+      "roster_name": "AmeriHealth Caritas Next",
+      "programs": [
+        "la-marketplace"
+      ],
+      "endpoints": [
+        "amerihealth-caritas-next-la-patient-access",
+        "amerihealth-caritas-next-la-provider-directory"
+      ]
+    },
+    {
+      "id": "bcbs-louisiana",
+      "name": "Blue Cross and Blue Shield of Louisiana (Louisiana Blue)",
+      "roster_name": "Blue Cross and Blue Shield of Louisiana",
+      "programs": [
+        "la-marketplace"
+      ],
+      "endpoints": [
+        "bcbs-louisiana-patient-access"
+      ]
+    },
+    {
+      "id": "christus-louisiana",
+      "name": "CHRISTUS Health Plan",
+      "roster_name": "CHRISTUS Health Plan",
+      "programs": [
+        "la-marketplace"
+      ],
+      "endpoints": [
+        "christus-provider-directory"
+      ]
+    },
+    {
+      "id": "hmo-louisiana",
+      "name": "HMO Louisiana",
+      "roster_name": "HMO Louisiana",
+      "programs": [
+        "la-marketplace"
+      ],
+      "excluded": {
+        "reason": "the parent publishes base URLs but scopes them in its own words to its own coverages, and names this subsidiary on that page only in boilerplate; nothing published by either entity names HMO Louisiana in connection with a FHIR API",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "the parent's third-party-apps page was read in full and its API section confirmed scoped to the parent's Medicare Advantage and Commercial coverages. The parent does publish pages named for this subsidiary, including a transparency page carrying its legal name, which shows the site names this entity when it applies; none of those pages carries any interoperability content. A vendor document naming the parent was found and excluded because the parent does not link it and it does not name this subsidiary",
+          "date": "2026-09-04",
+          "source": "https://www.lablue.com/footer/third-party-apps"
+        }
+      }
+    },
+    {
+      "id": "unitedhealthcare-louisiana",
+      "name": "UnitedHealthcare",
+      "roster_name": "UnitedHealthcare",
+      "programs": [
+        "la-marketplace"
+      ],
+      "endpoints": [
+        "unitedhealthcare-provider-directory"
+      ]
+    }
+  ]
+}

@@ -8,7 +8,7 @@ get there, and the honest constraints on it.
 
 `gtfs-scorecard` earns organic search because **1,128 agencies means 1,128 indexable pages**,
 each answering a real query ("is my transit agency's GTFS feed any good"). `fhir-scorecard` has
-**63 endpoints** across **five cohort pages**. Sixty-three pages is still not an SEO surface,
+**81 endpoints** across **thirteen cohort pages**. Eighty-one pages is still not an SEO surface,
 so the conclusion this section used to draw from a smaller number survives on the real one.
 
 Where the numbers in this document come from: they are measured from `data/registry.json`,
@@ -20,17 +20,17 @@ document once argued from 19 endpoints while the registry held 30.
 So the sequencing below is deliberate: build the page infrastructure early because it is cheap
 and shapes everything after it, but understand that **search traffic is gated on registry
 growth, and registry growth is gated on payers publishing base URLs**. That gate is now
-measured with fixed denominators instead of anecdotes: across the five published cohorts -
-California's 27 organizations, Texas's 15, Florida's 15, Ohio's 11, Wisconsin's 12 - **39 of 80
-roster organizations publish a base URL this project could verify from the organization's own
-documentation**, and every one of the other 41 carries a dated exclusion record saying exactly
+measured with fixed denominators instead of anecdotes: across the thirteen published cohorts -
+California's 27 organizations, and 105 marketplace roster organizations across twelve states - **75 of 132 roster
+organizations publish a base URL this project could verify from the organization's own
+documentation**, and every one of the other 57 carries a dated exclusion record saying exactly
 what its review found. That is a curation problem and partly an industry problem, not a build problem, and no
 amount of markup fixes it.
 
 The frame is now bigger than the review. The federal-marketplace roster committed at
 `data/frames/qhp-landscape-py2026-individual-medical.csv` enumerates **176 state-issuer
-organizations across 30 states**, of which the Texas, Florida, Ohio and Wisconsin cohorts have
-reviewed 53; the other 123 are *not yet reviewed*, which is a statement about this project's
+organizations across 30 states**, of which the twelve marketplace cohorts have
+reviewed 105; the other 71 are *not yet reviewed*, which is a statement about this project's
 progress and never about what those issuers publish (`docs/SAMPLING-FRAME.md`). The denominator for a national
 payer-side coverage tracker exists; what does not scale mechanically is the per-issuer review.
 
@@ -44,7 +44,7 @@ Two ways the registry can realistically grow:
    is how `gtfs-scorecard` grows without the maintainer doing all the work, and it only becomes
    possible once the site is worth landing on.
 
-Sixty-three endpoints with a defensible method beats two hundred with a guessed registry. The
+Eighty-one endpoints with a defensible method beats two hundred with a guessed registry. The
 project's credibility is the asset; the page count follows it, not the other way round.
 
 ---
@@ -179,8 +179,8 @@ read.*
       checkable* endpoint at all, with the "documented but unreachable" and "no public URL
       found" populations counted separately and never merged, and *not yet reviewed* kept apart
       from both. Over the national federal-marketplace roster under `data/frames/` (176
-      state-issuer organizations, 30 states): 28 verified, 3 documented but unreachable, 22
-      reviewed with no public URL found, 123 not yet reviewed. Frame rows are joined on
+      state-issuer organizations, 30 states): 61 verified, 6 documented but unreachable, 38
+      reviewed with no public URL found, 71 not yet reviewed. Frame rows are joined on
       `(state, issuer name)` from the committed cohort roster CSVs, and `publishing_rate`
       raises rather than divide by a set containing an unreviewed organization
 

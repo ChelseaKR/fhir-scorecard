@@ -461,3 +461,62 @@ Two consequences, both already handled and recorded here so the reasoning surviv
 Nothing here is a claim about why Centene's edge refuses that address space. Rate limiting, bot
 filtering and a deliberate allowlist all produce this result, and this project cannot tell them
 apart from outside.
+
+## Wave thirteen: eight states at once (2026-09-04)
+
+Arizona, Michigan, Missouri, Oklahoma, Iowa, Kansas, Louisiana and North Carolina — 52 roster
+organizations, reviewed together because most of them are companies this project had already
+resolved. Sixteen reviews ran: fifteen on genuinely new organizations, and one cross-cutting
+check establishing whether nine national carriers publish anything state-scoped that would
+change an existing mapping.
+
+**Outcome: 18 endpoints added, the registry reaches 81, and the frame review reaches 105 of 176
+organizations across twelve of thirty states.**
+
+The cross-cutting check is what made this wave cheap. UnitedHealthcare, Centene, Oscar, Anthem,
+CHRISTUS, Imperial, Cigna and HCSC publish one national surface each, so 30-odd roster rows map
+to endpoints already registered rather than to new ones. That is a finding, not an absence: a
+registry listing one address under eight state names would misstate how many endpoints exist.
+The Ambetter review is the strongest form of it — all eight state interoperability pages were
+fetched and word-diffed, and they differ only in brand name and member phone number.
+
+**AmeriHealth Caritas Next is the exception, and nearly slipped past.** Its Florida endpoints
+were already registered, and the obvious assumption was that Louisiana and North Carolina would
+map to them. They do not: the publisher's own table carries separate `LAEX` and `NCEX` rows, and
+each of the four endpoints returns a *distinct* CapabilityStatement whose `implementation.url`
+matches its own base. This project's own precedent for byte-identical endpoints — list one, not
+three — was checked and found not to apply. Four entries added rather than a mapping reused.
+
+Held out of the registry, both as cohort exclusions carrying their evidence:
+
+* **Medica**, in all four states it sells in here. Both base URLs are printed under their own
+  headings in a document Medica hosts, but every request for the live file returns a bot
+  challenge, and the version read was a 2024 archive capture. Two independent reviews reached
+  the same document and the same conclusion; the second recovered the document's current
+  publisher URL, which is what a person with a browser would need to confirm it.
+* **Mending Health (OK)**, which publishes a full Patient Access API notice naming every
+  standard it supports and then releases the endpoint only by email. Recorded with its state
+  supervision status, because that bears on any re-check.
+
+Two things this wave established about method, both worth keeping:
+
+**An archive capture is not evidence about today, demonstrated rather than argued.** The Kansas
+review first read the only Internet Archive capture of the plan's developer portal and probed
+the URLs printed there. Both failed, one with a 404. The live page had different paths. Probing
+those produced a working endpoint. Had the capture been trusted, Kansas would have entered the
+registry with a dead address — which is precisely why Medica is held out.
+
+**Three endpoints in the registry return different declarations between requests.** Re-probing
+every live claim before entry surfaced grade movement on interop readiness while reachability
+held steady, which means one host served different profile declarations on different requests.
+`bcbs-kansas-provider-directory`, `bluekc-provider-directory` and `paramount-interoperability`
+each carry that on their verification record. No single probe's letter is the whole picture, and
+the reconciliation now groups vantages by declaration precisely so a published run can say when
+they disagree.
+
+Two curator decisions are left open rather than made here. Arizona's roster name, *Imperial
+Insurance Companies, Inc.*, does not appear on Imperial's portal, which names *Imperial Health
+Plan of Arizona*; whether those are the same legal entity is a judgement about corporate
+identity, not about what is published. And HCSC's five-state scope, recorded on 2026-08-19,
+could not be re-read on this date because the page became script-rendered; the Oklahoma mapping
+rests on that earlier reading plus the Oklahoma brand publishing nothing of its own.

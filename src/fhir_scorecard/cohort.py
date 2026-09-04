@@ -38,6 +38,14 @@ PROGRAMS = {
     "fl-marketplace",
     "oh-marketplace",
     "wi-marketplace",
+    "az-marketplace",
+    "mi-marketplace",
+    "mo-marketplace",
+    "ok-marketplace",
+    "ia-marketplace",
+    "ks-marketplace",
+    "la-marketplace",
+    "nc-marketplace",
 }
 
 # How far the review behind an exclusion went. Same two strengths as the registry's candidate

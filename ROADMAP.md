@@ -385,6 +385,16 @@ vantage is counted once; what is missing is a machine. No amount of code changes
 sentence the site publishes, and until such a runner exists the published wording stays
 "one network."
 
+**The cost of the gap is now measured rather than argued.** On 2026-09-04 the publish carrying
+the Ohio and Wisconsin endpoints recorded `ambetter-centene-provider-directory` answering
+**HTTP 403 from all three probing vantages**, in the same hour that a residential vantage
+retrieved a valid R4 CapabilityStatement from it. That is the shape of a rule applied to one
+provider's address space: identical across ubuntu, macos and windows, because they are three
+hosts on one network, and invisible to any amount of sampling inside it. The endpoint is
+published as answering and refusing rather than as unreachable, and its registry entry records
+both readings, but no arrangement of the three vantages this project has could have told the
+difference. See `data/CANDIDATES.md`, "A vantage split, measured".
+
 *Unblocked by:* a residential or other-provider host, however irregular its schedule, and a
 decision about how it authenticates its artifact.
 

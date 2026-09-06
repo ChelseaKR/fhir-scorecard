@@ -7,6 +7,7 @@ import json
 import re
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -38,7 +39,7 @@ from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.leaderboard import page as availability_page
 from fhir_scorecard.over_time import page as over_time_page
 from fhir_scorecard.registry import EXPECTS, KINDS, Endpoint, load_registry, version_prefix
-from fhir_scorecard.report import render_html, to_json
+from fhir_scorecard.report import to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
 from fhir_scorecard.site import (
     DEFAULT_ORIGIN,
@@ -787,10 +788,6 @@ def main(argv: list[str] | None = None) -> int:
         (args.out / "scorecards.json").write_text(
             to_json(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
         )
-        (args.out / "index.html").write_text(
-            render_html(scorecards, generated_at=generated_at, vantage=run_vantage),
-            encoding="utf-8",
-        )
         _write_site(
             scorecards,
             endpoints,
@@ -950,6 +947,16 @@ def _write_site(
         if len(cards) > 1:
             pages.append(org_page(org_display_name([c.name for c in cards]), cards, origin))
 
+    # Two pages resolving to one file is a silent data loss, not a layout quirk: `write_page`
+    # resolves `path=""` to `out_dir` itself, so a page added with an empty path overwrites the
+    # home page -- which is exactly how `report.render_html`'s output was destroyed on every run
+    # for the life of the site. Whichever page is written second wins, and nothing says so.
+    collisions = sorted(path for path, n in Counter(page.path for page in pages).items() if n > 1)
+    if collisions:
+        raise ValueError(
+            "two pages target the same output file, so one would silently overwrite the other: "
+            + ", ".join(repr(path or "<site root>") for path in collisions)
+        )
     for page in pages:
         write_page(out, page, origin, generated_at)
     badge_dir = out / "badge"

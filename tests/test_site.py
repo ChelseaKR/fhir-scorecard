@@ -402,3 +402,26 @@ def test_the_card_address_follows_the_origin_shape() -> None:
     assert social_card_url("https://host.example/fhir-scorecard") == (
         "https://host.example/fhir-scorecard/assets/social-card.png"
     )
+
+
+def test_each_kind_gets_its_own_page_and_no_page_ranks_across_kinds() -> None:
+    """Grades are only comparable within a kind, so they are never ranked together.
+
+    `report._summary_table` built one table per kind and carried this invariant under test.
+    That renderer's output was written to a path the site immediately overwrote, so it was
+    removed; the invariant it guarded lives on the kind pages, and now has a test here.
+    """
+    from fhir_scorecard.site import _KIND_SLUGS, kind_page
+
+    payer = _card(eid="alpha", kind="payer", name="Alpha Payer")
+    vendor = _card(eid="beta", kind="ehr", name="Beta Sandbox")
+
+    page = kind_page("payer", [payer], "https://example.test")
+    assert page.path == _KIND_SLUGS["payer"]
+    assert "Alpha Payer" in page.body
+    assert "Beta Sandbox" not in page.body, "a kind page must not list another kind's endpoint"
+
+    other = kind_page("ehr", [vendor], "https://example.test")
+    assert other.path == _KIND_SLUGS["ehr"]
+    assert other.path != page.path
+    assert "Alpha Payer" not in other.body

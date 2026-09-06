@@ -1,16 +1,21 @@
-"""Render scorecards to machine-readable JSON and an accessible, no-JavaScript HTML page."""
+"""Render scorecards to machine-readable JSON.
+
+This module also held ``render_html``, a standalone no-JavaScript summary page, from the
+v0.1 scaffold when that page was the only output the tool produced. ``home_page`` arrived
+later with ``path=""``, which ``site.write_page`` resolves to ``out_dir`` itself, and quietly
+took the same filename: every grade run wrote ``out/index.html`` twice and the first write
+was destroyed by the second, in the same ``try`` block, before anything could read it. No
+reader ever received it, and nothing in README.md, CHANGELOG.md, ``docs/`` or any ADR
+described it. It was removed rather than published; see the commit that removed it for why,
+and ``_write_site``, which now refuses to build two pages that target one path.
+"""
 
 from __future__ import annotations
 
-import html
 import json
 from dataclasses import asdict
 
-from fhir_scorecard.grading import NOT_OBSERVED, Scorecard
-
-
-def _grade_class(grade: str) -> str:
-    return "not-observed" if grade == NOT_OBSERVED else grade.lower()
+from fhir_scorecard.grading import Scorecard
 
 
 def to_json(scorecards: list[Scorecard], *, generated_at: str, vantage: str = "unspecified") -> str:
@@ -26,133 +31,3 @@ def to_json(scorecards: list[Scorecard], *, generated_at: str, vantage: str = "u
         "scorecards": [asdict(s) for s in scorecards],
     }
     return json.dumps(payload, indent=2, sort_keys=True)
-
-
-def _card(s: Scorecard) -> str:
-    rows: list[str] = []
-    for d in s.dimensions:
-        items = "".join(
-            f"<li>{'○' if not f.observed or f.max_points == 0 else ('✓' if f.ok else '✗')} "
-            f"{html.escape(f.message)} "
-            f'<a href="{html.escape(f.citation)}">spec</a></li>'
-            for f in d.findings
-        )
-        heading = (
-            f"{html.escape(d.title)}: not observed on this run"
-            if d.score is None
-            else f"{html.escape(d.title)}: {d.score}/100"
-        )
-        rows.append(f"<h3>{heading}</h3><ul>{items}</ul>")
-    availability_html = (
-        f'<p class="avail">Availability: {html.escape(s.availability)}</p>'
-        if s.availability
-        else ""
-    )
-    drift_html = ""
-    if s.observed_since is not None:
-        if s.drift_events:
-            events = "".join(f"<li>{html.escape(e)}</li>" for e in s.drift_events)
-            drift_html = (
-                f"<h3>Capability changes (informational, not scored)</h3>"
-                f"<p>Observed since {html.escape(s.observed_since)}.</p>"
-                f"<ul>{events}</ul>"
-            )
-        else:
-            drift_html = (
-                f"<p>Observed since {html.escape(s.observed_since)}; "
-                "no capability changes recorded.</p>"
-            )
-    if s.drift_alternations:
-        returns = "".join(f"<li>{html.escape(a)}</li>" for a in s.drift_alternations)
-        drift_html += (
-            f"<h3>Declarations returned to (counted once, not scored)</h3><ul>{returns}</ul>"
-        )
-    return (
-        f'<section aria-labelledby="h-{html.escape(s.endpoint_id)}">'
-        f'<h2 id="h-{html.escape(s.endpoint_id)}">{html.escape(s.name)} '
-        f'<span class="grade grade-{_grade_class(s.grade)}">'
-        f"{html.escape(s.grade)}</span></h2>"
-        + availability_html
-        + "".join(rows)
-        + drift_html
-        + "</section>"
-    )
-
-
-_KIND_LABELS = {
-    "payer": "Payer Patient Access APIs",
-    "payer_provider_directory": "Payer Provider Directory APIs (public by design)",
-    "provider": "Provider / health system APIs",
-    "ehr": "EHR vendor sandboxes",
-    "reference": "Reference and test servers",
-}
-_KIND_ORDER = ("payer", "payer_provider_directory", "provider", "ehr", "reference")
-
-
-def _summary_table(scorecards: list[Scorecard]) -> str:
-    """One table per kind. Grades are not comparable across kinds, so they are never
-    ranked together: a payer Patient Access API and an EHR sandbox answer to different
-    implementation guides and different expectations."""
-    tables: list[str] = []
-    for kind in _KIND_ORDER:
-        group = [s for s in scorecards if s.kind == kind]
-        if not group:
-            continue
-        rows = "".join(
-            f'<tr><td><a href="#h-{html.escape(s.endpoint_id)}">{html.escape(s.name)}</a></td>'
-            f'<td><span class="grade grade-{_grade_class(s.grade)}">'
-            f"{html.escape(s.grade)}</span></td></tr>"
-            for s in sorted(group, key=lambda s: (s.grade, s.name))
-        )
-        label = _KIND_LABELS.get(kind, kind)
-        tables.append(
-            f"<table><caption>{html.escape(label)} ({len(group)})</caption>"
-            '<thead><tr><th scope="col">Endpoint</th><th scope="col">Grade</th></tr></thead>'
-            f"<tbody>{rows}</tbody></table>"
-        )
-    return "".join(tables)
-
-
-def render_html(
-    scorecards: list[Scorecard], *, generated_at: str, vantage: str = "unspecified"
-) -> str:
-    body = _summary_table(scorecards) + "".join(_card(s) for s in scorecards)
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FHIR Scorecard</title>
-<style>
-body {{ font-family: system-ui, sans-serif; max-width: 46rem; margin: 2rem auto; padding: 0 1rem;
-       line-height: 1.5; color: #1a1a1a; background: #fff; }}
-.grade {{ display: inline-block; min-width: 1.6em; text-align: center; border-radius: 4px;
-          padding: 0 .3em; color: #fff; background: #666; }}
-.grade-a {{ background: #14691f; }} .grade-b {{ background: #3f7d20; }}
-.grade-c {{ background: #9a6700; }} .grade-d {{ background: #b4432c; }}
-.grade-f {{ background: #a01212; }} .grade-not-observed {{ background: #435c68; }}
-section {{ border-top: 1px solid #ddd; padding-top: 1rem; margin-top: 1.5rem; }}
-table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
-caption {{ text-align: left; font-weight: 600; margin-bottom: .5rem; }}
-th, td {{ text-align: left; padding: .35rem .5rem; border-bottom: 1px solid #eee; }}
-.avail {{ color: #444; font-size: .95rem; }}
-</style>
-</head>
-<body>
-<header>
-<h1>FHIR Scorecard</h1>
-<p>Deterministic grades for publicly observable FHIR endpoint surfaces. Generated
-{html.escape(generated_at)} from {html.escape(vantage)}. An endpoint marked
-<em>not observed</em> is one whose documents no vantage retrieved on this run; nothing on such a
-record describes what it publishes. No patient data is ever accessed; only public
-<code>/metadata</code> and SMART discovery documents are graded. Grades are comparable only
-within a kind.</p>
-</header>
-<main>
-{body}
-</main>
-<footer><p>Observational snapshot, not an audit or a compliance determination.
-<a href="https://github.com/ChelseaKR/fhir-scorecard">Source and methodology</a>.</p></footer>
-</body>
-</html>
-"""

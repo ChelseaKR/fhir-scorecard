@@ -165,7 +165,12 @@ def test_smart_discovery_is_still_graded_on_its_own_evidence(label: str) -> None
         # an unreadable document may not move a score in either direction.
         ("payer", "good", 35, 65),
         ("payer", "empty", 0, 65),
-        ("payer", "unasked", 0, 65),
+        # `unasked` is the one row where the dimension has no score at all: the SMART document
+        # was never retrieved, so 35 of the dimension's 100 points were never on the table and a
+        # percentage over the other 65 is not on the published scale. The *letter* below is
+        # still F, and that is the point -- 35 withheld points cannot lift this endpoint out of
+        # F from either direction, so the grade is known even though the percentage is not.
+        ("payer", "unasked", None, 65),
         ("ehr", "good", 35, 65),
         ("reference", "good", 35, 65),
         # A Provider Directory API is not scored on SMART or OAuth at all, so I0 carries I1 alone.
@@ -174,7 +179,7 @@ def test_smart_discovery_is_still_graded_on_its_own_evidence(label: str) -> None
     ],
 )
 def test_scores_and_letters_are_unchanged(
-    label: str, kind: str, smart_kind: str, expected_score: int, expected_max: int
+    label: str, kind: str, smart_kind: str, expected_score: int | None, expected_max: int
 ) -> None:
     body, _ = UNREADABLE_BODIES[label]
     smart = {

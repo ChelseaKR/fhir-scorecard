@@ -74,17 +74,28 @@ class Finding:
     # False when the check was not run because nothing was retrieved. Such a finding is neither
     # a pass nor a failure and must never be rendered as one.
     observed: bool = True
+    # What this check would have been worth had it run. Zero for every check that did run, and
+    # for a check that genuinely does not apply. Non-zero only on an `observed=False` finding,
+    # where it is the sole record of how much of the dimension's scale was never measured --
+    # without it, `max_points` reads as "this dimension is out of 65" and a percentage computed
+    # over the remainder is not on the same scale as one computed over the whole.
+    withheld_points: int = 0
 
 
 @dataclass(frozen=True)
 class DimensionScore:
     key: str
     title: str
-    # None when nothing in this dimension was observed. Zero is a measurement; this is not one,
-    # and coverage.py's rule applies here too: a measurement we were never entitled to make must
-    # not be counted as a measurement that failed.
+    # None when this dimension has no score on the published scale: either nothing in it was
+    # observed at all, or part of its scale was never measured (see `withheld_points`). Zero is
+    # a measurement; neither of these is one, and coverage.py's rule applies here too: a
+    # measurement we were never entitled to make must not be counted as a measurement that
+    # failed -- nor as one that passed.
     score: int | None
     findings: tuple[Finding, ...]
+    # Points belonging to checks this run could not make. `letter` uses them to bound the
+    # weighted score from both sides; nothing else may treat them as earned or as forfeited.
+    withheld_points: int = 0
 
 
 @dataclass(frozen=True)
@@ -111,12 +122,33 @@ class Scorecard:
     availability: str = ""
 
 
+def _withheld(findings: list[Finding]) -> int:
+    """Points belonging to checks this run could not make."""
+    return sum(f.withheld_points for f in findings)
+
+
 def _score(findings: list[Finding]) -> int | None:
-    """Percentage of the points that were actually on the table, or None if none were.
+    """Percentage of the dimension's scale that was earned, or None when there is no such
+    percentage to report.
 
     A dimension whose checks never ran has no denominator. Rounding that to zero is what made an
     unreachable endpoint look like an endpoint that published nothing.
+
+    A dimension where *some* check could not run has a denominator that moved, which is worse,
+    because it still produces a number. Dividing the earned points by what happened to be on the
+    table means a check that could not be made is excluded from the denominator, and excluding a
+    check the endpoint was failing *raises* the percentage. Measured on this grader before the
+    fix: a payer scoring I1 40/40 and I3 0/25 scored interop 40 when its SMART document was
+    retrieved and unusable, and 62 when no vantage retrieved it at all -- the same evidence about
+    the endpoint, twenty-two points better for the absence of a document. Weighted, that moved a
+    published letter from F to D.
+
+    Neither substitute is available: crediting the withheld points reads absence as a pass, and
+    forfeiting them reads absence as a failure, and this project refuses both. So there is no
+    percentage, and `letter` bounds the grade from the findings instead.
     """
+    if _withheld(findings):
+        return None
     total = sum(f.max_points for f in findings)
     earned = sum(f.points for f in findings)
     return round(100 * earned / total) if total else None
@@ -214,7 +246,11 @@ def grade_reachability(
             )
         )
     return DimensionScore(
-        key="reachability", title="Reachability", score=_score(findings), findings=tuple(findings)
+        key="reachability",
+        title="Reachability",
+        score=_score(findings),
+        findings=tuple(findings),
+        withheld_points=_withheld(findings),
     )
 
 
@@ -310,6 +346,7 @@ def grade_transparency(facts: CapabilityFacts, *, version_prefix: str = "4.") ->
         title="Capability transparency",
         score=_score(findings),
         findings=tuple(findings),
+        withheld_points=_withheld(findings),
     )
 
 
@@ -511,6 +548,7 @@ def grade_interop(
             title="Interop readiness",
             score=_score(findings),
             findings=tuple(findings),
+            withheld_points=_withheld(findings),
         )
 
     if not smart.observed:
@@ -523,6 +561,10 @@ def grade_interop(
                 points=0,
                 max_points=0,
                 observed=False,
+                # Out of the dimension's denominator, because nothing was measured -- and
+                # recorded here, because leaving no trace of it is what let the remaining
+                # checks be divided by a smaller number and come out higher.
+                withheld_points=_SMART_POINTS,
                 message=(
                     "no vantage retrieved .well-known/smart-configuration on this run, so "
                     "whether it is published is unknown"
@@ -549,7 +591,11 @@ def grade_interop(
     if readable:
         findings.append(_oauth_finding(facts))
     return DimensionScore(
-        key="interop", title="Interop readiness", score=_score(findings), findings=tuple(findings)
+        key="interop",
+        title="Interop readiness",
+        score=_score(findings),
+        findings=tuple(findings),
+        withheld_points=_withheld(findings),
     )
 
 
@@ -570,16 +616,7 @@ WEIGHTED_DIMENSIONS: tuple[tuple[str, str, float], ...] = (
 _WEIGHTS = {key: weight for key, _, weight in WEIGHTED_DIMENSIONS}
 
 
-def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:
-    """A letter, or NOT_OBSERVED when this run had nothing to grade.
-
-    ``F`` used to mean two opposite things: an endpoint that answered and scored badly, and an
-    endpoint nobody could reach. Only the first is a statement about the endpoint, and the site
-    rendered both with one sentence about a network. They are now different values.
-    """
-    if not reachable or any(d.score is None for d in dimensions):
-        return NOT_OBSERVED
-    weighted = sum((d.score or 0) * _WEIGHTS.get(d.key, 0.0) for d in dimensions)
+def _band(weighted: float) -> str:
     if weighted >= 90:
         return "A"
     if weighted >= 80:
@@ -589,6 +626,60 @@ def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:
     if weighted >= 60:
         return "D"
     return "F"
+
+
+def _dimension_bounds(dimension: DimensionScore) -> tuple[float, float] | None:
+    """The lowest and highest this dimension could score, given what was measured.
+
+    Equal when everything was measured, which is every dimension of every endpoint whose
+    documents were all retrieved. They separate only when a check could not be made, and the
+    width between them is exactly the part of the scale this run has nothing to say about.
+    """
+    if dimension.score is not None:
+        return (float(dimension.score), float(dimension.score))
+    withheld = dimension.withheld_points
+    if not withheld:
+        # Nothing in this dimension was observed at all; there is no bound to give.
+        return None
+    earned = sum(f.points for f in dimension.findings)
+    total = sum(f.max_points for f in dimension.findings) + withheld
+    if not total:
+        return None
+    return (100 * earned / total, 100 * (earned + withheld) / total)
+
+
+def letter(dimensions: tuple[DimensionScore, ...], *, reachable: bool) -> str:
+    """A letter, or NOT_OBSERVED when this run cannot pin one down.
+
+    ``F`` used to mean two opposite things: an endpoint that answered and scored badly, and an
+    endpoint nobody could reach. Only the first is a statement about the endpoint, and the site
+    rendered both with one sentence about a network. They are now different values.
+
+    The second confusion was quieter and ran the other way. A check that could not be made was
+    dropped from its dimension's denominator, so the remaining checks were divided by a smaller
+    number -- and dropping a check the endpoint was failing *raised* the grade. An endpoint whose
+    SMART document no vantage retrieved came out better than the same endpoint with a SMART
+    document that arrived and was unusable.
+
+    So the weighted score is bounded rather than computed: once from the assumption that every
+    unmade check would have failed, once from the assumption that every one would have passed.
+    When both land in the same band, that band is the grade and nothing about it is a guess --
+    which is every endpoint whose documents were all retrieved, since the bounds are then equal.
+    When they land in different bands, this run does not know which letter is true, and the
+    honest publication is that it does not.
+    """
+    if not reachable:
+        return NOT_OBSERVED
+    low = high = 0.0
+    for dimension in dimensions:
+        bounds = _dimension_bounds(dimension)
+        if bounds is None:
+            return NOT_OBSERVED
+        weight = _WEIGHTS.get(dimension.key, 0.0)
+        low += bounds[0] * weight
+        high += bounds[1] * weight
+    lowest, highest = _band(low), _band(high)
+    return lowest if lowest == highest else NOT_OBSERVED
 
 
 def build_scorecard(

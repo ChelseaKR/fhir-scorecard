@@ -190,8 +190,16 @@ def test_a_borrowed_capability_without_its_smart_document_claims_nothing_about_s
     assert i2.observed is False and i2.max_points == 0
     assert "absent" not in i2.message
     assert "no vantage retrieved .well-known/smart-configuration" in i2.message
-    # I1 and I3 still grade, because the CapabilityStatement was in hand.
-    assert dim.score is not None
+    # I1 and I3 were still run, and their findings are in the dimension.
+    assert {f.code for f in dim.findings} >= {"I1", "I3"}
+    # But the dimension has no score. This assertion used to read `dim.score is not None`, and
+    # it was wrong in the direction that matters: `_score` divided the earned points by the
+    # points that happened to be on the table, so dropping I2 out of the denominator raised the
+    # percentage. The same endpoint scored 40 with an unusable SMART document in hand and 62
+    # with none retrieved -- better, for the absence of evidence. The withheld points are
+    # recorded instead, and `letter` bounds the grade with them.
+    assert dim.score is None
+    assert dim.withheld_points == 35
 
 
 def test_dataset_leaves_an_unobserved_score_empty_never_zero() -> None:

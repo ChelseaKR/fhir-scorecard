@@ -37,6 +37,12 @@ class CapabilityFacts:
     # profile claim from one element and then reporting "no profiles declared" was a conclusion
     # drawn from a place the server was never obliged to use.
     conformance_profiles: tuple[tuple[str, str], ...] = field(default=())
+    # (resource type, interaction codes) for each type the document declares, sorted, with a type
+    # declared more than once merged into one entry whose interactions are the union. Nothing
+    # scores it; `diff.py` reads it to say which resource lost `search-type` rather than only that
+    # `resource_count` moved. Deliberately not part of the drift fingerprint: that field list is
+    # explicit, and widening it would rewrite what every stored history means.
+    resource_interactions: tuple[tuple[str, tuple[str, ...]], ...] = field(default=())
     declares_oauth_security: bool = False
     parse_error: str | None = None
 
@@ -139,6 +145,30 @@ def _conformance_profiles(
     return found
 
 
+def _resource_interactions(
+    resources: list[dict[str, object]],
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Interaction codes per declared resource type, sorted, duplicates merged.
+
+    A type declared more than once in one ``rest`` block becomes one entry whose interactions are
+    the union, so a document that splits a type across two entries is not read as two resources
+    with half the interactions each. ``resource_count`` deliberately still counts entries rather
+    than types: it is a fingerprint field, and changing what it counts would rewrite the meaning
+    of every drift observation already on record.
+    """
+    interactions: dict[str, set[str]] = {}
+    for resource in resources:
+        type_name = _as_str(resource.get("type"))
+        if type_name is None:
+            continue
+        codes = interactions.setdefault(type_name, set())
+        for entry in _as_list(resource.get("interaction")):
+            code = _as_str(_as_dict(entry).get("code"))
+            if code:
+                codes.add(code)
+    return tuple((name, tuple(sorted(codes))) for name, codes in sorted(interactions.items()))
+
+
 def parse_capability(body: bytes) -> CapabilityFacts:
     try:
         doc_raw = json.loads(body.decode("utf-8"))
@@ -177,6 +207,7 @@ def parse_capability(body: bytes) -> CapabilityFacts:
         resources_with_interactions=with_interactions,
         supported_profiles=tuple(profiles),
         conformance_profiles=tuple(_conformance_profiles(doc, resources)),
+        resource_interactions=_resource_interactions(resources),
         declares_oauth_security=_security_declares_oauth(doc),
     )
 

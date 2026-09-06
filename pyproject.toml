@@ -28,6 +28,13 @@ dev = [
   "mypy>=1.18",
   "pip-audit>=2.10",
   "ruff>=0.15",
+  # Test-only, and added deliberately against this file's previous stance that the workflow
+  # scan "does not get a YAML parser for one assertion". A duplicate `timeout-minutes:` shipped
+  # to `release.yml` and blocked every release, because the check that was meant to catch it
+  # asked whether the substring appeared at all - which a duplicated key satisfies. Whether
+  # GitHub can parse a workflow is not a question text matching can answer, so the assertion
+  # that replaced it needs a real parser. `dependencies` stays empty and the wheel is unchanged.
+  "pyyaml>=6",
 ]
 
 [project.scripts]

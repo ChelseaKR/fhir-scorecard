@@ -3,13 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from conftest import good_capability, good_smart
 
 from fhir_scorecard.capability import parse_capability, parse_smart
 from fhir_scorecard.cli import main
 from fhir_scorecard.fetch import FetchResult
 from fhir_scorecard.grading import build_scorecard
-from fhir_scorecard.report import render_html, to_json
+from fhir_scorecard.report import to_json
 
 
 def _registry(tmp_path: Path) -> Path:
@@ -99,21 +100,6 @@ def test_cli_bad_registry_is_error(tmp_path: Path) -> None:
     assert main(["grade", "--registry", str(bad), "--offline", "--fixtures", str(tmp_path)]) == 2
 
 
-def test_report_escapes_html() -> None:
-    card = build_scorecard(
-        "evil",
-        "<script>alert(1)</script>",
-        FetchResult(
-            url="https://x.test/metadata", ok=True, status=200, elapsed_ms=10, body=b"", error=None
-        ),
-        parse_capability(b""),
-        parse_smart(b""),
-    )
-    html_out = render_html([card], generated_at="2026-08-04")
-    assert "<script>alert(1)</script>" not in html_out
-    assert "&lt;script&gt;" in html_out
-
-
 def test_json_report_round_trips() -> None:
     card = build_scorecard(
         "x",
@@ -132,34 +118,6 @@ def test_json_report_round_trips() -> None:
     payload = json.loads(to_json([card], generated_at="2026-08-04"))
     assert payload["scorecards"][0]["grade"] == "not observed"
     assert payload["generator"] == "fhir-scorecard"
-
-
-def test_report_groups_by_kind_and_never_ranks_across() -> None:
-    """Grades are only comparable within a kind, so each kind gets its own table."""
-    from fhir_scorecard.fetch import FetchResult as FR
-
-    def card(eid: str, kind: str):
-        return build_scorecard(
-            eid,
-            eid.title(),
-            FR(
-                url="https://x.test/metadata",
-                ok=True,
-                status=200,
-                elapsed_ms=10,
-                body=b"",
-                error=None,
-            ),
-            parse_capability(json.dumps(good_capability()).encode()),
-            parse_smart(json.dumps(good_smart()).encode()),
-            kind=kind,
-        )
-
-    html_out = render_html([card("aetna", "payer"), card("epic", "ehr")], generated_at="2026-08-05")
-    assert "Payer Patient Access APIs (1)" in html_out
-    assert "EHR vendor sandboxes (1)" in html_out
-    # Two separate tables, not one merged ranking.
-    assert html_out.count("<table>") == 2
 
 
 def test_vantage_recorded_in_outputs(tmp_path: Path) -> None:
@@ -807,3 +765,75 @@ def test_with_no_peer_a_failed_smart_fetch_still_grades_as_absent(tmp_path: Path
     interop = next(d for d in card["dimensions"] if d["key"] == "interop")
     i2 = next(f for f in interop["findings"] if f["code"] == "I2")
     assert not i2["ok"] and i2["points"] == 0
+
+
+def test_the_build_refuses_two_pages_that_target_one_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """`write_page` resolves ``path=""`` to ``out_dir`` itself, so it writes ``index.html`` there.
+
+    That is how `report.render_html`'s output was destroyed on every run for the life of the
+    site: `cli.grade` wrote the standalone report to ``out/index.html`` and the very next
+    statement built the site into the same directory, with `home_page` (``path=""``) first in
+    `pages`. Two writers, one file, same ``try`` block, and nothing anywhere said so.
+
+    Whichever page is written second wins silently, so the next page added with an empty path
+    would do it again. The build now refuses instead.
+    """
+    from fhir_scorecard import cli as cli_module
+    from fhir_scorecard.site import Page, claim_page
+
+    def colliding(origin: str) -> Page:
+        real = claim_page(origin)
+        return Page(path="", title=real.title, description=real.description, body=real.body)
+
+    monkeypatch.setattr(cli_module, "claim_page", colliding)
+
+    fixtures = tmp_path / "fixtures" / "alpha"
+    fixtures.mkdir(parents=True)
+    (fixtures / "metadata.json").write_text(json.dumps(good_capability()))
+    (fixtures / "smart.json").write_text(json.dumps(good_smart()))
+
+    with pytest.raises(ValueError, match="same output file"):
+        main(
+            [
+                "grade",
+                "--offline",
+                "--fixtures",
+                str(tmp_path / "fixtures"),
+                "--registry",
+                str(_registry(tmp_path)),
+                "--out",
+                str(tmp_path / "site"),
+                "--history",
+                str(tmp_path / "history.json"),
+            ]
+        )
+
+
+def test_a_normal_build_has_no_two_pages_on_one_path(tmp_path: Path) -> None:
+    """The guard must be reachable only by a real collision, not by every ordinary run."""
+    fixtures = tmp_path / "fixtures" / "alpha"
+    fixtures.mkdir(parents=True)
+    (fixtures / "metadata.json").write_text(json.dumps(good_capability()))
+    (fixtures / "smart.json").write_text(json.dumps(good_smart()))
+    out = tmp_path / "site"
+    assert (
+        main(
+            [
+                "grade",
+                "--offline",
+                "--fixtures",
+                str(tmp_path / "fixtures"),
+                "--registry",
+                str(_registry(tmp_path)),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "history.json"),
+            ]
+        )
+        == 0
+    )
+    # And the home page is the page that survives at the site root, every time.
+    assert "<title>Public FHIR API grades" in (out / "index.html").read_text(encoding="utf-8")

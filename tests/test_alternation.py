@@ -25,7 +25,6 @@ from fhir_scorecard.drift import UNDATED, fingerprint, observe, state_digest
 from fhir_scorecard.fetch import FetchResult
 from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.registry import Endpoint
-from fhir_scorecard.report import render_html
 from fhir_scorecard.site import endpoint_page
 
 # The eight events recorded for la-care-provider-directory, copied from data published on the
@@ -330,9 +329,6 @@ def test_the_published_page_separates_a_return_from_a_change() -> None:
     assert "Declarations this endpoint returns to" in body.body
     assert line in body.body
     assert "one hostname in front of more than one backend" in body.body
-
-    # And the single-file report says it too, so the two renderers cannot disagree.
-    assert line in render_html([card], generated_at="2026-08-19 00:00 UTC")
 
 
 def test_the_dataset_publishes_returns_in_their_own_field(tmp_path: Path) -> None:

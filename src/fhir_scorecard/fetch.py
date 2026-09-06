@@ -1,7 +1,9 @@
 """Polite, HTTPS-only fetcher for public FHIR discovery surfaces.
 
-One request per resource per run, an identifying User-Agent with a contact address, and
-conservative timeouts. The opener is injectable so tests never touch the network.
+Two documents per endpoint per run - and at most four requests per document, because a
+redirect the server sends costs another GET (see :data:`MAX_REDIRECTS`) - with an identifying
+User-Agent carrying a contact address, and conservative timeouts. The opener is injectable so
+tests never touch the network.
 
 **The probe contract is enforced here or nowhere.** README.md, SECURITY.md and the site all
 promise that this project never authenticates, never requests patient data, and never probes

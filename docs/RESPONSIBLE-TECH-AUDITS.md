@@ -34,7 +34,8 @@ the probing pattern. Both are constrained in code and policy:
   SMART App Launch spec clause it rests on. There is no editorial scoring.
 - Only public, unauthenticated discovery documents are fetched (`/metadata` and
   `/.well-known/smart-configuration`); the fetcher sends an identifying User-Agent with a
-  contact address, uses HTTPS only, and makes one request per resource per run
+  contact address, uses HTTPS only, and asks for two documents per endpoint per run - at most
+  four requests per document, and so eight per endpoint per run, if the server redirects
   (`src/fhir_scorecard/fetch.py`). Scope and scheme are enforced on redirects too: a stock
   `urllib` opener follows a `Location` anywhere, including an `https` to `http` downgrade, so a
   server could have redirected `/metadata` to a patient search and had the request made.
@@ -130,7 +131,8 @@ screen reader. Tracked in `ROADMAP.md`.
 - Scanning: CodeQL (SAST, python + actions) and a full-history gitleaks secret scan run on
   push, pull request, and a weekly schedule (`.github/workflows/security.yml`); ruff runs with
   its security (`S`) rule set inside `make verify` on every change.
-- Probing conduct: HTTPS only, conservative timeouts, one request per resource per run, an
+- Probing conduct: HTTPS only, conservative timeouts, two documents per endpoint per run
+  (worst case eight requests, if the server redirects the maximum three hops on both), an
   identifying User-Agent with a contact address; there is deliberately no MCP tool that can
   probe an arbitrary URL.
 - Reporting: see `SECURITY.md` for the disclosure channel.

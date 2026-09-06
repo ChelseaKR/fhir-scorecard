@@ -60,15 +60,17 @@ Everything graded here is **public, unauthenticated surface**:
 - `[base]/.well-known/smart-configuration` , SMART on FHIR discovery
 
 This project **never accesses patient data, never authenticates, and never probes beyond the
-public discovery surface**. One request per resource per probing run, an identifying User-Agent
-with a contact address, HTTPS only, and conservative timeouts. HTTPS and the two-path scope hold
-on every hop: a redirect pointing anywhere else is refused rather than followed, because a stock
-`urllib` opener would happily have taken `/metadata` to a patient search or onto a plaintext
-connection. That is a tested property, not a claim: `tests/test_probe_contract.py` runs the real
-fetcher against a loopback server and fails if the second request is ever made. The site is
-rebuilt on a schedule
-and on demand, never on a commit, so a scheduled day costs an endpoint at most six requests: two
-documents from each of three probing runs, and none from the run that publishes.
+public discovery surface**. Two documents per endpoint per probing run, an identifying
+User-Agent with a contact address, HTTPS only, and conservative timeouts. HTTPS and the two-path
+scope hold on every hop: a redirect is followed only when it still names one of those two paths
+over HTTPS, on any host, because a stock `urllib` opener would happily have taken `/metadata` to
+a patient search or onto a plaintext connection. That is a tested property, not a claim:
+`tests/test_probe_contract.py` runs the real fetcher against a loopback server and fails if the
+second request is ever made. The site is rebuilt on a schedule and on demand, never on a commit,
+so a scheduled day normally costs an endpoint six requests: two documents from each of three
+probing runs, and none from the run that publishes. Following a redirect costs another GET, so
+the published ceiling is four requests per document, eight per endpoint per run, and 24 per
+endpoint per scheduled day.
 
 ## Where it measures from
 

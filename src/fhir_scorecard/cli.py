@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import json
 import re
 import sys
@@ -47,6 +48,15 @@ from fhir_scorecard.over_time import page as over_time_page
 from fhir_scorecard.registry import EXPECTS, KINDS, Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
+from fhir_scorecard.reverify import (
+    accepted_blocks,
+    apply_to_registry,
+    build_proposal,
+    load_proposal,
+    reverify_one,
+    select,
+)
+from fhir_scorecard.reverify import format_report as format_reverify_report
 from fhir_scorecard.site import (
     DEFAULT_ORIGIN,
     Page,
@@ -538,6 +548,63 @@ def _recheck(candidates_path: Path, json_out: Path | None = None) -> int:
     return 0
 
 
+def _reverify(args: argparse.Namespace) -> int:
+    """Re-check registry entries, or apply a proposal a person has marked up.
+
+    Two modes, deliberately not one. Producing a proposal reaches the network and writes only
+    the proposal; applying one touches only the registry and reaches nothing. A single mode
+    that fetched and wrote in one pass would put the decision and the edit in the same step,
+    and the decision is the part that belongs to a person.
+    """
+    if args.apply is not None:
+        try:
+            proposal = load_proposal(args.apply)
+            blocks = accepted_blocks(proposal)
+            moved = apply_to_registry(args.registry, blocks)
+        except (OSError, ValueError) as exc:
+            print(f"reverify error: {exc}", file=sys.stderr)
+            return 2
+        if not moved:
+            print(f"no row in {args.apply} is marked accepted; {args.registry} is unchanged")
+        else:
+            print(f"applied {moved} accepted re-check(s) to {args.registry}")
+        return 0
+
+    today = args.today or _dt.date.today().isoformat()
+    try:
+        entries = load_registry(args.registry)
+        chosen = select(
+            entries,
+            older_than=args.older_than,
+            endpoint_id=args.endpoint,
+            today=today,
+        )
+    except (OSError, ValueError) as exc:
+        print(f"registry error: {exc}", file=sys.stderr)
+        return 2
+    rows = [reverify_one(entry, today=today) for entry in chosen]
+    print(format_reverify_report(rows))
+    out = args.out or Path(f"reverify-{today}.json")
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(
+            json.dumps(
+                build_proposal(rows, today=today, registry_path=args.registry),
+                indent=2,
+                ensure_ascii=False,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        print(f"write error: {exc}", file=sys.stderr)
+        return 2
+    print(f"wrote the proposal to {out}; nothing was written to {args.registry}")
+    # Exit 0 either way. An entry that stopped answering is news for a person, not a build
+    # failure, and this verb publishes nothing that a red exit would protect.
+    return 0
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fhir-scorecard")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -634,6 +701,37 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="also write a machine-readable result here, for a caller that must branch on it",
+    )
+    reverify = sub.add_parser(
+        "reverify",
+        help="re-check registry entries and propose dated reverified blocks; writes a proposal "
+        "file for a person to accept and never edits the registry on its own",
+    )
+    reverify.add_argument("--registry", type=Path, default=Path("data/registry.json"))
+    reverify.add_argument(
+        "--older-than",
+        default=None,
+        metavar="DAYS",
+        help="only entries last checked at least this many days ago, e.g. 90d. Counted from "
+        "the reverification date where there is one and the curation date otherwise, so an "
+        "entry nobody has ever re-checked is selected rather than skipped",
+    )
+    reverify.add_argument("--endpoint", default=None, help="re-check one endpoint_id only")
+    reverify.add_argument(
+        "--out", type=Path, default=None, help="proposal path (default: reverify-<date>.json)"
+    )
+    reverify.add_argument(
+        "--apply",
+        type=Path,
+        default=None,
+        metavar="PROPOSAL",
+        help="merge the rows a person marked accepted in this proposal into the registry, and "
+        "reach no network. Rows that observed no document can never be applied",
+    )
+    reverify.add_argument(
+        "--today",
+        default=None,
+        help=argparse.SUPPRESS,  # tests pin the date
     )
     check = sub.add_parser(
         "check",
@@ -829,6 +927,8 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
     """
     if args.command == "recheck":
         return _recheck(args.candidates, args.json_out)
+    if args.command == "reverify":
+        return _reverify(args)
     if args.command == "check":
         return _cmd_check(args)
     if args.command == "mcp":

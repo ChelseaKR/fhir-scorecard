@@ -28,6 +28,18 @@ record, so this policy is enforced in code, not by review vigilance.
 
 4. Run `make verify` and a live grade before opening a PR.
 
+### Re-checking an entry that is already listed
+
+`fhir-scorecard reverify --older-than 90d` retrieves each selected entry's CapabilityStatement
+and writes a proposal file. It never edits `data/registry.json`: set `"accepted": true` on the
+rows whose attribution you have confirmed by the rules below, then `reverify --apply <file>`.
+
+Step 2 is still yours. The verb reports whether the document repeats the entry's name, which is
+a fact about a string, not a confirmation of attribution. An `unconfirmed` row is the ordinary
+outcome for a vendor-hosted platform and is not a reason to remove an entry. A row whose
+document was not observed proposes nothing and cannot be applied, so an endpoint that stopped
+answering keeps its old re-check date rather than gaining today's.
+
 ### When the CapabilityStatement names a vendor, or nobody
 
 Vendor-hosted multi-tenant payer platforms are where step 2 earns its keep. The document usually

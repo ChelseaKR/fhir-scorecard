@@ -196,6 +196,29 @@ facts a machine can read:
   entry with no re-check block has not been re-checked, and its page says so in words. A stale date
   must not be able to read as a fresh one.
 
+Re-checking used to be entirely manual. `fhir-scorecard reverify` does the retrieval and leaves
+the judgement where it belongs:
+
+```console
+# Re-check every entry nobody has looked at in 90 days. Writes a proposal, edits nothing.
+fhir-scorecard reverify --older-than 90d --out reverify-2026-09-06.json
+
+# Read it, set "accepted": true on the rows whose attribution you have confirmed, then:
+fhir-scorecard reverify --apply reverify-2026-09-06.json
+```
+
+Three properties hold it to the rule above:
+
+- An entry whose document was **not observed** gets a row saying so and **no proposed block at
+  all**, so there is nothing `--apply` could write. Marking such a row accepted is refused with
+  the reason, rather than skipped quietly; a skipped row reports success for a date that was
+  never earned.
+- Outcomes are `match`, `unconfirmed` and `not_observed`. There is deliberately no "mismatch":
+  a vendor-hosted platform that does not repeat the plan's name is the ordinary case, not
+  evidence against the entry, and the verb has no standing to say otherwise.
+- `--apply` with nothing accepted writes no byte, and `--apply` reaches no network. Producing a
+  proposal and applying one are separate runs because the decision between them is a person's.
+
 ## Cohorts and the sampling frame
 
 A cohort is a named view over the registry whose membership comes from a **public roster** rather

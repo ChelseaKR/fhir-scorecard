@@ -28,6 +28,12 @@ class CapabilityFacts:
     implementation_description: str | None = None
     title: str | None = None
     name: str | None = None
+    # ``CapabilityStatement.publisher``: the name of the organization or individual that
+    # published the document. Nothing grades it and ``drift._FINGERPRINT_FIELDS`` does not
+    # list it, so adding it moves no stored history. ``reverify`` reads it, alongside the
+    # other name-bearing elements, to show a person what the document says about who runs
+    # the server. It is one string a third party controls, never a verdict.
+    publisher: str | None = None
     resource_count: int = 0
     resources_with_interactions: int = 0
     # Canonicals from ``rest.resource.supportedProfile`` alone. Kept as its own field because the
@@ -203,6 +209,7 @@ def parse_capability(body: bytes) -> CapabilityFacts:
         implementation_description=_as_str(implementation.get("description")),
         title=_as_str(doc.get("title")),
         name=_as_str(doc.get("name")),
+        publisher=_as_str(doc.get("publisher")),
         resource_count=len(resources),
         resources_with_interactions=with_interactions,
         supported_profiles=tuple(profiles),

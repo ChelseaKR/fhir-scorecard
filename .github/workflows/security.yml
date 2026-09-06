@@ -62,6 +62,7 @@ jobs:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          enable-cache: true
           version: "0.12.1"
       - name: Audit the locked dependency set
         # The same target `make verify` runs, so the merge gate and the weekly sweep cannot

@@ -26,6 +26,8 @@ jobs:
         with:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
       - name: Install
         # `uv sync --locked`, not `pip install -e .`. The pip form resolved hatchling and its
         # transitive build dependencies from PyPI at build time - unpinned, unhashed, and never

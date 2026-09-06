@@ -1,0 +1,24 @@
+{
+  "policy": "An operator's own list, in the shape `check --registry` reads: the same fields as data/registry.json minus the verification blocks, because an operator checking endpoints they already run publishes no attribution and so has no verification claim to record. The three ids match the fixture directories beside this file, so `--offline --fixtures tests/fixtures` grades a complete registry rather than a registry of missing files.",
+  "endpoints": [
+    {
+      "id": "cms-blue-button-2",
+      "name": "CMS Blue Button 2.0 (Medicare)",
+      "kind": "payer",
+      "base_url": "https://api.bluebutton.cms.gov/v2/fhir"
+    },
+    {
+      "id": "inferno-reference",
+      "name": "ONC Inferno reference server (US Core / SMART)",
+      "kind": "reference",
+      "base_url": "https://inferno.healthit.gov/reference-server/r4",
+      "min_grade": "F"
+    },
+    {
+      "id": "oracle-health-open",
+      "name": "Oracle Health (Cerner) open sandbox",
+      "kind": "ehr",
+      "base_url": "https://fhir-open.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d"
+    }
+  ]
+}

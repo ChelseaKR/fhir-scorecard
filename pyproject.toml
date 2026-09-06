@@ -66,7 +66,12 @@ ignore = ["E501"]
 max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]
+# S314 flags `xml.etree` as unsafe against hostile input. The only XML these tests parse is the
+# JUnit artifact the test itself just generated three lines earlier, so there is no untrusted
+# document in the path; pulling in `defusedxml` to read our own output would add a runtime-shaped
+# dependency to a project whose `dependencies` list is empty on purpose. Scoped to tests only:
+# nothing under `src` parses XML.
+"tests/*" = ["S101", "S314"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

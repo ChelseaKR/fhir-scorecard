@@ -14,6 +14,43 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **`fhir-scorecard check --registry`, for an operator with more than one endpoint,
+  with `--junit` and `--sarif`.** `check` graded one base URL, so a payer with
+  Patient Access, a provider directory and a sandbox scripted around the single
+  form. The registry file is the same shape as `data/registry.json` minus the
+  verification blocks: an operator checking endpoints they already run publishes no
+  attribution, so there is no verification claim to record, and a `verification`
+  block is refused rather than ignored so nobody writes a record nothing reads.
+  Each entry may carry its own `min_grade`, overriding the run-wide one. Nothing
+  under `data/` is read or written, and grading is unchanged: the registry path
+  calls the same grader the single-endpoint check does.
+
+  `--junit` writes a testsuite per kind and a testcase per endpoint and dimension;
+  `--sarif` writes SARIF 2.1.0 with one result per finding, each carrying the
+  specification passage it cites and a rule catalogue derived from the run rather
+  than hand-kept. Neither carries a timestamp, so two runs over the same documents
+  produce the same bytes.
+
+  The severity contract is the load-bearing part, and it is easy to get wrong in a
+  new renderer. A `Finding` that was never made carries `ok=False`, because a
+  boolean has no third value; `observed` is what says whether the check ran. A
+  renderer that read `ok` alone would report every check this run could not make as
+  a check the endpoint failed, which is the defect that once moved a published
+  letter from F to D, arriving by a new route. So an unmade check is a `skipped`
+  testcase naming the vantage and a SARIF `note` with severity `not observed`, and
+  a dimension that is partly measured names only the checks that actually failed
+  while stating separately that the picture is incomplete.
+
+  An endpoint this run did not reach is reported as not measured throughout rather
+  than as a failure, on the ground `gate.py` already states: an unreachable
+  endpoint is a fact about the network path as much as about the endpoint, and a
+  build that goes red for it is blaming the endpoint for the runner. The exit code
+  still answers only the thresholds the caller set, as the single-endpoint check
+  does. The run's summary counts graded and unreached endpoints separately, so a
+  run that reached nothing cannot print a clean-looking roll-up over no
+  measurement; `--min-grade F` is the documented way to make an unreached registry
+  fail on purpose, since a threshold cannot be evaluated without a grade.
+
 - **`fhir-scorecard diff`, which says what changed rather than that something did.**
   `drift.py` records that a declaration moved and which fingerprint keys moved
   with it, which is the right detail for a timeline and the wrong detail for the

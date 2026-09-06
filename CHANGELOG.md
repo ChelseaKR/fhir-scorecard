@@ -14,6 +14,42 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **`fhir-scorecard diff`, which says what changed rather than that something did.**
+  `drift.py` records that a declaration moved and which fingerprint keys moved
+  with it, which is the right detail for a timeline and the wrong detail for the
+  person who has to act on it: `resource_count: 26 -> 25` does not say which
+  resource left. The verb takes two artifacts, works out what they are from their
+  content rather than their filename, and prints the difference in words with the
+  spec clause beside each line, so a removed interaction reads as
+  `Coverage search-type: interaction no longer declared`. Each side may be a
+  retrieved CapabilityStatement, a SMART discovery document, a `scorecards.json`,
+  or a probe artifact. `--format json` for machines. It requests nothing, stores
+  nothing, and exits 0 whatever it finds; `--fail-on-regression` is the operator's
+  opt-in, and it is narrow on purpose.
+
+  Three things it refuses to say, each of them a version of publishing an absence
+  as a measurement. A document that could not be read diffs as unreadable against
+  anything, carrying the reason and no field-level claims at all, because
+  comparing an unreadable document's empty facts against a good document's would
+  report every resource as withdrawn by a server that is still serving them; the
+  invariant is enforced in `DiffReport` itself, which refuses to hold changes when
+  it is not comparable. A key absent on both sides is never mentioned. And two
+  artifacts recorded from different vantages are reported as exactly that, with
+  `vantage.reconcile` named, never as a change the endpoint made. In the same
+  spirit a dimension that stopped publishing a score is reported as not comparable
+  rather than as a fall, and does not trip `--fail-on-regression`, because calling
+  a lost measurement a regression is the defect `grading.letter` was rewritten to
+  stop making.
+
+  `drift._diff` is now `drift.fingerprint_changes` and the verb calls it, so there
+  is one implementation of "what moved between two fingerprints" and the recorded
+  timeline and the verb cannot drift apart; a test asserts they are the same
+  object rather than two copies that agree today. `CapabilityFacts` gained
+  `resource_interactions`, which is what lets a diff name the resource that lost
+  `search-type`. It is deliberately not part of the drift fingerprint: that field
+  list is explicit, and widening it would rewrite what every stored observation
+  means.
+
 - **A share card on every page, and a rule that keeps it honest.** A technical
   SEO audit found the site publishing `og:title`, `og:description`, `og:type`
   and `og:url` and no `twitter:card`, so a link shared anywhere on X rendered

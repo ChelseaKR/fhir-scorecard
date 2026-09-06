@@ -319,6 +319,34 @@ or records nothing. Signing and tagging a snapshot as a release is deliberately 
 releases here are cut only from an SSH-signed tag verified against `.github/allowed_signers`,
 and a path that published an unsigned artifact would skip that control.
 
+What changed between two of those, or between two retrieved documents, is `diff`:
+
+```bash
+fhir-scorecard diff yesterday/metadata.json today/metadata.json
+fhir-scorecard diff yesterday/scorecards.json today/scorecards.json --format json
+```
+
+It reads what it is given, requests nothing, and stores nothing. Each side may be a retrieved
+CapabilityStatement, a SMART discovery document, a `scorecards.json`, or a probe artifact; what
+they are is decided from their content rather than their filename. A removed interaction reads as
+`Coverage search-type: interaction no longer declared`, with the R4 clause beside it, rather than
+as a fingerprint that moved. The same inputs always produce the same words.
+
+Three things it will not say. A document that could not be read diffs as unreadable against
+anything, with no field-level claims at all, because an unreadable response is not a server
+withdrawing what it is still serving. A key absent on both sides is never mentioned. And two
+artifacts recorded from different vantages are reported as exactly that, never as a change the
+endpoint made, because reconciling vantages is `vantage.reconcile`'s rule and subtraction is not
+a substitute for it. The fingerprint half of the comparison is the same function the declaration
+timeline records with, so the timeline and the verb cannot disagree.
+
+`--fail-on-regression` exits 1 when the later side no longer has something the earlier side had:
+a resource, an interaction, a declared profile, or a check that used to pass. It is opt-in
+because it is an operator's policy rather than this tool's judgement, and it is deliberately
+narrow. An addition never trips it. Neither does a dimension that stopped publishing a score,
+which is reported as not comparable rather than as a fall, because treating a lost measurement as
+a fall would score an absence. Nor does a document this run could not read.
+
 A read-only MCP server exposes the same data to an assistant:
 
 ```bash

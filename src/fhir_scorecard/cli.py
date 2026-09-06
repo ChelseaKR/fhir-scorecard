@@ -511,6 +511,26 @@ def _build_parser() -> argparse.ArgumentParser:
         "size and digest, and nothing present the manifest does not name",
     )
     check_snapshot.add_argument("snapshot", metavar="DIR", type=Path, help="a snapshot directory")
+
+    diff = sub.add_parser(
+        "diff",
+        help="say what changed between two retrieved documents or two runs. Reads what it is "
+        "given, requests nothing, stores nothing, and exits 0 whatever it finds unless "
+        "--fail-on-regression is passed",
+    )
+    diff.add_argument("before", metavar="A", type=Path, help="the earlier document or run")
+    diff.add_argument("after", metavar="B", type=Path, help="the later document or run")
+    diff.add_argument(
+        "--format", choices=("text", "json"), default="text", help="output format (default text)"
+    )
+    diff.add_argument(
+        "--fail-on-regression",
+        action="store_true",
+        help="exit 1 when the later side no longer has something the earlier side had: a "
+        "resource, an interaction, a declared profile, or a check that used to pass. An "
+        "addition never counts, and neither does a measurement that stopped being available, "
+        "because treating a lost measurement as a fall would score an absence",
+    )
     return parser
 
 
@@ -591,7 +611,38 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
         return _cmd_snapshot(args)
     if args.command == "verify-snapshot":
         return _cmd_verify_snapshot(args)
+    if args.command == "diff":
+        return _cmd_diff(args)
     return None
+
+
+def _cmd_diff(args: argparse.Namespace) -> int:
+    """Compare two artifacts and print what moved.
+
+    Exit 2 is a usage error, meaning a file that is not there. Everything else is exit 0: a diff
+    is an observation, and finding changes is what it is for. ``--fail-on-regression`` is the one
+    exception, and it is opt-in because it is the operator's policy rather than this tool's
+    judgement.
+
+    A pair that could not be compared exits 0 and prints why. It deliberately does **not** trip
+    ``--fail-on-regression``: "I could not read this document" is not "you removed something",
+    and a build that went red on it would be reporting an absence as a finding.
+    """
+    from fhir_scorecard.diff import diff_paths, render_json, render_text
+
+    for path in (args.before, args.after):
+        if not path.is_file():
+            print(f"diff error: {path} is not a file", file=sys.stderr)
+            return 2
+    try:
+        report = diff_paths(args.before, args.after)
+    except OSError as exc:
+        print(f"diff error: {exc}", file=sys.stderr)
+        return 2
+    sys.stdout.write(render_json(report) if args.format == "json" else render_text(report))
+    if args.fail_on_regression and report.regressions:
+        return 1
+    return 0
 
 
 def _cmd_snapshot(args: argparse.Namespace) -> int:

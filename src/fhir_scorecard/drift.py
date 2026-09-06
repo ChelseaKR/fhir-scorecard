@@ -202,7 +202,18 @@ def save_history(path: Path, history: dict[str, Any]) -> None:
     path.write_text(json.dumps(history, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _diff(previous: dict[str, Any], current: dict[str, object]) -> list[str]:
+def fingerprint_changes(previous: dict[str, Any], current: dict[str, object]) -> list[str]:
+    """The lines this module records for a move from ``previous`` to ``current``.
+
+    Public because ``diff.py`` calls it: the ``diff`` verb and this timeline have to say the same
+    thing about the same pair of fingerprints, and the only way to guarantee that is for there to
+    be one implementation. It lives here rather than in ``diff`` because ``vantage`` already
+    imports this module, so the dependency has to run in this direction.
+
+    The wording is load-bearing beyond display. :func:`_invert` parses these lines back into the
+    earlier fingerprint when it rebuilds a log written before the alternation rule, so changing
+    the format changes which history can be replayed.
+    """
     messages: list[str] = []
     for key in _FINGERPRINT_FIELDS:
         before, after = previous.get(key), current.get(key)
@@ -498,7 +509,7 @@ def observe(
     events = events_raw if isinstance(events_raw, list) else []
     states = _states(entry)
 
-    changes: list[str] = [] if previous is None else _diff(previous, current)
+    changes: list[str] = [] if previous is None else fingerprint_changes(previous, current)
     returned = False
     if previous is None:
         states = _remember(states, state_digest(current), today)

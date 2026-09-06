@@ -1307,14 +1307,22 @@ or remove an entry</a></p></section>
 </div>
 <section class="probe-contract"><div><p class="eyebrow">Our probe contract</p>
 <h2>What we do to your servers</h2></div>
-<p>At most two unauthenticated GET requests per endpoint per probing run: <code>/metadata</code>
-and <code>/.well-known/smart-configuration</code>. Three probing runs a day, one per runner
-image, so a scheduled day is at most six requests to any one endpoint. The run that publishes
-this site adds none: it grades the documents those runs already retrieved.</p>
+<p>We ask for two documents per endpoint per probing run: <code>/metadata</code> and
+<code>/.well-known/smart-configuration</code>. Two documents is not always two requests, and the
+honest bound is the one worth publishing: if your server answers with a redirect, following it
+costs another GET. We follow at most three hops per document, so the worst case is four requests
+per document and <strong>eight per endpoint per probing run</strong>. Three probing runs a day,
+one per runner image, so the ceiling for a scheduled day is <strong>24 requests to any one
+endpoint</strong>. Two per document, four per endpoint, is the normal case and the only one we
+ask for; reaching 24 needs your own server to redirect three times on both paths. The run that
+publishes this site adds none: it grades the documents those runs already retrieved.</p>
 <p>Requests carry an identifying User-Agent with a contact address. We never authenticate, never
 register for API access, never request patient data, and never probe beyond those two paths.
-If your server redirects one of them somewhere else, we do not follow: the redirect is refused,
-the run records that it retrieved nothing, and your endpoint is published as <strong>not
+That scope is what is enforced on a redirect, on every hop: we follow a <code>Location</code>
+only when it still names one of those two paths over HTTPS. The host may change &mdash; a payer
+moving its FHIR service behind a CDN or a versioned path is ordinary, and refusing that would
+break honest servers &mdash; but a redirect to anything else, or to plain HTTP, is refused, the
+run records that it retrieved nothing, and your endpoint is published as <strong>not
 observed</strong> rather than graded on a document we were pointed at.
 Publishing is triggered on a schedule and by hand, not by commits, because a commit says nothing
 about your endpoint and a commit-triggered rebuild once turned an ordinary working day into
@@ -1381,8 +1389,10 @@ that day, and says why it cannot separate that from an endpoint being down. A ge
 independent vantage is an open item, and until one exists this page will keep saying one
 network.</p>
 <p>Each vantage counts once. The publishing run makes no probe of its own; it grades the
-documents the probing runs retrieved, which is also why a scheduled day costs an endpoint at
-most six requests.</p>
+documents the probing runs retrieved, which is why a scheduled day normally costs an endpoint six
+requests &mdash; two documents from each of three probing runs. The published ceiling is higher,
+because a redirect the server itself sends costs another GET: at most 8 per endpoint per run
+and 24 per scheduled day. <a href="/claim/">Our probe contract</a> states the bound in full.</p>
 <h2>Capability changes, and what is not one</h2>
 <p>Each endpoint's declared capability is fingerprinted every run, and a difference is recorded
 and shown but never scored: an upgrade is not a defect. One kind of difference is deliberately

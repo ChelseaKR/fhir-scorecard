@@ -339,7 +339,12 @@ def test_claim_page_states_what_we_do_to_servers(tmp_path: Path) -> None:
     flat = " ".join(page.body.split())
     assert "never authenticate" in flat
     assert "never request patient data" in flat
-    assert "two unauthenticated GET requests" in flat
+    # The bound itself is asserted in tests/test_probe_contract.py, derived from MAX_REDIRECTS
+    # and the vantage count. Pinning the sentence here is what let the retracted "at most two
+    # unauthenticated GET requests" claim survive on the served page after SECURITY.md dropped
+    # it: two passing tests, contradicting each other, about the same promise.
+    assert "eight per endpoint per probing run" in flat
+    assert "at most two unauthenticated GET requests" not in flat
     assert "add-endpoint.yml" in flat
     assert "remove-or-dispute.yml" in flat
     # It must own the mistake that motivated multi-vantage probing.

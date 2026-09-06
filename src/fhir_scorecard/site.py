@@ -149,6 +149,34 @@ def org_slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", cleaned).strip("-") or "unknown"
 
 
+#: Names of the *surfaces* a payer publishes, as opposed to names of the payer. A trailing run of
+#: these is what separates "CommunityCare Provider Directory API" from "CommunityCare".
+#:
+#: Deliberately narrower than the vocabulary ``org_slug`` strips. "public test server", "sandbox"
+#: and "open" are not on this list, because "HAPI FHIR public test server", "Firely public test
+#: server" and "SMART Health IT open sandbox" are what those projects call themselves; cutting
+#: them back to "HAPI FHIR" would be inventing a name rather than repairing one. What is listed
+#: here is the API-product vocabulary a payer appends to its own name, which is never part of it.
+_SURFACE_TAIL = re.compile(
+    r"\s*\b(patient[- ]access|provider[- ]directory|member[- ]access|drug[- ]formulary|"
+    r"formulary|apis?)\b\s*$",
+    re.IGNORECASE,
+)
+
+
+def strip_surface_tail(name: str) -> str:
+    """``name`` with any trailing run of surface vocabulary removed.
+
+    Applied repeatedly, so "Provider Directory API" comes off in one call rather than leaving
+    "CommunityCare Provider Directory" behind.
+    """
+    previous = None
+    while previous != name:
+        previous = name
+        name = _SURFACE_TAIL.sub("", name).strip()
+    return name
+
+
 def org_display_name(names: Sequence[str]) -> str:
     """An organization's name, taken as the leading words all of its endpoints share.
 
@@ -158,8 +186,22 @@ def org_display_name(names: Sequence[str]) -> str:
     about one of its surfaces: Cigna, Sharp Health Plan, HAPI FHIR public test server.
 
     Parenthetical qualifiers are dropped first, so "(R4)" and "(R5)" do not stop two releases of
-    the same server from sharing a name. Slugs and URLs are unaffected, because ``org_slug``
-    already strips the surface words this is removing.
+    the same server from sharing a name.
+
+    The prefix alone is only about the organization when the group's endpoints are *different*
+    surfaces. When every endpoint in the group is the *same* surface and differs only inside
+    parentheses, the shared prefix is the whole name, surface words included, and the heuristic
+    returns an API name: ``communitycare`` -- two provider-directory endpoints distinguished by
+    "(marketplace)" and "(commercial)" -- published "CommunityCare Provider Directory API" as an
+    ``h1``, a ``<title>``, every breadcrumb, and a schema.org ``Organization``, asserting to a
+    search engine that a named third party's API is an organization. So a trailing run of surface
+    vocabulary comes off the prefix, and if that leaves nothing the unstripped prefix is kept
+    rather than emitting an empty heading.
+
+    Measured over all 81 registry names: of the 24 groups that get an org page, this changes
+    exactly one -- ``communitycare``, to "CommunityCare", which is the name
+    ``data/cohorts/oklahoma-marketplace.json`` already cites for those two endpoint ids from the
+    CMS QHP landscape roster.
     """
     stripped = [re.sub(r"\(.*?\)", " ", name).split() for name in names]
     if not stripped:
@@ -171,7 +213,10 @@ def org_display_name(names: Sequence[str]) -> str:
         common.append(words[0])
     # A group shares a slug, so it almost always shares a leading word; fall back rather than
     # render an empty heading if it somehow does not.
-    return " ".join(common) or " ".join(stripped[0])
+    prefix = " ".join(common) or " ".join(stripped[0])
+    # Never return nothing: a name that is *entirely* surface words is a defect worth surfacing,
+    # but a blank heading is worse, and `audit_site` fails the build on it either way.
+    return strip_surface_tail(prefix) or prefix
 
 
 def json_ld(payload: dict[str, object]) -> str:

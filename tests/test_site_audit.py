@@ -620,3 +620,45 @@ def test_an_organization_missing_a_promised_field_is_caught(site_with_an_org: Pa
     payload.pop("url")
     page.write_text(text.replace(block.group(1), json.dumps(payload)), encoding="utf-8")
     assert "JSONLD_INCOMPLETE" in _codes(site_with_an_org)
+
+
+def test_an_organization_named_after_one_of_its_apis_is_caught(site_with_an_org: Path) -> None:
+    """A presence check on ``name`` cannot tell an organization from an endpoint.
+
+    ``REQUIRED_JSONLD_FIELDS["Organization"] = ("name", "url")`` passed a block whose ``name``
+    was "CommunityCare Provider Directory API", so the site asserted to a search engine that a
+    named third party's API is an organization. README.md states the policy this breaks:
+    attribution "follows the publisher's own words and never a URL path segment."
+    """
+    page = next(iter(sorted((site_with_an_org / "org").glob("*/index.html"))))
+    text = page.read_text(encoding="utf-8")
+    block = re.search(
+        r'<script type="application/ld\+json">(\{[^<]*"Organization"[^<]*\})</script>', text
+    )
+    assert block is not None
+    payload = json.loads(block.group(1))
+    assert "ORGANIZATION_NAMED_AS_A_SURFACE" not in _codes(site_with_an_org)
+
+    payload["name"] = f"{payload['name']} Provider Directory API"
+    page.write_text(text.replace(block.group(1), json.dumps(payload)), encoding="utf-8")
+    assert "ORGANIZATION_NAMED_AS_A_SURFACE" in _codes(site_with_an_org)
+
+
+def test_the_organization_surface_rule_does_not_fire_on_a_project_named_for_its_server(
+    site_with_an_org: Path,
+) -> None:
+    """ "HAPI FHIR public test server" is a name, not a surface appended to one.
+
+    The rule is deliberately narrower than ``org_slug``'s vocabulary, and this pins that: a
+    future widening that swallows "server" or "sandbox" would rename real projects.
+    """
+    page = next(iter(sorted((site_with_an_org / "org").glob("*/index.html"))))
+    text = page.read_text(encoding="utf-8")
+    block = re.search(
+        r'<script type="application/ld\+json">(\{[^<]*"Organization"[^<]*\})</script>', text
+    )
+    assert block is not None
+    payload = json.loads(block.group(1))
+    payload["name"] = "HAPI FHIR public test server"
+    page.write_text(text.replace(block.group(1), json.dumps(payload)), encoding="utf-8")
+    assert "ORGANIZATION_NAMED_AS_A_SURFACE" not in _codes(site_with_an_org)

@@ -64,7 +64,22 @@ FINDING_CODES: dict[str, str] = {
     "ORPHAN_PAGE": "a built page no path of internal links reaches from the home page",
     "ROBOTS_SITEMAP_MISMATCH": "robots.txt is missing or does not point at this site's sitemap",
     "SOCIAL_CARD_INCOMPLETE": "a page whose share card is missing a tag or contradicts the page",
+    "ORGANIZATION_NAMED_AS_A_SURFACE": (
+        "a schema.org Organization whose name is one of the organization's APIs, not the "
+        "organization"
+    ),
 }
+
+#: An ``Organization`` name ending in this is an API's name, not an organization's. A presence
+#: check on ``name`` cannot tell the two apart, and this site publishes the value as structured
+#: data about a named third party, so the build refuses it rather than asserting it to a search
+#: engine. Stated independently of ``site.org_display_name`` on purpose: this module checks the
+#: HTML that was built, so it must not be able to agree with the generator by construction.
+_ORGANIZATION_NAME_IS_A_SURFACE = re.compile(
+    r"\b(patient[- ]access|provider[- ]directory|member[- ]access|drug[- ]formulary|"
+    r"formulary|apis?)\s*$",
+    re.IGNORECASE,
+)
 
 #: What a page must declare once it declares any of it. A half-written card is one a
 #: crawler completes from somewhere else; a card whose title or description differs from
@@ -415,6 +430,19 @@ def _check_jsonld(page: str, parser: _PageParser) -> list[SiteFinding]:
                     "JSONLD_INCOMPLETE",
                     where,
                     f"block {index} ({declared or 'no @type'}) omits {', '.join(missing)}",
+                )
+            )
+        name = payload.get("name")
+        if (
+            declared == "Organization"
+            and isinstance(name, str)
+            and _ORGANIZATION_NAME_IS_A_SURFACE.search(name)
+        ):
+            findings.append(
+                SiteFinding(
+                    "ORGANIZATION_NAMED_AS_A_SURFACE",
+                    where,
+                    f"block {index} names the Organization {name!r}, which is one of its APIs",
                 )
             )
     return findings

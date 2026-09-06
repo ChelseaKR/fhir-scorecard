@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -175,6 +176,60 @@ def test_the_national_frame_arithmetic_is_recomputed_everywhere_it_is_cited() ->
     assert (
         f"{len(ROSTERED_COHORTS)} of {len(states)} states, "
         f"{len(reviewed)} of {orgs} state-issuer organizations reviewed" in SAMPLING_FRAME
+    )
+
+
+#: Every way these documents write "N ... not yet reviewed" or "N ... reviewed" about the
+#: national frame. Deliberately broad: the assertion below is that no phrasing anywhere claims a
+#: different number, so a new sentence has to match one of these to be checked at all.
+#: The number before the phrase. `)` is excluded from the run-up so that a preceding
+#: parenthetical's figure -- "...found (38), and not yet reviewed (71)" -- is not read as this
+#: claim's; that sentence is matched by the trailing form below instead.
+_UNREVIEWED_BEFORE = re.compile(
+    r"(?P<n>[0-9]{1,4})(?:\s+of\s+the\s+frame's\s+[0-9]{1,4})?"
+    r"[^0-9.)]{0,60}?not yet reviewed"
+)
+
+#: The number after it, in parentheses.
+_UNREVIEWED_AFTER = re.compile(r"not yet reviewed[^0-9.]{0,12}\((?P<n>[0-9]{1,4})\)")
+
+
+def test_no_document_states_a_second_unreviewed_count() -> None:
+    """The gate above asserts the right number is present. Nothing asserted that a wrong one
+    was absent, and a document can say the same thing twice.
+
+    ROADMAP.md did. Its frame paragraph carried the derived "the other 71 are *not yet
+    reviewed*" and passed, while Phase 15 three hundred lines later opened "146 of the frame's
+    176 state-issuer organizations are not yet reviewed" - stale by seventy-five organizations,
+    unread by any check, and the sentence a reader arriving at the phase actually reads.
+
+    A presence assertion cannot catch that: the correct phrasing was there the whole time. So
+    this sweeps every phrasing and requires them all to agree with the frame.
+    """
+    frame = _read_roster(FRAME_CSV)
+    reviewed = [r for r in frame if r["state_code"] in ROSTERED_COHORTS.values()]
+    unreviewed = len(frame) - len(reviewed)
+
+    wrong: list[str] = []
+    found = 0
+    for name, text in (
+        ("ROADMAP.md", ROADMAP),
+        ("README.md", README),
+        ("docs/SAMPLING-FRAME.md", SAMPLING_FRAME),
+    ):
+        for pattern in (_UNREVIEWED_BEFORE, _UNREVIEWED_AFTER):
+            for match in pattern.finditer(text):
+                found += 1
+                if int(match.group("n")) != unreviewed:
+                    wrong.append(f"{name}: {match.group(0)!r}")
+    assert found >= 6, (
+        f"the sweep matched {found} unreviewed claims; these three documents state the count "
+        "six times, so a lower number means the pattern has stopped reading them and this "
+        "check is passing over nothing"
+    )
+    assert not wrong, (
+        f"{unreviewed} of the frame's {len(frame)} organizations are not yet reviewed, and "
+        f"these sentences say otherwise: {wrong}"
     )
 
 

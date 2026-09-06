@@ -400,7 +400,7 @@ decision about how it authenticates its artifact.
 
 ### Phase 15: the frame, reviewed a state at a time
 
-*Blocked on curation, which is a person's work by design.* 146 of the frame's 176
+*Blocked on curation, which is a person's work by design.* 71 of the frame's 176
 state-issuer organizations are not yet reviewed. `docs/SAMPLING-FRAME.md` and
 `CONTRIBUTING.md` both require that an entry rest on a document a person retrieved and read,
 with the publisher established from the organization's own materials; the same documents

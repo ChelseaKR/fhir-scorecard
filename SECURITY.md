@@ -41,3 +41,8 @@ images that share one provider's network rather than from independent networks.
 They are not audits, not compliance determinations, and not statements about care quality. The
 project has published and corrected several of its own measurement errors; see
 [docs/payer-verifiability.md](docs/payer-verifiability.md).
+
+A discovery document larger than 5,000,000 bytes (`fetch.MAX_BODY_BYTES`) is not read. The
+endpoint is published as *not observed* for that run rather than graded on the part that fit,
+because a fragment cut mid-document would be scored as a malformed declaration and reported
+against the operator. No endpoint in the registry is near this limit today.

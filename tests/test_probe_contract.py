@@ -430,6 +430,25 @@ def test_the_published_request_bound_is_the_one_the_code_enforces() -> None:
     assert "at most two unauthenticated GET requests per endpoint" not in security
 
 
+def test_the_published_read_limit_is_the_one_the_code_enforces() -> None:
+    """`MAX_BODY_BYTES` was an unmarked number: no comment, no test, no published statement.
+
+    An unstated bound is one nobody notices being hit, and hitting this one used to publish an
+    ``F`` against an operator whose document was fine. It is a limit this project imposes on
+    itself, so it belongs in SECURITY.md's "Known limits" beside the request bound, and the two
+    have to be derived from the same constant rather than typed twice.
+    """
+    from fhir_scorecard.fetch import MAX_BODY_BYTES
+
+    root = Path(__file__).resolve().parent.parent
+    security = " ".join((root / "SECURITY.md").read_text(encoding="utf-8").split())
+
+    assert f"{MAX_BODY_BYTES:,} bytes" in security
+    assert "is not read" in security
+    # And says which way it fails: not observed, never graded on the part that fit.
+    assert "not observed" in security
+
+
 def test_the_roadmap_names_kind_pages_the_build_actually_writes() -> None:
     """`/ehr/` and `/reference/` were listed under a completed phase and both 404."""
     import re

@@ -38,6 +38,19 @@ USER_AGENT = (
     "observational scorecard of public FHIR discovery surfaces; contact: ckellyreif@gmail.com)"
 )
 TIMEOUT_S = 15.0
+
+#: Largest discovery document this project will accept. It bounds the memory one hostile or
+#: broken server can make a run allocate; a CapabilityStatement is a conformance declaration, and
+#: five megabytes is far above the largest one in the registry.
+#:
+#: Reaching it is a *retrieval failure*, not a truncation. ``HTTPResponse.read(amt)`` returns
+#: exactly ``amt`` bytes when the body is longer, so reading ``MAX_BODY_BYTES`` of an oversized
+#: document handed grading a fragment cut mid-JSON, indistinguishable from a document the server
+#: got wrong: the endpoint scored ``T0``/``I0`` and published an ``F`` -- a statement about a
+#: named payer that was really a fact about this project's read limit. So the read asks for one
+#: byte more than the cap and fails closed when it gets it, and the endpoint routes to *not
+#: observed* like any other document this project could not retrieve. SECURITY.md publishes the
+#: number under "Known limits", and ``tests/test_probe_contract.py`` requires the two to agree.
 MAX_BODY_BYTES = 5_000_000
 
 #: The only two paths this project ever asks a server for. Both are unauthenticated discovery
@@ -179,9 +192,24 @@ def fetch_json(
     started = time.monotonic()
     try:
         with op.open(request, timeout=timeout) as response:
-            body = response.read(MAX_BODY_BYTES)
+            # One byte over the cap, so an oversized body is detectable rather than silently
+            # cut: `read(MAX_BODY_BYTES)` alone returns a full buffer both when the document
+            # ends exactly at the cap and when it runs far past it.
+            body = response.read(MAX_BODY_BYTES + 1)
             elapsed = int((time.monotonic() - started) * 1000)
             status = int(response.status)
+            if len(body) > MAX_BODY_BYTES:
+                # A document too large to read is a document this run did not retrieve. Grading
+                # a fragment of it would publish this project's read limit as a finding about
+                # the endpoint.
+                return FetchResult(
+                    url=url,
+                    ok=False,
+                    status=status,
+                    elapsed_ms=elapsed,
+                    body=b"",
+                    error=f"response exceeds the {MAX_BODY_BYTES} byte read limit",
+                )
             return FetchResult(
                 url=url,
                 ok=200 <= status < 300,

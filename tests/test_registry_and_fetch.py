@@ -8,7 +8,9 @@ from typing import Any
 
 import pytest
 
-from fhir_scorecard.fetch import fetch_json
+from fhir_scorecard import cli
+from fhir_scorecard.fetch import MAX_BODY_BYTES, fetch_json
+from fhir_scorecard.grading import NOT_OBSERVED
 from fhir_scorecard.registry import load_registry
 
 
@@ -313,3 +315,74 @@ def test_the_page_says_when_an_entry_was_last_checked_and_when_it_was_not() -> N
     assert "this probe observed: HTTP 404" in documented
 
     assert _verification_sentence(None) == "verification record unavailable"
+
+
+class TestABodyLargerThanTheCapIsAFailedReadNotASilentTruncation:
+    """`HTTPResponse.read(amt)` returns exactly `amt` bytes when the body is longer.
+
+    Reading exactly ``MAX_BODY_BYTES`` therefore handed grading a document cut mid-JSON, with
+    ``ok`` still true because the status was 200. Nothing downstream could tell that fragment
+    from a document the server got wrong, so a valid but oversized CapabilityStatement published
+    as ``T0``/``I0`` and an ``F`` against a named operator -- this project's read limit reported
+    as a finding about somebody else's server.
+    """
+
+    def test_fetch_json_refuses_an_oversized_body_and_names_the_limit(self) -> None:
+        oversized = b"x" * (MAX_BODY_BYTES + 1)
+        result = fetch_json("https://x.test/metadata", opener=_FakeOpener(body=oversized))
+
+        assert not result.ok
+        assert result.body == b"", "no fragment may escape; a partial document is not a document"
+        assert result.error is not None
+        assert str(MAX_BODY_BYTES) in result.error
+        # The server did answer. Keeping the status says what happened without scoring it.
+        assert result.status == 200
+
+    def test_a_body_exactly_at_the_cap_is_still_read(self) -> None:
+        """Why the read asks for one byte more than the cap: at the cap it must still succeed."""
+        result = fetch_json(
+            "https://x.test/metadata", opener=_FakeOpener(body=b"x" * MAX_BODY_BYTES)
+        )
+
+        assert result.ok
+        assert len(result.body) == MAX_BODY_BYTES
+
+    def test_a_valid_oversized_statement_is_not_observed_rather_than_graded_f(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """End to end, through the real fetcher: the fragment must never reach the parser."""
+        statement: dict[str, Any] = {
+            "resourceType": "CapabilityStatement",
+            "status": "active",
+            "fhirVersion": "4.0.1",
+            "rest": [{"mode": "server", "resource": [{"type": "Patient"}]}],
+            # Valid, parseable, and over the cap. Cutting it at MAX_BODY_BYTES lands inside this
+            # string, so the fragment is not JSON -- exactly the input that used to grade F.
+            "copyright": "c" * (MAX_BODY_BYTES + 1),
+        }
+        body = json.dumps(statement).encode("utf-8")
+        assert len(body) > MAX_BODY_BYTES
+        assert json.loads(body)["fhirVersion"] == "4.0.1", "the whole document is valid"
+
+        parsed: list[bytes] = []
+        real_parse = cli.parse_capability
+
+        def spy(raw: bytes) -> Any:
+            parsed.append(raw)
+            return real_parse(raw)
+
+        monkeypatch.setattr(cli, "parse_capability", spy)
+        monkeypatch.setattr(
+            cli, "fetch_json", lambda url, **_: fetch_json(url, opener=_FakeOpener(body=body))
+        )
+
+        out = tmp_path / "result.json"
+        assert cli.main(["check", "https://payer.example/fhir", "--json-out", str(out)]) == 0
+        card = json.loads(out.read_text())["scorecards"][0]
+
+        assert card["grade"] == NOT_OBSERVED, "a document we could not read is not a bad document"
+        assert [d["score"] for d in card["dimensions"] if d["key"] != "reachability"] == [
+            None,
+            None,
+        ]
+        assert parsed == [], "no fragment of the oversized document reached the parser"

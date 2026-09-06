@@ -8,9 +8,13 @@ on:
 permissions:
   contents: read
 
-# CI-CD-STANDARD.md 11c: cancel superseded runs on the same ref.
+# CI-CD-STANDARD.md 11c: cancel superseded runs on the same ref -- but a run is only
+# "superseded" when a later push replaces what it was checking. Two pushes to `main` share
+# one ref and different commits, so a ref-only key made the second push cancel the first
+# and the first commit shipped with no verdict at all. The commit SHA is what distinguishes
+# them; a pull request keeps one group per PR so a force-push still cancels its predecessor.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.sha }}
   cancel-in-progress: true
 jobs:
   verify:

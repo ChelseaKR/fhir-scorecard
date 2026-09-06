@@ -274,3 +274,71 @@ def test_the_job_scan_finds_the_jobs_it_is_meant_to_bound() -> None:
     assert {"pages.yml:probe", "pages.yml:grade", "pages.yml:deploy"} <= found
     assert {"verify.yml:verify", "security.yml:codeql"} <= found
     assert {"release.yml:release-tests", "release.yml:build"} <= found
+
+
+#: The interpolation that gives a branch push one concurrency group per commit while keeping
+#: one group per pull request. Anything that distinguishes commits would do; requiring this
+#: exact form keeps the workflows saying it the same way.
+_PER_COMMIT_KEY = "github.event_name == 'pull_request' && 'pr' || github.sha"
+
+
+def _pushes_to_a_branch(document: dict[Any, Any]) -> bool:
+    """Whether this workflow runs on a push to a branch (not only on a tag)."""
+    # `on:` is the YAML 1.1 boolean `True` once parsed, which is why it is looked up both ways.
+    triggers = document.get("on", document.get(True))
+    if not isinstance(triggers, dict):
+        return False
+    push = triggers.get("push")
+    return isinstance(push, dict) and "branches" in push
+
+
+def _cancels_in_progress(section: dict[Any, Any]) -> bool:
+    value = section.get("cancel-in-progress", False)
+    # An expression string is truthy at parse time; treat anything but a literal false as "cancels".
+    return value is not False and value != "false"
+
+
+def test_a_push_to_main_cannot_cancel_the_commit_before_it() -> None:
+    """A concurrency group keyed only on `github.ref` gives every commit on `main` the same
+    group. With `cancel-in-progress: true` the second push to land cancels the first, and the
+    first commit reaches `main` with no verdict — not a red one, none at all. Measured across
+    this portfolio, that silently voided a third of one repo's main-branch CI.
+
+    A cancelled run is also not a failure, so nothing is red and no one is told. The key has
+    to distinguish commits.
+    """
+    offenders: list[str] = []
+    for path in sorted(WORKFLOWS.glob("*.yml")):
+        document = _parsed(path)
+        section = document.get("concurrency")
+        if not isinstance(section, dict) or not _pushes_to_a_branch(document):
+            continue
+        if not _cancels_in_progress(section):
+            continue
+        group = str(section.get("group", ""))
+        if "github.sha" not in group:
+            offenders.append(f"{path.name}: group: {group}")
+    assert not offenders, (
+        "these workflows run on a branch push and cancel in-progress runs sharing their "
+        f"group, but the group does not name the commit, so a push cancels its predecessor's "
+        f"verdict: {offenders}. Append -${{{{ {_PER_COMMIT_KEY} }}}} to the group."
+    )
+
+
+def test_the_concurrency_scan_looks_at_the_workflows_that_gate_main() -> None:
+    """A scan over nothing passes trivially. These two are the gates on `main`, and both
+    carried the ref-only key until it was fixed; if either stops being examined here, this
+    fails rather than going quietly green."""
+    examined = {
+        path.name
+        for path in sorted(WORKFLOWS.glob("*.yml"))
+        if _pushes_to_a_branch(_parsed(path))
+        and isinstance(_parsed(path).get("concurrency"), dict)
+        and _cancels_in_progress(_parsed(path)["concurrency"])
+    }
+    assert {"verify.yml", "security.yml"} <= examined, (
+        f"the concurrency check examined {sorted(examined)}"
+    )
+    for name in ("verify.yml", "security.yml"):
+        group = str(_parsed(WORKFLOWS / name)["concurrency"]["group"])
+        assert _PER_COMMIT_KEY in group, f"{name} does not use the agreed key: {group}"

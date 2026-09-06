@@ -16,8 +16,11 @@ on:
 permissions:
   contents: read
 
+# One group per commit on a branch push, one group per pull request. A ref-only key gave
+# every push to `main` the same group, so a second push cancelled the first commit's scan
+# and that commit was never analyzed.
 concurrency:
-  group: security-${{ github.ref }}
+  group: security-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.sha }}
   cancel-in-progress: true
 
 jobs:

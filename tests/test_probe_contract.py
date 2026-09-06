@@ -430,6 +430,95 @@ def test_the_published_request_bound_is_the_one_the_code_enforces() -> None:
     assert "at most two unauthenticated GET requests per endpoint" not in security
 
 
+def test_no_file_that_publishes_the_bound_still_states_the_retracted_one() -> None:
+    """Checking SECURITY.md alone is what let the retracted claim survive everywhere else.
+
+    Commit 4cc2124 ("Say only what the tool checks") rewrote one paragraph of one file and
+    guarded it with a test that reads SECURITY.md and only SECURITY.md. The identical sentence
+    stayed in ``site.py`` and was served from ``/claim/`` to the operators it is addressed to --
+    the people deciding whether to permit this crawler -- while ``tests/test_site.py`` asserted
+    it must *stay* on the page. Two passing tests contradicting each other about one promise.
+
+    SECURITY.md contradicted itself for the same reason: the corrected paragraph and the
+    uncorrected "at most six requests per endpoint per scheduled day" sat eleven lines apart,
+    and a guard checking two positive substrings and one forbidden one cannot see arithmetic
+    between them.
+    """
+    publishers = (
+        "README.md",
+        "SECURITY.md",
+        "docs/RESPONSIBLE-TECH-AUDITS.md",
+        "src/fhir_scorecard/fetch.py",
+        "src/fhir_scorecard/site.py",
+    )
+    retracted = (
+        "at most two unauthenticated GET requests per endpoint",
+        "one request per resource per run",
+        "one request per resource per probing run",
+        "at most six requests per endpoint per scheduled day",
+        "a scheduled day is at most six requests",
+        "a scheduled day costs an endpoint at most six requests",
+    )
+    for name in publishers:
+        text = " ".join((ROOT / name).read_text(encoding="utf-8").split()).casefold()
+        for claim in retracted:
+            assert claim.casefold() not in text, f"{name} still publishes: {claim!r}"
+
+
+def test_the_per_day_ceiling_is_derived_from_the_code_and_the_vantage_count() -> None:
+    """The per-day figure is a promise too, and it was six against a code ceiling of 24.
+
+    Eight per endpoint per run, three probing vantages per scheduled day, is 24. Eight from a
+    single run already exceeds the six that ``/claim/`` and ``/how-we-grade/`` published. Both
+    numbers are derived here from ``MAX_REDIRECTS``, ``DISCOVERY_PATHS`` and the probe matrix in
+    the workflow, so changing any of the three fails this test rather than silently making a
+    published promise false.
+    """
+    import re
+
+    from fhir_scorecard.fetch import DISCOVERY_PATHS, MAX_REDIRECTS
+    from fhir_scorecard.site import claim_page, how_we_grade_page
+
+    workflow = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+    matrix = re.search(r"os: \[([^\]]+)\]", workflow)
+    assert matrix is not None, "the probe matrix is what sets the number of vantages a day"
+    vantages = len([image for image in matrix.group(1).split(",") if image.strip()])
+    assert vantages == 3
+
+    per_run = len(DISCOVERY_PATHS) * (MAX_REDIRECTS + 1)
+    per_day = per_run * vantages
+    assert (per_run, per_day) == (8, 24)
+
+    claim = " ".join(claim_page("https://example.test").body.split())
+    grade = " ".join(how_we_grade_page("https://example.test").body.split())
+
+    # The per-run figure is spelled out on the page; the digits are the derived ones.
+    assert f"{per_run} per endpoint per probing run" in claim.replace("eight", str(per_run))
+    assert f"{per_day} requests to any one endpoint" in claim
+    assert f"{per_run} per endpoint per run and {per_day} per scheduled day" in grade
+    # The normal case is still stated, because it is the one operators actually see.
+    assert "two documents per endpoint per probing run" in claim.casefold()
+
+
+def test_the_published_read_limit_is_the_one_the_code_enforces() -> None:
+    """`MAX_BODY_BYTES` was an unmarked number: no comment, no test, no published statement.
+
+    An unstated bound is one nobody notices being hit, and hitting this one used to publish an
+    ``F`` against an operator whose document was fine. It is a limit this project imposes on
+    itself, so it belongs in SECURITY.md's "Known limits" beside the request bound, and the two
+    have to be derived from the same constant rather than typed twice.
+    """
+    from fhir_scorecard.fetch import MAX_BODY_BYTES
+
+    root = Path(__file__).resolve().parent.parent
+    security = " ".join((root / "SECURITY.md").read_text(encoding="utf-8").split())
+
+    assert f"{MAX_BODY_BYTES:,} bytes" in security
+    assert "is not read" in security
+    # And says which way it fails: not observed, never graded on the part that fit.
+    assert "not observed" in security
+
+
 def test_the_roadmap_names_kind_pages_the_build_actually_writes() -> None:
     """`/ehr/` and `/reference/` were listed under a completed phase and both 404."""
     import re

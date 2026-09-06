@@ -18,9 +18,11 @@ probes beyond those two paths. That last part holds on every hop, including a re
 followed, the run records that it retrieved nothing, and the endpoint is published as *not
 observed* rather than graded on whatever the redirect pointed at
 (`DiscoveryRedirectHandler` in `src/fhir_scorecard/fetch.py`,
-`tests/test_probe_contract.py`). Rate is one probing run per day per vantage, from three vantages,
-so at most six requests per endpoint per scheduled day; the run that publishes the site makes no
-requests of its own. Publishing is triggered on a schedule and by hand, not by commits.
+`tests/test_probe_contract.py`). Rate is one probing run per day per vantage, from three
+vantages, so a scheduled day normally costs an endpoint six requests and the worst case is
+24 &mdash; eight per run, and only if that server redirects three times on both paths. The run
+that publishes the site makes no requests of its own. Publishing is triggered on a schedule and
+by hand, not by commits.
 
 ## If you would rather not be listed
 
@@ -41,3 +43,8 @@ images that share one provider's network rather than from independent networks.
 They are not audits, not compliance determinations, and not statements about care quality. The
 project has published and corrected several of its own measurement errors; see
 [docs/payer-verifiability.md](docs/payer-verifiability.md).
+
+A discovery document larger than 5,000,000 bytes (`fetch.MAX_BODY_BYTES`) is not read. The
+endpoint is published as *not observed* for that run rather than graded on the part that fit,
+because a fragment cut mid-document would be scored as a malformed declaration and reported
+against the operator. No endpoint in the registry is near this limit today.

@@ -63,6 +63,95 @@ def test_org_display_name_is_the_shared_prefix_not_one_endpoints_name() -> None:
     assert org_display_name([]) == ""
 
 
+def test_a_group_that_is_all_one_surface_is_not_named_after_that_surface() -> None:
+    """The shared prefix is only about the organization when the surfaces differ.
+
+    When every endpoint in a group is the *same* surface and differs only inside parentheses,
+    the prefix is the whole name -- surface words included -- and the heuristic returned an API
+    name. `/org/communitycare/` published "CommunityCare Provider Directory API" as its `h1`,
+    `<title>`, meta description, every breadcrumb linking to it, and a schema.org `Organization`
+    that a search engine ingests about a named third party.
+    """
+    from fhir_scorecard.site import org_display_name
+
+    same_surface = [
+        "CommunityCare Provider Directory API (marketplace)",
+        "CommunityCare Provider Directory API (commercial)",
+    ]
+    assert org_display_name(same_surface) == "CommunityCare"
+
+    name = org_display_name(same_surface)
+    for surface in ("API", "Provider Directory", "Patient Access"):
+        assert surface.casefold() not in name.casefold()
+
+    # The same shape on the other surface a payer publishes.
+    assert (
+        org_display_name(
+            [
+                "Florida Blue Patient Access API (individual)",
+                "Florida Blue Patient Access API (group)",
+            ]
+        )
+        == "Florida Blue"
+    )
+
+
+def test_the_surface_strip_leaves_projects_whose_name_is_a_server_alone() -> None:
+    """ "HAPI FHIR public test server" is what that project calls itself.
+
+    The vocabulary removed here is narrower than `org_slug`'s on purpose: cutting these back to
+    "HAPI FHIR" or "SMART Health IT" would invent a name rather than repair one.
+    """
+    from fhir_scorecard.site import org_display_name, strip_surface_tail
+
+    assert strip_surface_tail("HAPI FHIR public test server") == "HAPI FHIR public test server"
+    assert strip_surface_tail("SMART Health IT open sandbox") == "SMART Health IT open sandbox"
+    assert strip_surface_tail("Firely public test server") == "Firely public test server"
+    # A name that is nothing but surface words falls back rather than rendering empty.
+    assert org_display_name(["Provider Directory API", "Provider Directory API"]) == (
+        "Provider Directory API"
+    )
+
+
+def test_every_org_page_the_real_registry_builds_is_named_for_an_organization() -> None:
+    """The measured claim, held against the shipped data rather than a hand-written example.
+
+    Of the 24 groups that get an org page, exactly one was named after an API. The corrected
+    name is the one `data/cohorts/oklahoma-marketplace.json` already cites for those two
+    endpoint ids, from the CMS QHP landscape roster -- so this is not a coincidence of string
+    trimming, it agrees with the project's own source of record.
+    """
+    import collections
+    import json as _json
+
+    from fhir_scorecard.site import org_display_name, org_slug
+
+    repo = Path(__file__).resolve().parent.parent
+    registry = _json.loads((repo / "data" / "registry.json").read_text(encoding="utf-8"))
+    groups: dict[str, list[str]] = collections.defaultdict(list)
+    for entry in registry["endpoints"]:
+        groups[org_slug(entry["name"])].append(entry["name"])
+    multi = {slug: names for slug, names in groups.items() if len(names) > 1}
+    assert len(multi) >= 20, "the scan found almost no org pages; it would pass over nothing"
+
+    for slug, names in multi.items():
+        name = org_display_name(names)
+        assert name, slug
+        assert not re.search(r"\b(api|apis|provider directory|patient access)\s*$", name, re.I), (
+            f"/org/{slug}/ would publish {name!r} as an Organization"
+        )
+
+    cohort = _json.loads(
+        (repo / "data" / "cohorts" / "oklahoma-marketplace.json").read_text(encoding="utf-8")
+    )
+    roster = next(m for m in cohort["members"] if m["id"] == "communitycare-oklahoma")
+    assert set(roster["endpoints"]) == {
+        "communitycare-provider-directory-qhp",
+        "communitycare-provider-directory-commercial",
+    }
+    assert org_display_name(groups["communitycare"]) == roster["roster_name"] == "CommunityCare"
+
+
 def test_endpoint_page_escapes_and_carries_structured_data() -> None:
     page = endpoint_page(
         _card(name="<script>x</script>"),

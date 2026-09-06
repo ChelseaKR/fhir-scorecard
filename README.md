@@ -52,6 +52,46 @@ threshold set that fails the gate, on the stated ground that the threshold could
 evaluated. The same command is packaged as a composite GitHub Action in `action.yml` —
 see [docs/ci-action.md](docs/ci-action.md).
 
+An operator with several endpoints — a payer with Patient Access, a provider directory and a
+sandbox — can check them in one run by pointing `check` at their own list:
+
+```bash
+.venv/bin/fhir-scorecard check --registry operator.json \
+  --junit fhir-junit.xml --sarif fhir.sarif --min-grade B
+```
+
+The file is the same shape as `data/registry.json` minus the verification blocks. An operator
+checking endpoints they already run publishes no attribution, so there is no verification claim
+to record, and a `verification` block is refused rather than ignored. Each entry may carry its
+own `min_grade`, which overrides the run-wide one, so a sandbox and a production API can sit in
+one file and be held to different bars:
+
+```json
+{
+  "endpoints": [
+    {"id": "patient-access", "name": "Patient Access", "kind": "payer",
+     "base_url": "https://fhir.example.org/r4", "min_grade": "B"},
+    {"id": "sandbox", "name": "Sandbox", "kind": "payer",
+     "base_url": "https://sandbox.example.org/r4"}
+  ]
+}
+```
+
+`--junit` writes a testsuite per kind and a testcase per endpoint and dimension; `--sarif`
+writes SARIF 2.1.0 with one result per finding, each carrying the specification passage it
+cites. Neither carries a timestamp, so two runs over the same documents produce the same bytes
+and a diff between yesterday's artifact and today's is a change in the endpoints.
+
+**An endpoint this run did not reach is reported as not measured, never as a failure.** Its
+testcases are `skipped` naming the vantage, its SARIF results are `note` with a severity of
+`not observed`, and the run's summary counts it separately from the endpoints that were graded,
+so a run that reached nothing cannot summarise as a clean one. The exit code still answers only
+the thresholds you set, exactly as the single-endpoint check does: an unreachable endpoint is a
+fact about the network path between your runner and it as much as about the endpoint, and a
+build that goes red for that is blaming the endpoint for the runner. To make an unreached
+registry fail on purpose, pass `--min-grade F` — a threshold cannot be evaluated without a
+grade, so it fails.
+
 ## What it observes, and what it never touches
 
 Everything graded here is **public, unauthenticated surface**:

@@ -28,6 +28,7 @@ from fhir_scorecard.capability import (
     parse_capability,
     parse_smart,
 )
+from fhir_scorecard.ci_report import EndpointResult, to_junit, to_sarif
 from fhir_scorecard.cohort import Cohort, load_cohort_dir
 from fhir_scorecard.coverage import classify, read_frame, read_reviewed_rows_by_cohort
 from fhir_scorecard.coverage import page as coverage_page
@@ -37,6 +38,11 @@ from fhir_scorecard.fetch import TIMEOUT_S, FetchResult, fetch_json
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
 from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.leaderboard import page as availability_page
+from fhir_scorecard.operator import (
+    OperatorEndpoint,
+    OperatorRegistryError,
+    load_operator_registry,
+)
 from fhir_scorecard.over_time import page as over_time_page
 from fhir_scorecard.registry import EXPECTS, KINDS, Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import to_json
@@ -239,22 +245,31 @@ def _check_slug(base_url: str) -> str:
     return slug if re.fullmatch(r"[a-z0-9][a-z0-9-]{1,63}", slug) else "checked-endpoint"
 
 
-def _cmd_check(args: argparse.Namespace) -> int:
-    """Grade one endpoint from its own public documents and apply the caller's threshold.
+def _grade_one(
+    base_url: str,
+    *,
+    endpoint_id: str,
+    name: str,
+    kind: str,
+    expects: str,
+    vantage: str,
+    timeout: float,
+    fixtures: Path | None = None,
+) -> tuple[Scorecard, FetchResult]:
+    """Grade one endpoint from its two public documents, and hand back what was retrieved.
 
-    Registry-free by design. The registry records how each listed endpoint was verified and who
-    it may be attributed to; a CI check of an endpoint the caller already operates has no such
-    record to make, and synthesizing one would put a verification claim in the artifact that
-    nobody performed. Nothing here is written to ``data/``, no history is opened, and no page is
-    rendered: a check observes, reports, and exits.
+    Shared by the single-endpoint check and the operator-registry run so the two cannot drift:
+    a registry entry is graded by the same code, with the same not-observed handling, as a
+    single ``check`` of the same address.
     """
-    base_url = str(args.base_url).rstrip("/")
-    if not base_url.startswith("https://"):
-        print("check: base URL must be https", file=sys.stderr)
-        return 2
-
-    metadata = fetch_json(f"{base_url}/metadata", timeout=args.timeout)
-    smart = fetch_json(f"{base_url}/.well-known/smart-configuration", timeout=args.timeout)
+    metadata_url = f"{base_url}/metadata"
+    smart_url = f"{base_url}/.well-known/smart-configuration"
+    if fixtures is not None:
+        metadata = _offline_fetch(fixtures, endpoint_id, "metadata.json", metadata_url)
+        smart = _offline_fetch(fixtures, endpoint_id, "smart.json", smart_url)
+    else:
+        metadata = fetch_json(metadata_url, timeout=timeout)
+        smart = fetch_json(smart_url, timeout=timeout)
     if metadata.ok:
         facts = parse_capability(metadata.body)
         # This run reached the host, so it did ask for the SMART document: a failed fetch is an
@@ -265,18 +280,49 @@ def _cmd_check(args: argparse.Namespace) -> int:
         # run never saw, so the content dimensions are not scored at all.
         facts = NO_CAPABILITY_RETRIEVED
         smart_facts = NO_SMART_RETRIEVED
-
     card = build_scorecard(
-        _check_slug(base_url),
-        args.name or urlsplit(base_url).netloc,
+        endpoint_id,
+        name,
         metadata,
         facts,
         smart_facts,
-        kind=args.kind,
-        vantage=args.vantage,
-        version_prefix=version_prefix(args.expects),
+        kind=kind,
+        vantage=vantage,
+        version_prefix=version_prefix(expects),
         # No drift, no availability, no first-seen date. One observation is not a record of
         # one, and a check must not write into the record the daily run keeps.
+    )
+    return card, metadata
+
+
+def _cmd_check(args: argparse.Namespace) -> int:
+    """Grade one endpoint, or every endpoint in an operator's own registry.
+
+    Registry-free by design in both modes. :mod:`fhir_scorecard.registry` records how each
+    listed endpoint was verified and who it may be attributed to; a CI check of endpoints the
+    caller already operates has no such record to make, and synthesizing one would put a
+    verification claim in the artifact that nobody performed. Nothing here is written to
+    ``data/``, no history is opened, and no page is rendered: a check observes, reports, and
+    exits.
+    """
+    if args.registry is not None:
+        return _cmd_check_registry(args)
+    if not args.base_url:
+        print("check: give a BASE_URL or --registry", file=sys.stderr)
+        return 2
+    base_url = str(args.base_url).rstrip("/")
+    if not base_url.startswith("https://"):
+        print("check: base URL must be https", file=sys.stderr)
+        return 2
+
+    card, metadata = _grade_one(
+        base_url,
+        endpoint_id=_check_slug(base_url),
+        name=args.name or urlsplit(base_url).netloc,
+        kind=args.kind,
+        expects=args.expects,
+        vantage=args.vantage,
+        timeout=args.timeout,
     )
 
     payload = to_json(
@@ -305,6 +351,152 @@ def _cmd_check(args: argparse.Namespace) -> int:
         print(f"gate: {outcome.reason}", file=sys.stderr)
         return 1
     return 0
+
+
+def _write_artifact(path: Path, text: str, label: str) -> str:
+    """Write one CI artifact, or return the message explaining why it could not be written."""
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    except OSError as exc:
+        return f"check: could not write {label} to {path}: {exc}"
+    return ""
+
+
+def _grade_registry(
+    enabled: list[OperatorEndpoint], args: argparse.Namespace, fixtures: Path | None
+) -> list[EndpointResult]:
+    """Grade every enabled entry, in id order so the artifacts are stable."""
+    results: list[EndpointResult] = []
+    for entry in sorted(enabled, key=lambda e: e.endpoint_id):
+        card, metadata = _grade_one(
+            entry.base_url,
+            endpoint_id=entry.endpoint_id,
+            name=entry.name,
+            kind=entry.kind,
+            expects=entry.expects,
+            vantage=args.vantage,
+            timeout=args.timeout,
+            fixtures=fixtures,
+        )
+        # The per-entry threshold wins where it is set. An operator whose sandbox and whose
+        # production Patient Access API sit in one file should not have to run the tool twice
+        # to hold them to different bars.
+        min_grade = entry.min_grade or args.min_grade
+        results.append(
+            EndpointResult(
+                entry=entry,
+                card=card,
+                outcome=evaluate(card, min_grade=min_grade, detail=metadata.error or ""),
+                min_grade=min_grade,
+                vantage=args.vantage,
+            )
+        )
+    return results
+
+
+def _write_registry_artifacts(
+    args: argparse.Namespace, results: list[EndpointResult], cards: list[Scorecard]
+) -> str:
+    """Write whichever artifacts were asked for, or the message saying why one could not be."""
+    wanted: list[tuple[Path | None, str, str]] = []
+    if args.json_out is not None:
+        payload = to_json(
+            cards,
+            generated_at=time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()),
+            vantage=args.vantage,
+        )
+        wanted.append((Path(args.json_out), payload, "the result JSON"))
+    if args.junit is not None:
+        wanted.append((Path(args.junit), to_junit(results), "the JUnit report"))
+    if args.sarif is not None:
+        wanted.append((Path(args.sarif), to_sarif(results), "the SARIF report"))
+    for path, text, label in wanted:
+        if path is None:
+            continue
+        problem = _write_artifact(path, text, label)
+        if problem:
+            return problem
+    return ""
+
+
+def _print_registry_results(results: list[EndpointResult]) -> None:
+    for result in results:
+        print(f"{result.card.grade}  {result.entry.endpoint_id}  {result.entry.base_url}")
+        for dimension in result.card.dimensions:
+            measured = (
+                "not observed on this run" if dimension.score is None else f"{dimension.score}"
+            )
+            print(f"  {dimension.title}: {measured}")
+
+
+def _cmd_check_registry(args: argparse.Namespace) -> int:
+    """Grade every enabled endpoint in an operator's own registry.
+
+    Exit 2 covers everything that stopped the run from being made: an unreadable registry, an
+    entry this tool refuses (a non-https base URL among them, refused at load time and so before
+    any request), or an artifact that could not be written. Exit 1 means endpoints were graded
+    and a threshold the caller set was not met. A run where nothing was gradeable is never 0.
+    """
+    try:
+        entries = load_operator_registry(Path(args.registry))
+    except OperatorRegistryError as exc:
+        print(f"check: {exc}", file=sys.stderr)
+        return 2
+    enabled = [e for e in entries if e.enabled]
+    if not enabled:
+        print("check: every entry in the operator registry is disabled", file=sys.stderr)
+        return 2
+    fixtures = Path(args.fixtures) if args.offline else None
+    if args.offline and fixtures is not None and not fixtures.is_dir():
+        print(
+            f"check: --offline needs a fixtures directory; {fixtures} is not one", file=sys.stderr
+        )
+        return 2
+
+    results = _grade_registry(enabled, args, fixtures)
+    cards = [r.card for r in results]
+
+    problem = _write_registry_artifacts(args, results, cards)
+    if problem:
+        print(problem, file=sys.stderr)
+        return 2
+
+    _print_registry_results(results)
+    failed = [r for r in results if not r.outcome.passed]
+    for result in failed:
+        print(f"gate: {result.entry.endpoint_id}: {result.outcome.reason}", file=sys.stderr)
+
+    # The roll-up separates what was graded from what was not reached. "3 endpoints checked, 0
+    # below the threshold" over three endpoints nothing answered is a clean-looking summary of
+    # no measurement at all, which is the same absence-as-a-value this grader refuses
+    # everywhere else.
+    graded = [r for r in results if r.observed]
+    unreached = [r for r in results if not r.observed]
+    summary = (
+        f"{len(results)} endpoint(s) in the registry: {len(graded)} graded, "
+        f"{len(unreached)} not reached on this run"
+    )
+    if unreached:
+        summary += f" ({', '.join(sorted(r.entry.endpoint_id for r in unreached))})"
+    print(summary)
+    if not graded:
+        # Said loudly, and still not turned into a failure on its own. The exit code answers
+        # only the thresholds the caller set, exactly as the single-endpoint check does for the
+        # same situation: a run that reached nothing is a fact about this network path, and a
+        # build that goes red for it is blaming the endpoint for the runner. A caller who does
+        # want that outcome has an explicit way to ask -- `--min-grade F` cannot be evaluated
+        # without a grade, so it fails -- and `docs/ci-action.md` says so.
+        print(
+            "check: no endpoint in this registry was reached on this run, so nothing was "
+            "graded. That is a fact about this run's network path as much as about these "
+            "endpoints, and it is not a clean bill of health. Pass --min-grade F to make an "
+            "unreached registry fail the build.",
+            file=sys.stderr,
+        )
+    else:
+        print(f"{len(failed)} of the {len(graded)} graded fell below the threshold set for them")
+    return 1 if failed else 0
 
 
 def _recheck(candidates_path: Path, json_out: Path | None = None) -> int:
@@ -448,7 +640,47 @@ def _build_parser() -> argparse.ArgumentParser:
         help="grade one endpoint from its own public documents and optionally gate a build; "
         "publishes nothing and touches no registry, history, or site",
     )
-    check.add_argument("base_url", metavar="BASE_URL", help="FHIR base URL, https only")
+    check.add_argument(
+        "base_url",
+        metavar="BASE_URL",
+        nargs="?",
+        default="",
+        help="FHIR base URL, https only. Omit it and pass --registry to check several at once",
+    )
+    check.add_argument(
+        "--registry",
+        type=Path,
+        default=None,
+        help="an operator's own list of endpoints to check, in the same shape as "
+        "data/registry.json minus the verification blocks. Each entry may set its own "
+        "min_grade. Nothing under data/ is read or written",
+    )
+    check.add_argument(
+        "--junit",
+        type=Path,
+        default=None,
+        help="write JUnit XML here: a testsuite per kind, a testcase per endpoint and "
+        "dimension. A check this run could not make is a skipped testcase naming the vantage, "
+        "never a failure",
+    )
+    check.add_argument(
+        "--sarif",
+        type=Path,
+        default=None,
+        help="write SARIF 2.1.0 here: one result per finding, each carrying its citation. "
+        "Carries no timestamp, so two runs over the same documents produce the same bytes",
+    )
+    check.add_argument(
+        "--offline",
+        action="store_true",
+        help="read fixtures instead of the network, for exercising a registry run in a test",
+    )
+    check.add_argument(
+        "--fixtures",
+        type=Path,
+        default=Path("tests/fixtures"),
+        help="fixture directory for --offline",
+    )
     check.add_argument(
         "--name",
         default="",

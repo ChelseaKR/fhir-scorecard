@@ -265,3 +265,62 @@ def test_letter_refuses_when_the_bound_spans_two_bands() -> None:
     # ...and does not refuse merely because it was asked.
     settled = grade_interop(_facts(), _smart_unusable(), kind="payer")
     assert letter((reach, transparency, settled), reachable=True) in _GRADES
+
+
+# --- the invariant that makes the rest unnecessary ---------------------------
+
+
+def test_every_dimensions_denominator_is_the_same_for_every_endpoint_of_a_kind() -> None:
+    """The general form of this bug, stated once so no future check can reintroduce it.
+
+    A dimension score is a percentage, and the letter thresholds are calibrated against a
+    full scale. That only holds while `sum(max_points) + withheld_points` is the same number
+    for every endpoint of a given kind, whatever its documents said or failed to say. A check
+    that is conditionally appended, or one that quietly carries `max_points=0` where it should
+    carry its weight, moves the denominator and puts the endpoints on different scales -- which
+    is what happened here, and what nothing was watching for.
+
+    Dimensions that observed nothing at all are exempt: they publish no percentage, so there is
+    no scale for them to be off.
+    """
+    from fhir_scorecard.capability import NO_CAPABILITY_RETRIEVED, parse_capability
+
+    smart_states = {
+        "complete": parse_smart(
+            json.dumps(
+                {"authorization_endpoint": "https://a/", "token_endpoint": "https://t/"}
+            ).encode()
+        ),
+        "empty": parse_smart(b"{}"),
+        "unretrieved": NO_SMART_RETRIEVED,
+    }
+    capability_states = {
+        "good": _facts(),
+        "oauth": _facts(declares_oauth_security=True),
+        "no-profiles": _facts(conformance_profiles=()),
+        "unreadable": parse_capability(b'{"resourceType":"OperationOutcome"}'),
+        "empty-body": parse_capability(b""),
+        "unretrieved": NO_CAPABILITY_RETRIEVED,
+    }
+
+    seen: dict[tuple[str, str], set[int]] = {}
+    for kind in ("payer", "ehr", "reference", "payer_provider_directory"):
+        for cap_name, facts in capability_states.items():
+            for smart_name, smart in smart_states.items():
+                card = build_scorecard("e", "Endpoint", _reached(), facts, smart, kind=kind)
+                for dimension in card.dimensions:
+                    observed = sum(f.max_points for f in dimension.findings)
+                    scale = observed + dimension.withheld_points
+                    if scale == 0:
+                        # Nothing was observed; no percentage is published.
+                        assert dimension.score is None, (kind, cap_name, smart_name)
+                        continue
+                    seen.setdefault((kind, dimension.key), set()).add(scale)
+
+    assert seen, "the sweep produced no dimension to check"
+    drifting = {key: sorted(scales) for key, scales in seen.items() if len(scales) > 1}
+    assert not drifting, (
+        "these dimensions score different endpoints of the same kind out of different "
+        f"totals, so their percentages are not comparable and the letter thresholds do not "
+        f"mean one thing: {drifting}"
+    )

@@ -14,6 +14,54 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **"Unreachable" was one label doing duty for several very different facts** (#117).
+  `fetch.describe_error` already told a hostname that does not resolve apart from a
+  certificate that does not verify, a timeout, a refused connection and a refused
+  redirect -- and then flattened all of it into one free-text sentence and one
+  boolean. A payer that gates `/metadata` behind registration and a payer whose
+  public record is broken published identically, and nothing counted either
+  population.
+
+  `FetchResult` now carries `failure_kind` from a closed vocabulary:
+  `authentication_required`, `forbidden`, `not_found`, `dns`, `tls`, `timeout`,
+  `connection_refused`, `server_error`, `redirect_refused`, `unclassified`. The
+  sentence is unchanged byte for byte -- `describe_error` reads the second half of a
+  single ladder that returns both, so a classifier and a describer cannot drift apart
+  on the first branch somebody adds to one of them.
+
+  `unclassified` is a real member and is published as itself. A 415, a 429 or a 400 is
+  an answer this project has no label for and gets that one, not the nearest-looking
+  label; so does an unrecognised kind arriving in a probe file written by a vantage
+  this project does not operate.
+
+  `Consensus.failure_kinds` reconciles them under the rule the rest of the module
+  already follows. Three vantages reporting three conditions is a disagreement, and it
+  is published as all three -- in the data and in the sentence the endpoint page shows
+  -- rather than resolved to whichever came first. One vantage reaching leaves it
+  empty: a working endpoint belongs to no failure population, which is the 2026-08-05
+  asymmetry one level down.
+
+  Carried into `dataset.csv` (space-separated), `api/endpoint/<id>.json` (a JSON
+  array) and the MCP `endpoint` tool, so an assistant asked about an endpoint graded
+  *not observed* can say which of the two conditions it is in.
+
+  **It decides nothing.** `data/CANDIDATES.md` calls a 401 "permitted but makes their
+  conformance publicly unverifiable"; `docs/SAMPLING-FRAME.md` section 4 calls it "a
+  defect in the public record". Both are defensible and they are not the same claim.
+  This change makes the two populations countable and adds no wording that settles
+  which reading is right -- no `/coverage/` copy, and no sentence anywhere about a
+  payer having chosen anything.
+
+  **No grade moved.** `tests/test_failure_kinds.py` pins every fixture endpoint's
+  letter and three dimension scores as literals read off `main` at 6235d71, and states
+  in terms that all three fixtures are reachable -- so the pin holds the invariance and
+  is not evidence the classification works.
+
+- `_verify_message` reads `verify_message` and `reason` defensively when describing a
+  certificate failure. Both are set whenever the `ssl` module raises, so no run has hit
+  this; the describing path runs inside an `except` block, and an `AttributeError`
+  there would end the run for every endpoint after it.
+
 - **`fhir-scorecard check --registry`, for an operator with more than one endpoint,
   with `--junit` and `--sarif`.** `check` graded one base URL, so a payer with
   Patient Access, a provider directory and a sandbox scripted around the single

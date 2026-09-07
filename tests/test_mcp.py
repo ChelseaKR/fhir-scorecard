@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -32,6 +33,25 @@ def site(tmp_path: Path) -> Path:
 
 def _payload(result: dict) -> dict:
     return json.loads(result["content"][0]["text"])
+
+
+def test_initialize_reports_the_packaged_version(site: Path) -> None:
+    """``serverInfo.version`` is the version this package actually is.
+
+    It was a hand-typed ``"0.1.0"`` literal that nothing read. A client asking this
+    server what it is talking to would have kept being told ``0.1.0`` after the package
+    moved on, and no gate in the repository could have noticed -- the packaged version
+    lives in ``pyproject.toml`` and this string was never compared to it.
+
+    The comparison is against the packaging metadata rather than ``__version__``, so a
+    future change that stops deriving one from the other is caught here too.
+    """
+    with (Path(__file__).resolve().parents[1] / "pyproject.toml").open("rb") as handle_:
+        declared = str(tomllib.load(handle_)["project"]["version"])
+
+    init = handle(site, {"jsonrpc": "2.0", "id": 1, "method": "initialize"})
+    assert init is not None
+    assert init["result"]["serverInfo"]["version"] == declared
 
 
 def test_initialize_and_tools_list(site: Path) -> None:

@@ -27,8 +27,10 @@ measurement:
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 from fhir_scorecard.capability import parse_capability
 from fhir_scorecard.drift import fingerprint
@@ -366,11 +368,58 @@ def write_probes(path: Path, vantage: str, probes: dict[str, VantageProbe]) -> N
     )
 
 
+def probe_entry_failure(entry: dict[str, Any]) -> str | None:
+    """Why this probe entry is not a measurement, or ``None`` when it is one.
+
+    Two fields decide whether an entry can be read at all, and both used to be coerced.
+
+    ``elapsed_ms`` was read as ``int(entry.get("elapsed_ms") or 0)``. An entry that carried
+    no latency -- or carried ``null``, or a string -- therefore arrived as **0 ms**, and
+    :func:`reconcile` puts every reachable probe's ``elapsed_ms`` into a median that
+    :mod:`fhir_scorecard.grading` bands at 3000 ms and 8000 ms for R2. Zero is below every
+    band, so a missing measurement was not merely wrong, it was the fastest possible
+    reading, and it pulled the median down and the grade up. A latency nobody recorded is
+    absence; published as ``0`` it is a measurement, and one that flatters the endpoint.
+
+    ``reachable`` was read as ``bool(entry.get("reachable"))``. Every non-empty string is
+    truthy in Python, so an entry carrying ``"reachable": "false"`` -- which is what a
+    hand-written file, or a writer in a language where JSON booleans stringify, produces --
+    was read as reachable.
+
+    Neither has bitten yet: :func:`write_probes` serialises a dataclass, so every file this
+    project has written carries a real boolean and a real integer. The path that makes it
+    live is #100, where a vantage this project does not operate posts a probe file for the
+    publishing run to admit. A file from a foreign writer is exactly the input these two
+    coercions were waiting for, and it would arrive at a grade rather than at an error.
+
+    So an entry that is not readable as a measurement is skipped, under the rule
+    :func:`load_probe_files` already states: losing one vantage degrades the consensus, it
+    does not abort the run. An endpoint that loses every vantage this way is *not observed*,
+    which this project renders as itself and never as unreachable or as a zero.
+    """
+    reachable = entry.get("reachable")
+    if not isinstance(reachable, bool):
+        return (
+            f"'reachable' is {reachable!r}, which is not true or false. Read as a "
+            "truthiness test, any non-empty string here would count as reached"
+        )
+    elapsed = entry.get("elapsed_ms")
+    if isinstance(elapsed, bool) or not isinstance(elapsed, int) or elapsed < 0:
+        return (
+            f"'elapsed_ms' is {elapsed!r}, which is not a whole number of milliseconds. "
+            "Coerced to 0 it would be the fastest reading this grader can record"
+        )
+    return None
+
+
 def load_probe_files(paths: list[Path]) -> dict[str, list[VantageProbe]]:
     """Load several vantages' probe files, keyed by endpoint id.
 
     A malformed or empty file is skipped rather than aborting the merge: losing one vantage
-    should degrade the consensus, not the run.
+    should degrade the consensus, not the run. The same rule applies one level down, to an
+    entry inside an otherwise readable file -- see :func:`probe_entry_failure`. Each skip is
+    printed, because a probe that vanished silently is indistinguishable from one that was
+    never sent.
     """
     by_endpoint: dict[str, list[VantageProbe]] = {}
     for path in paths:
@@ -387,11 +436,18 @@ def load_probe_files(paths: list[Path]) -> dict[str, list[VantageProbe]]:
         for endpoint_id, entry in probes.items():
             if not isinstance(entry, dict):
                 continue
+            failure = probe_entry_failure(entry)
+            if failure is not None:
+                print(
+                    f"vantage probe skipped: {path.name} {endpoint_id!r}: {failure}",
+                    file=sys.stderr,
+                )
+                continue
             by_endpoint.setdefault(str(endpoint_id), []).append(
                 VantageProbe(
                     vantage=str(entry.get("vantage") or vantage),
                     reachable=bool(entry.get("reachable")),
-                    elapsed_ms=int(entry.get("elapsed_ms") or 0),
+                    elapsed_ms=int(entry["elapsed_ms"]),
                     error=entry.get("error") if isinstance(entry.get("error"), str) else None,
                     capability=(
                         entry.get("capability")

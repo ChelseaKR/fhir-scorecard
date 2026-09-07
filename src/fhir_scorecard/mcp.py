@@ -208,6 +208,12 @@ def cited_passages(record: dict[str, Any], root: Path) -> dict[str, Any]:
     return {
         "endpoint_id": endpoint.get("endpoint_id"),
         "grade": endpoint.get("grade"),
+        # Why no vantage reached it, when none did (#117). An assistant asked about an endpoint
+        # graded "not observed" could otherwise only say that nothing was retrieved; this is the
+        # difference between a payer that requires credentials and a payer whose public record is
+        # broken, and it is the difference a reader is actually asking about. Reported as the
+        # condition observed, with no claim about whose choice it was.
+        "failure_kinds": endpoint.get("failure_kinds") or [],
         "findings": rows,
         "note": (
             "Passages are quoted verbatim from retained copies of the cited pages "

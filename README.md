@@ -219,6 +219,43 @@ Three properties hold it to the rule above:
 - `--apply` with nothing accepted writes no byte, and `--apply` reaches no network. Producing a
   proposal and applying one are separate runs because the decision between them is a person's.
 
+### Reading an inbound claim
+
+The add-endpoint issue form collects exactly what an entry needs. `fhir-scorecard claim` reads
+one submission, retrieves the same two discovery documents every other verb retrieves, and
+writes a proposal plus the text of a comment. It edits no registry and opens no pull request.
+
+```console
+# The rendered issue body in a file; the registry is opened read-only, to refuse a duplicate.
+fhir-scorecard claim issue-body.md --out claim-2026-09-07.json --comment-out comment.md
+```
+
+The submitted base URL is the one URL in this project that an unauthenticated stranger chooses,
+so the boundary runs before anything is requested: the scheme must be `https`, the URL must
+carry no credentials and must not already be a discovery path, and **every address the host
+resolves to must be public** — one loopback, private, link-local or reserved address disqualifies
+the host even when others are public, and a name that will not resolve is refused rather than
+attempted. The tests drive the whole verb with a fetcher that fails the run if it is called at
+all, so "nothing was requested" is asserted rather than assumed.
+
+Two limits are deliberate and are stated in the output rather than worked around:
+
+- **The submitted documentation page is not retrieved.** It is the evidence that the publisher is
+  who the claim says, and reading it would mean requesting a page that is not one of the two
+  discovery documents — a different activity from the one this README describes, and an open
+  decision recorded on [#118](https://github.com/ChelseaKR/fhir-scorecard/issues/118). Until it
+  is settled the URL is carried through unchecked and published as *not retrieved*, in those
+  words, and no proposed `verification` block rests on it. The scope sentence above therefore
+  still holds exactly as written.
+- **A claim whose CapabilityStatement was not retrieved proposes nothing at all.** The other
+  basis, `publisher_documented`, is defined by that documentation page, so an unretrievable claim
+  cannot honestly reach either basis. It gets a comment naming what happened and no entry.
+
+A document that does not repeat the submitted organization's name is `attribution_review`, not a
+rejection and never a "mismatch" — the same vocabulary and the same comparison `reverify` uses.
+Where an accepted claim belongs, `data/registry.json` or `data/CANDIDATES.md`, is the maintainer's
+open call; the proposal takes no side on it.
+
 ## Cohorts and the sampling frame
 
 A cohort is a named view over the registry whose membership comes from a **public roster** rather

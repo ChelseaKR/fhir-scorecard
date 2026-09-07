@@ -9,6 +9,7 @@ import re
 import sys
 import time
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -38,6 +39,10 @@ from fhir_scorecard.drift import ensure_mode, load_history, observe, save_histor
 from fhir_scorecard.fetch import TIMEOUT_S, FetchResult, fetch_json
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
 from fhir_scorecard.grading import Scorecard, build_scorecard
+from fhir_scorecard.intake import ClaimError, assess, claim_from_form
+from fhir_scorecard.intake import build_proposal as build_claim_proposal
+from fhir_scorecard.intake import format_comment as format_claim_comment
+from fhir_scorecard.intake import format_report as format_claim_report
 from fhir_scorecard.leaderboard import page as availability_page
 from fhir_scorecard.operator import (
     OperatorEndpoint,
@@ -610,6 +615,53 @@ def _reverify(args: argparse.Namespace) -> int:
     return 0
 
 
+def _claim(args: argparse.Namespace) -> int:
+    """Read one add-endpoint submission and write a proposal and a comment.
+
+    Exit 0 whether the claim was accepted or refused, for ``_reverify``'s reason: a refusal is
+    this verb working, not a build failing, and the outcome is in the proposal file where a
+    caller can read it as data. Exit 2 is reserved for a submission that could not be read at
+    all, or a registry that could not be opened.
+
+    Nothing here writes to ``--registry``. It is opened to refuse a duplicate base URL and to
+    keep the suggested id from colliding, and for nothing else.
+    """
+    today = args.today or _dt.date.today().isoformat()
+    try:
+        body = args.issue.read_text(encoding="utf-8")
+        claim = claim_from_form(body)
+    except (OSError, ClaimError) as exc:
+        print(f"claim error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        registry = load_registry(args.registry) if args.registry.exists() else []
+    except (OSError, ValueError) as exc:
+        print(f"registry error: {exc}", file=sys.stderr)
+        return 2
+    verdict = assess(claim, today=today, registry=registry)
+    print(format_claim_report(verdict))
+    out = args.out or Path(f"claim-{today}.json")
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(
+            json.dumps(
+                build_claim_proposal(verdict, today=today, issue=args.issue_ref),
+                indent=2,
+                ensure_ascii=False,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        if args.comment_out is not None:
+            args.comment_out.parent.mkdir(parents=True, exist_ok=True)
+            args.comment_out.write_text(format_claim_comment(verdict) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"write error: {exc}", file=sys.stderr)
+        return 2
+    print(f"wrote the proposal to {out}; nothing was written to {args.registry}")
+    return 0
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fhir-scorecard")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -734,6 +786,44 @@ def _build_parser() -> argparse.ArgumentParser:
         "reach no network. Rows that observed no document can never be applied",
     )
     reverify.add_argument(
+        "--today",
+        default=None,
+        help=argparse.SUPPRESS,  # tests pin the date
+    )
+    claim = sub.add_parser(
+        "claim",
+        help="read an add-endpoint submission, retrieve the two discovery documents, and write "
+        "a proposal and a comment; never edits the registry and never opens a pull request",
+    )
+    claim.add_argument(
+        "issue",
+        type=Path,
+        metavar="ISSUE_BODY",
+        help="a file holding the rendered issue-form body",
+    )
+    claim.add_argument(
+        "--registry",
+        type=Path,
+        default=Path("data/registry.json"),
+        help="read-only: used to refuse a base URL that is already registered and to keep the "
+        "suggested id from colliding. Never written",
+    )
+    claim.add_argument(
+        "--out", type=Path, default=None, help="proposal path (default: claim-<date>.json)"
+    )
+    claim.add_argument(
+        "--comment-out",
+        type=Path,
+        default=None,
+        help="also write the issue comment text here, for a workflow to post verbatim",
+    )
+    claim.add_argument(
+        "--issue-ref",
+        default="",
+        help="the issue this submission came from, recorded verbatim in the proposal so the "
+        "artifact says what it was generated for. A local file path is deliberately not used",
+    )
+    claim.add_argument(
         "--today",
         default=None,
         help=argparse.SUPPRESS,  # tests pin the date
@@ -930,27 +1020,32 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
     setup path is what lets ``check`` be genuinely registry-free rather than registry-free by
     remembering to skip a step.
     """
-    if args.command == "recheck":
-        return _recheck(args.candidates, args.json_out)
-    if args.command == "reverify":
-        return _reverify(args)
-    if args.command == "check":
-        return _cmd_check(args)
-    if args.command == "mcp":
-        from fhir_scorecard.mcp import serve
+    # A table rather than a chain of comparisons. A chain grows one branch per verb and
+    # eventually trips the complexity gate, at which point the tempting repair is to raise the
+    # threshold; a table does not grow a branch at all. Built here rather than at module scope
+    # so it does not have to be defined after every handler it names.
+    handlers: dict[str, Callable[[argparse.Namespace], int]] = {
+        "recheck": lambda args: _recheck(args.candidates, args.json_out),
+        "reverify": _reverify,
+        "claim": _claim,
+        "check": _cmd_check,
+        "mcp": _cmd_mcp,
+        "narrate": _cmd_narrate,
+        "audit-site": _cmd_audit_site,
+        "snapshot": _cmd_snapshot,
+        "verify-snapshot": _cmd_verify_snapshot,
+        "diff": _cmd_diff,
+    }
+    handler = handlers.get(args.command)
+    return handler(args) if handler is not None else None
 
-        return serve(args.site, root=args.root)
-    if args.command == "narrate":
-        return _cmd_narrate(args)
-    if args.command == "audit-site":
-        return _cmd_audit_site(args)
-    if args.command == "snapshot":
-        return _cmd_snapshot(args)
-    if args.command == "verify-snapshot":
-        return _cmd_verify_snapshot(args)
-    if args.command == "diff":
-        return _cmd_diff(args)
-    return None
+
+def _cmd_mcp(args: argparse.Namespace) -> int:
+    # Imported here rather than at module scope: the MCP server is only reachable through this
+    # verb, and importing it for every `grade` run would load a surface that run never uses.
+    from fhir_scorecard.mcp import serve
+
+    return serve(args.site, root=args.root)
 
 
 def _cmd_diff(args: argparse.Namespace) -> int:

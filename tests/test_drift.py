@@ -193,3 +193,83 @@ def test_legacy_profile_list_migrates_without_false_drift() -> None:
     r = observe(history, "x", _facts(), "2026-08-05")
     assert r.changes == ()
     assert "profile_count" in history["x"]["fingerprint"]
+
+
+# ----------------------------------------------------------------------------------
+# An entry in the availability window that is not a measurement (#116's shape, one file over)
+# ----------------------------------------------------------------------------------
+
+
+def test_a_string_false_is_not_a_day_the_endpoint_answered() -> None:
+    """`"up": "false"` used to count as an answer, because every non-empty string is truthy.
+
+    This is the coercion #116 removed from `vantage.probe_entry_failure`, in the path that
+    publishes an availability percentage about a named healthcare organization -- and it went
+    the flattering way: an entry saying the endpoint was down raised the published rate.
+    """
+    from fhir_scorecard.drift import readable_observations
+
+    assert readable_observations([{"date": "2026-09-01", "up": "false"}]) == []
+    assert readable_observations([{"date": "2026-09-01", "up": "true"}]) == []
+
+
+def test_an_entry_with_no_verdict_is_not_counted_as_an_outage_either() -> None:
+    """Dropped from the numerator *and* the denominator.
+
+    Removing it from the numerator alone would turn an unreadable record into a recorded day
+    of downtime, which is a claim about an endpoint that no run ever made. An absence is not a
+    measurement in either direction.
+    """
+    from fhir_scorecard.drift import _record_observation
+
+    entry = {
+        "observations": [
+            {"date": "2026-09-01", "up": True},
+            {"date": "2026-09-02"},
+            {"date": "2026-09-03", "up": None},
+            {"date": "2026-09-04", "up": 1},
+        ]
+    }
+    availability = _record_observation(entry, "2026-09-05", reachable=True)
+    assert availability.observations == 2
+    assert availability.reachable == 2
+    assert [o["date"] for o in entry["observations"]] == ["2026-09-01", "2026-09-05"]
+
+
+def test_a_real_boolean_still_counts_both_ways() -> None:
+    from fhir_scorecard.drift import _record_observation
+
+    entry = {
+        "observations": [
+            {"date": "2026-09-01", "up": True},
+            {"date": "2026-09-02", "up": False},
+        ]
+    }
+    availability = _record_observation(entry, "2026-09-03", reachable=False)
+    assert availability.observations == 3
+    assert availability.reachable == 1
+
+
+def test_the_card_and_the_archive_read_the_same_window() -> None:
+    """Two readers over one file, so they are one reader.
+
+    The availability sentence on an endpoint card comes from `drift`, and the rate on
+    /over-time/ comes from `archive`. They used to filter the window separately, with different
+    rules, and a divergence between them would have been silent.
+    """
+    from fhir_scorecard.archive import records
+    from fhir_scorecard.drift import _record_observation
+    from fhir_scorecard.grading import Scorecard
+
+    window = [
+        {"date": "2026-09-01", "up": True},
+        {"date": "2026-09-02", "up": "false"},
+        {"date": "2026-09-03", "up": False},
+    ]
+    availability = _record_observation({"observations": list(window)}, "2026-09-04", reachable=True)
+    card = Scorecard(endpoint_id="e1", name="E1", grade="B", reachable=True, dimensions=())
+    record = records({"e1": {"observations": window}}, [card])[0]
+    # `_record_observation` adds today's; the archive reads the window as it stands. What has to
+    # agree is how many of the three stored entries each of them accepted.
+    assert availability.observations - 1 == record.observed == 2
+    assert availability.reachable - 1 == record.answered == 1

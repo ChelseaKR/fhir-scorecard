@@ -41,7 +41,12 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from fhir_scorecard.drift import META_KEY, MIN_OBSERVATIONS_TO_REPORT, undated
+from fhir_scorecard.drift import (
+    META_KEY,
+    MIN_OBSERVATIONS_TO_REPORT,
+    readable_observations,
+    undated,
+)
 from fhir_scorecard.grading import Scorecard
 from fhir_scorecard.site import Page, json_ld
 
@@ -154,11 +159,13 @@ def records(history: dict[str, Any], cards: list[Scorecard]) -> list[Record]:
     for card in cards:
         entry = history.get(card.endpoint_id)
         entry = entry if isinstance(entry, dict) else {}
-        raw = entry.get("observations")
+        # One reader, shared with `drift._record_observation`. Two filters over the same window
+        # would agree today and disagree the moment somebody tightened one of them, and the
+        # disagreement would be silent: the availability sentence on a card and the rate on
+        # /over-time/ are computed from the same file by different code.
         observations = tuple(
-            Observation(date=str(item.get("date")), up=bool(item.get("up")))
-            for item in (raw if isinstance(raw, list) else [])
-            if isinstance(item, dict) and item.get("date")
+            Observation(date=item["date"], up=item["up"])
+            for item in readable_observations(entry.get("observations"))
         )
         built.append(
             Record(

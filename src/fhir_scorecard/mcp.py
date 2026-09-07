@@ -15,8 +15,17 @@ import sys
 from pathlib import Path
 from typing import Any, TextIO
 
+from fhir_scorecard import __version__
+
 PROTOCOL_VERSION = "2024-11-05"
-SERVER_INFO = {"name": "io.github.chelseakr/fhir-scorecard", "version": "0.1.0"}
+
+#: Reported to every MCP client in the ``initialize`` response. The version is *derived*
+#: rather than typed: it read ``0.1.0`` as a literal, which was correct on the day it was
+#: written and would have gone on being reported after the package moved to ``0.2.0``.
+#: Nothing asserted it, so an assistant asking this server which version it was talking to
+#: would have been told a number that was simply out of date -- a stale value published as a
+#: current fact, with no way for the client to tell.
+SERVER_INFO = {"name": "io.github.chelseakr/fhir-scorecard", "version": __version__}
 
 _TOOLS = [
     {

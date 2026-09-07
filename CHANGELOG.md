@@ -12,6 +12,18 @@ distribution behind it, which consumers pin by tag
 
 Merged changes land here until the next tag.
 
+## [0.2.0] - 2026-09-07
+
+One hundred and fifteen commits since `v0.1.0`. The verb surface a consumer
+pins grew — `claim`, `reverify`, and a `check` that grades an operator's whole
+roster rather than one endpoint — and a run of fixes closed the same defect in
+several places: a check the run could not make was raising the grade, a vantage
+that reported no latency was read as the fastest one there is, and an
+observation nobody made was counted as a day the endpoint answered. A
+duplicated `timeout-minutes:` key had also made the release workflow
+undispatchable since 2026-09-04; that is fixed here, with a strict-loader gate
+so a repeated key cannot reach `main` again.
+
 ### Added
 
 - **`fhir-scorecard claim` reads an add-endpoint submission; the issue form has been
@@ -326,6 +338,16 @@ Merged changes land here until the next tag.
   fails the contract is not deployed; the deploy job depends on the job that audits.
 
 ### Fixed
+
+- **The MCP server told every client it was version `0.1.0`, and would have gone on saying
+  so.** `mcp.SERVER_INFO` carried a hand-typed `"version": "0.1.0"` literal — correct on the
+  day it was written, and the one version statement in this repository that nothing compared
+  to `pyproject.toml`. `__version__`, `CITATION.cff` and the README's Status line are each
+  gated against the packaging metadata; `serverInfo` was not, so this bump would have shipped
+  a server introducing itself as the previous release, with no way for a client to tell. It
+  now derives from `__version__`, and `test_initialize_reports_the_packaged_version` reads
+  `pyproject.toml` directly, so a future change that stops deriving it is caught rather than
+  a change that merely re-copies the literal.
 
 - **A vantage that reported no latency was read as the fastest one there is.**
   `vantage.load_probe_files` read the field as `int(entry.get("elapsed_ms") or 0)`, so an

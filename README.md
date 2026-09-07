@@ -491,8 +491,9 @@ the grounding fractions.
 
 ## Status
 
-v0.1.0, tagged and released. Changes merged since that tag are collected under
-Unreleased in [CHANGELOG.md](CHANGELOG.md); what a version names is the composite
+v0.2.0, the version this tree declares and the one a consumer pins. Changes
+merged after a tag are collected under Unreleased in
+[CHANGELOG.md](CHANGELOG.md); what a version names is the composite
 GitHub Action and the distribution behind it, not the daily site rebuild. Eighty-one
 endpoints across payers, payer provider directories, a federal provider
 API, EHR vendor sandboxes, and reference servers, in thirteen curated cohorts (California payers

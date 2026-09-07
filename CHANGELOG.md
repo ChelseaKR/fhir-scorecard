@@ -235,6 +235,40 @@ Merged changes land here until the next tag.
 
 ### Fixed
 
+- **A vantage that reported no latency was read as the fastest one there is.**
+  `vantage.load_probe_files` read the field as `int(entry.get("elapsed_ms") or 0)`, so an
+  entry carrying no `elapsed_ms` -- or `null`, or a string, or a float -- arrived as
+  **0 ms**. `reconcile` puts every reachable probe's `elapsed_ms` into a median, and
+  `grading` bands that median at 3000 ms and 8000 ms for R2 (40 points, 20, or 0). Zero is
+  below every band, so a latency nobody recorded was not merely wrong: it was the best
+  possible reading, it pulled the median down, and it pushed the grade up. Absence
+  published as a measurement, in the direction that flatters the endpoint.
+
+  The same function read reachability as `bool(entry.get("reachable"))`. Every non-empty
+  string is truthy in Python, so an entry carrying `"reachable": "false"` -- what a
+  hand-written file, or a writer in a language that stringifies its JSON booleans,
+  produces -- counted as reached.
+
+  **Neither has fired yet, and both were about to become live.** `write_probes` serialises
+  a dataclass, so every probe file this project has written carries a real boolean and a
+  real integer, and every current grade is unaffected. The path that activates them is #100
+  and #86: a vantage this project does not operate, posting a probe file for the publishing
+  run to admit. A file from a foreign writer is exactly the input those two coercions were
+  waiting for, and it would have arrived at a published grade rather than at an error.
+
+  `probe_entry_failure` now decides whether an entry is a measurement at all, and an entry
+  that is not one is skipped -- under the rule the loader already stated for whole files:
+  losing one vantage degrades the consensus, it does not abort the run. An endpoint that
+  loses every vantage this way is *not observed*, which this project renders as itself and
+  never as unreachable or as a zero. Each skip is printed to stderr, because a probe that
+  vanished silently is indistinguishable from one that was never sent.
+
+  Every refusing branch is exercised directly rather than only through a broken file, and
+  the parametrised table includes `elapsed_ms: true`, which is an `int` in Python and would
+  have passed a bare `isinstance(value, int)` as 1 ms. Two pre-existing refusals in the same
+  loader -- a file whose top level is not an object, an entry that is not an object -- had
+  no test and now have one.
+
 - **The conformance-over-time report presented the limits of its own window as facts about the
   endpoints.** Both edges of the window were unstated, and both read as findings.
 

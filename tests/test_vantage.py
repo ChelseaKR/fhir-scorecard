@@ -3,7 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fhir_scorecard.vantage import VantageProbe, load_probe_files, reconcile, write_probes
+import pytest
+
+from fhir_scorecard.vantage import (
+    VantageProbe,
+    load_probe_files,
+    probe_entry_failure,
+    reconcile,
+    write_probes,
+)
 
 
 def _p(vantage: str, reachable: bool, ms: int = 100, error: str | None = None) -> VantageProbe:
@@ -455,3 +463,166 @@ def test_a_disagreement_between_vantages_is_published_not_merely_recorded() -> N
     assert c.declaration_disagreement is not None
     assert c.declaration_disagreement in c.detail
     assert "different declarations" in c.detail
+
+
+# --- a probe entry that is not a measurement must not arrive as a fast one -------------
+
+
+def _probe_file(tmp_path: Path, name: str, entry: dict[str, object]) -> Path:
+    path = tmp_path / name
+    path.write_text(json.dumps({"vantage": "peer/1", "probes": {"alpha": entry}}), encoding="utf-8")
+    return path
+
+
+def test_a_reachable_probe_with_no_latency_is_not_read_as_zero_milliseconds(
+    tmp_path: Path,
+) -> None:
+    """The defect this file exists to keep out.
+
+    ``elapsed_ms`` was read as ``int(entry.get("elapsed_ms") or 0)``. Zero is below every
+    band ``grading`` applies to R2 (3000 ms and 8000 ms), so a latency nobody recorded
+    arrived as the fastest possible reading, entered the median across vantages, and raised
+    the grade. Absence published as a measurement, in the direction that flatters.
+    """
+    path = _probe_file(tmp_path, "peer.json", {"vantage": "peer/1", "reachable": True})
+    assert load_probe_files([path]) == {}
+
+
+@pytest.mark.parametrize(
+    "elapsed",
+    [None, "120", 120.5, True, -1, [], {}],
+)
+def test_an_unusable_latency_is_refused_rather_than_coerced(
+    elapsed: object, tmp_path: Path
+) -> None:
+    """``True`` is in here on purpose: it is an ``int`` in Python and would pass a bare
+    ``isinstance(value, int)``, arriving as 1 ms."""
+    path = _probe_file(
+        tmp_path, "peer.json", {"vantage": "peer/1", "reachable": True, "elapsed_ms": elapsed}
+    )
+    assert load_probe_files([path]) == {}
+
+
+def test_a_string_false_is_not_read_as_reached(tmp_path: Path) -> None:
+    """``bool("false")`` is ``True``. A foreign writer that stringifies its booleans would
+    have had every failed probe counted as a success."""
+    path = _probe_file(
+        tmp_path, "peer.json", {"vantage": "peer/1", "reachable": "false", "elapsed_ms": 90}
+    )
+    assert load_probe_files([path]) == {}
+
+
+def test_a_well_formed_entry_still_loads(tmp_path: Path) -> None:
+    """The positive control. A loader that refuses everything is not a loader."""
+    path = _probe_file(
+        tmp_path, "peer.json", {"vantage": "peer/1", "reachable": True, "elapsed_ms": 0}
+    )
+    loaded = load_probe_files([path])
+    assert loaded["alpha"][0].elapsed_ms == 0
+    assert loaded["alpha"][0].reachable is True
+
+
+def test_an_unreachable_entry_still_loads(tmp_path: Path) -> None:
+    """A failed probe legitimately carries 0 ms, and its evidence of failure is wanted."""
+    path = _probe_file(
+        tmp_path,
+        "peer.json",
+        {"vantage": "peer/1", "reachable": False, "elapsed_ms": 0, "error": "TLS"},
+    )
+    loaded = load_probe_files([path])
+    assert loaded["alpha"][0].reachable is False
+    assert loaded["alpha"][0].error == "TLS"
+
+
+def test_one_unreadable_entry_does_not_take_the_readable_ones_with_it(
+    tmp_path: Path,
+) -> None:
+    """The rule the loader already states, applied one level down."""
+    path = tmp_path / "peer.json"
+    path.write_text(
+        json.dumps(
+            {
+                "vantage": "peer/1",
+                "probes": {
+                    "alpha": {"vantage": "peer/1", "reachable": True},
+                    "beta": {"vantage": "peer/1", "reachable": True, "elapsed_ms": 900},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    loaded = load_probe_files([path])
+    assert list(loaded) == ["beta"]
+    assert loaded["beta"][0].elapsed_ms == 900
+
+
+def test_a_skipped_entry_says_so(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A probe that vanished silently is indistinguishable from one that was never sent."""
+    path = _probe_file(tmp_path, "peer.json", {"vantage": "peer/1", "reachable": True})
+    load_probe_files([path])
+    err = capsys.readouterr().err
+    assert "peer.json" in err
+    assert "alpha" in err
+    assert "elapsed_ms" in err
+
+
+@pytest.mark.parametrize(
+    ("entry", "expected"),
+    [
+        ({"reachable": True, "elapsed_ms": 5}, None),
+        ({"reachable": False, "elapsed_ms": 0}, None),
+        ({"elapsed_ms": 5}, "'reachable'"),
+        ({"reachable": "true", "elapsed_ms": 5}, "'reachable'"),
+        ({"reachable": 1, "elapsed_ms": 5}, "'reachable'"),
+        ({"reachable": True}, "'elapsed_ms'"),
+        ({"reachable": True, "elapsed_ms": None}, "'elapsed_ms'"),
+        ({"reachable": True, "elapsed_ms": -3}, "'elapsed_ms'"),
+    ],
+)
+def test_every_refusal_is_reachable_from_a_test(
+    entry: dict[str, object], expected: str | None
+) -> None:
+    """Split out from the loader so no branch is reachable only from a broken file."""
+    failure = probe_entry_failure(entry)
+    if expected is None:
+        assert failure is None
+    else:
+        assert failure is not None and expected in failure
+
+
+def test_the_probe_files_this_project_writes_are_all_readable(tmp_path: Path) -> None:
+    """The guard must not refuse this project's own output.
+
+    ``write_probes`` serialises the dataclass, so this is the round trip that proves the
+    tightened reader and the writer still agree.
+    """
+    path = tmp_path / "ours.json"
+    write_probes(
+        path,
+        "ci",
+        {
+            "up": _p("ci", True, 1200),
+            "down": _p("ci", False, error="TLS certificate verification failed"),
+        },
+    )
+    loaded = load_probe_files([path])
+    assert sorted(loaded) == ["down", "up"]
+    assert loaded["up"][0].elapsed_ms == 1200
+
+
+def test_a_file_whose_top_level_is_not_an_object_is_skipped(tmp_path: Path) -> None:
+    """A JSON array where a probe file should be is not an empty probe file."""
+    path = tmp_path / "peer.json"
+    path.write_text(json.dumps([{"vantage": "peer/1"}]), encoding="utf-8")
+    assert load_probe_files([path]) == {}
+
+
+def test_an_entry_that_is_not_an_object_is_skipped(tmp_path: Path) -> None:
+    """Reached from a file only, until now. Both `continue` branches in the loader are
+    refusals, and a refusal no test can reach is a refusal nobody has seen work."""
+    path = tmp_path / "peer.json"
+    path.write_text(
+        json.dumps({"vantage": "peer/1", "probes": {"alpha": "not an object"}}),
+        encoding="utf-8",
+    )
+    assert load_probe_files([path]) == {}

@@ -183,6 +183,11 @@ def _grade_endpoint(
         # still proof the endpoint answered, and the merge needs it to avoid describing a
         # running server as one it could not reach.
         status=metadata.status,
+        # The /metadata result's classification (#117), carried alongside the sentence rather
+        # than instead of it. Only ``metadata``: this probe's reachability is defined by that
+        # document, and a SMART failure beside a retrieved CapabilityStatement is a different
+        # finding that this field would silently absorb.
+        failure_kind=metadata.failure_kind,
     )
     probes_seen[endpoint.endpoint_id] = mine
     all_probes = [mine, *other_probes.get(endpoint.endpoint_id, [])]

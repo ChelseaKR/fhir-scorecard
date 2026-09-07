@@ -34,6 +34,7 @@ from typing import Any
 
 from fhir_scorecard.capability import parse_capability
 from fhir_scorecard.drift import fingerprint
+from fhir_scorecard.fetch import UNCLASSIFIED, normalise_failure_kind
 
 
 @dataclass(frozen=True)
@@ -58,6 +59,12 @@ class VantageProbe:
     # refusing this particular request, which is a different published sentence from one this
     # run could not reach. Carried so the merge can tell those apart. See :func:`reconcile`.
     status: int | None = None
+    # Which named condition stopped this vantage, from :data:`fhir_scorecard.fetch.FAILURE_KINDS`
+    # (#117). ``error`` is the sentence a reader is shown and stays exactly what it was; this is
+    # the same fact as data, so populations can be counted without parsing prose. ``None`` on a
+    # probe that reached the endpoint -- there is no failure to classify -- and never a
+    # placeholder, so "reached" and "failed for a reason nobody named" stay apart.
+    failure_kind: str | None = None
 
     @property
     def network(self) -> str:
@@ -88,6 +95,12 @@ class Consensus:
     # How many vantages got an HTTP answer of any status, including the ones whose answer was a
     # refusal. Separate from ``agreeing``, which counts vantages that retrieved a document.
     answered: int = 0
+    # Every condition observed when NO vantage reached the endpoint, sorted, deduplicated, and
+    # never reduced to one. Three vantages reporting three different kinds is a disagreement and
+    # is published as all three: picking a winner here would be the same mistake as calling three
+    # hosts on one network three networks, one level down. Empty whenever any vantage reached,
+    # because then there is a measurement and the failures are a fact about those vantages.
+    failure_kinds: tuple[str, ...] = ()
     # Set when reachable vantages returned CapabilityStatements that are not byte-identical.
     # One hostname in front of two backends is the alternation story this project already tells
     # over time; seen across vantages in a single run it is the same fact, and discarding it
@@ -151,6 +164,11 @@ def collapse_by_vantage(probes: list[VantageProbe]) -> list[VantageProbe]:
             )
         else:
             errors = sorted({p.error for p in group if p.error})
+            # One vantage, one condition -- when its samples agree. When they do not, this
+            # vantage did not establish a condition, and ``unclassified`` says exactly that.
+            # It is not the nearest label: it is the absence of one, and the joined sentence
+            # above still names every condition the samples reported.
+            kinds = sorted({p.failure_kind for p in group if p.failure_kind})
             collapsed.append(
                 VantageProbe(
                     vantage=vantage,
@@ -161,6 +179,7 @@ def collapse_by_vantage(probes: list[VantageProbe]) -> list[VantageProbe]:
                     # so its status outlives the collapse even though none of the samples in
                     # this group retrieved a document.
                     status=next((p.status for p in group if p.status is not None), None),
+                    failure_kind=kinds[0] if len(kinds) == 1 else UNCLASSIFIED,
                 )
             )
     return collapsed
@@ -176,6 +195,10 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
             agreeing=0,
             networks=0,
             detail="no vantage reported",
+            # Not ``("unclassified",)``. No vantage reported, so there is no failure to classify
+            # and no population this endpoint belongs to; an empty tuple says that and a
+            # one-element tuple would put it in a bucket it never entered.
+            failure_kinds=(),
         )
 
     probes = collapse_by_vantage(raw_probes)
@@ -189,6 +212,11 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
         # say so rather than settle it. The failure modes are shown either way: identical errors
         # everywhere read very differently from a scattered mix.
         joined = "; ".join(sorted({p.error or "unknown" for p in failed}))
+        # Every condition seen, never one. A run where one vantage got a 401 and two got a DNS
+        # failure has observed two different facts about two different actors, and reducing them
+        # to whichever came first would publish the endpoint into one population and delete the
+        # evidence it was ever in the other.
+        kinds = tuple(sorted({p.failure_kind or UNCLASSIFIED for p in failed}))
         answered = [p for p in failed if p.status is not None]
         if answered:
             # The endpoint answered. Whatever else this run failed to do, it did not fail to
@@ -215,6 +243,16 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
                 f"not reached from any of the {len(probes)} vantages tried, across "
                 f"{len(networks)} networks: {joined}"
             )
+        if len(kinds) > 1:
+            # Said in the sentence as well as carried in the data, because a reader looking at
+            # one endpoint sees the sentence. Vantages that disagree about *why* they failed have
+            # not established one condition, and a page that showed only the first would be
+            # asserting agreement that this run does not have.
+            detail = (
+                f"{detail}. The vantages did not agree on why: "
+                f"{', '.join(kinds)} were each reported, so this run establishes no single "
+                f"condition"
+            )
         return Consensus(
             reachable=False,
             elapsed_ms=0,
@@ -223,6 +261,7 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
             networks=len(networks),
             detail=detail,
             answered=len(answered),
+            failure_kinds=kinds,
         )
 
     # Median latency across the vantages that succeeded: one slow network path should not
@@ -459,6 +498,17 @@ def load_probe_files(paths: list[Path]) -> dict[str, list[VantageProbe]]:
                     # do not carry it, and a vantage running an older revision is exactly the
                     # case this loader is built to tolerate.
                     status=(entry.get("status") if isinstance(entry.get("status"), int) else None),
+                    # A probe that reached the endpoint has no failure to classify, so it keeps
+                    # ``None`` whatever the file says: a foreign writer that shipped both
+                    # ``"reachable": true`` and a failure kind would otherwise put a reachable
+                    # endpoint into a failure population. One that did not reach is normalised
+                    # against the closed vocabulary -- an unknown label, a number, or nothing at
+                    # all all read as ``unclassified``, which is what this run knows.
+                    failure_kind=(
+                        None
+                        if entry.get("reachable") is True
+                        else normalise_failure_kind(entry.get("failure_kind"))
+                    ),
                 )
             )
     return by_endpoint

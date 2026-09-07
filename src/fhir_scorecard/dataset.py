@@ -61,6 +61,16 @@ _COLUMNS = [
         "Date this entry was last re-checked against the live endpoint, empty when it "
         "has not been re-checked since it was curated. Empty is not 'today'",
     ),
+    (
+        "failure_kinds",
+        "Why no vantage reached this endpoint, from the closed vocabulary "
+        "authentication_required, forbidden, not_found, dns, tls, timeout, "
+        "connection_refused, server_error, redirect_refused, unclassified. Empty when the "
+        "endpoint was reached. Space-separated and sorted when vantages disagreed, which is "
+        "published as the disagreement it is and never resolved to one. 'unclassified' means "
+        "this project has no label for what happened and is never the nearest guess. This "
+        "column reports a condition and makes no claim about whose choice it was",
+    ),
 ]
 
 
@@ -94,6 +104,7 @@ def _row(card: Scorecard, endpoint: Endpoint | None) -> dict[str, object]:
         "verified_date": endpoint.verified_date if endpoint else "",
         "verification_basis": endpoint.verification_basis if endpoint else "",
         "reverified_date": endpoint.reverified_date if endpoint else "",
+        "failure_kinds": " ".join(card.failure_kinds),
     }
 
 
@@ -165,11 +176,17 @@ def write_dataset(
     index: list[dict[str, object]] = []
     for card in cards:
         endpoint = by_id.get(card.endpoint_id)
+        record = _row(card, endpoint)
+        # The one field whose encoding differs between the two surfaces. CSV has no arrays, so
+        # the row joins the kinds with a space; JSON does, so it carries them as one. Same
+        # field, same order, encoded natively in each -- rather than making a JSON consumer
+        # split a string on whitespace to find out whether the vantages disagreed.
+        record["failure_kinds"] = list(card.failure_kinds)
         payload = {
             "schema_version": SCHEMA_VERSION,
             "generated_at": generated_at,
             "vantage": vantage,
-            "endpoint": _row(card, endpoint),
+            "endpoint": record,
             "dimensions": [
                 {
                     "key": d.key,

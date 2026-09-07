@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from fhir_scorecard.capability import CapabilityFacts, SmartFacts
-from fhir_scorecard.fetch import FetchResult
+from fhir_scorecard.fetch import UNCLASSIFIED, FetchResult
 from fhir_scorecard.vantage import Consensus
 
 _FHIR_CAPS = "https://hl7.org/fhir/R4/capabilitystatement.html"
@@ -120,6 +120,17 @@ class Scorecard:
     # Rolling reachability across recorded runs. Informational until enough observations exist;
     # a percentage off two data points would be noise dressed as a metric.
     availability: str = ""
+    # Why this endpoint was not reached, from the closed vocabulary in
+    # :data:`fhir_scorecard.fetch.FAILURE_KINDS` (#117). Empty whenever it *was* reached, and a
+    # tuple rather than a value because vantages can disagree and this project publishes the
+    # disagreement instead of resolving it.
+    #
+    # This field decides nothing. It carries the distinction between "the payer requires
+    # credentials" and "the public record is broken" as data so both can be counted; whether the
+    # first is a finding about the payer is a question `data/CANDIDATES.md` and
+    # `docs/SAMPLING-FRAME.md` answer differently, and neither this field nor any wording built
+    # on it settles that.
+    failure_kinds: tuple[str, ...] = ()
 
 
 def _withheld(findings: list[Finding]) -> int:
@@ -719,4 +730,23 @@ def build_scorecard(
         drift_events=drift_events,
         drift_alternations=drift_alternations,
         availability=availability,
+        # From the consensus when several vantages reported, so a disagreement survives; from
+        # this run's own result when it is the only witness. Empty when the endpoint was
+        # reached: there is no failure to name, and an empty tuple is not a population.
+        failure_kinds=_failure_kinds(metadata, consensus),
     )
+
+
+def _failure_kinds(metadata: FetchResult, consensus: Consensus | None) -> tuple[str, ...]:
+    """What stopped this endpoint being reached, or nothing when it was reached.
+
+    Gated on the *reconciled* reachability, not on ``metadata.ok``. An endpoint this vantage
+    could not reach but another one did is reachable, and attaching this vantage's 403 to it
+    would file a working endpoint under a failure population -- the 2026-08-05 misdiagnosis
+    with a new field to express itself through.
+    """
+    if consensus is not None:
+        return consensus.failure_kinds
+    if metadata.ok:
+        return ()
+    return (metadata.failure_kind or UNCLASSIFIED,)

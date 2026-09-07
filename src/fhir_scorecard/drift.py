@@ -448,17 +448,55 @@ def _alternation_lines(entry: dict[str, Any]) -> tuple[str, ...]:
     return tuple(lines)
 
 
+def readable_observations(raw: object) -> list[dict[str, Any]]:
+    """The entries in an availability window that are actually measurements.
+
+    ``_record_observation`` writes ``{"date": today, "up": reachable}`` with a real string and a
+    real bool, so every observation this project has written is readable. Both readers of the
+    window nonetheless asked for ``o.get("up")`` -- a truthiness test -- and
+    ``bool(item.get("up"))`` in `archive.py`. Every non-empty string is truthy in Python, so an
+    entry carrying ``"up": "false"`` counted as a day the endpoint answered, and an entry with no
+    ``up`` at all counted as a day it did not. Both are wrong, and the first is wrong in the
+    direction that flatters: it raises a published availability percentage about a named
+    healthcare organization.
+
+    This is the shape #116 removed from :func:`fhir_scorecard.vantage.probe_entry_failure` one
+    file over, and the same rule applies. An entry that is not readable as a measurement is not
+    counted as one **in either direction**: not as an answer, and not as a failure to answer.
+    Dropping it from the numerator alone would turn an unreadable record into a recorded outage,
+    which is a claim about an endpoint that no run made.
+
+    ``MIN_OBSERVATIONS_TO_REPORT`` is what keeps that from quietly shrinking a window into a
+    flattering one: a record that loses enough entries this way falls under the floor and
+    publishes counts instead of a rate.
+    """
+    if not isinstance(raw, list):
+        return []
+    return [
+        item
+        for item in raw
+        if isinstance(item, dict)
+        and isinstance(item.get("date"), str)
+        and item.get("date")
+        and isinstance(item.get("up"), bool)
+    ]
+
+
 def _record_observation(entry: dict[str, Any], today: str, reachable: bool) -> Availability:
     """Append today's reachability, replacing any earlier entry for the same date so a re-run
     does not double-count a day."""
-    raw = entry.get("observations")
-    observations: list[dict[str, Any]] = raw if isinstance(raw, list) else []
-    observations = [o for o in observations if isinstance(o, dict) and o.get("date") != today]
+    observations = [
+        o for o in readable_observations(entry.get("observations")) if o["date"] != today
+    ]
     observations.append({"date": today, "up": reachable})
     observations = observations[-_MAX_OBSERVATIONS:]
     entry["observations"] = observations
     return Availability(
-        observations=len(observations), reachable=sum(1 for o in observations if o.get("up"))
+        observations=len(observations),
+        # ``is True``, not truthiness. Every entry here has already been established as carrying
+        # a real bool, and this says so at the point of counting rather than relying on a
+        # filter three lines up staying correct.
+        reachable=sum(1 for o in observations if o["up"] is True),
     )
 
 

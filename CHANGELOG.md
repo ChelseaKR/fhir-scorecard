@@ -14,6 +14,26 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **An availability observation nobody made was counted as one, and in the flattering
+  direction.** `data/history.json` holds a rolling window of `{"date": ..., "up": ...}`
+  entries, and both readers of it asked for truthiness: `drift._record_observation`
+  counted `o.get("up")` and `archive.records` read `bool(item.get("up"))`. Every
+  non-empty string is truthy in Python, so an entry carrying `"up": "false"` counted
+  as a **day the endpoint answered** and raised a published availability percentage
+  about a named healthcare organization; an entry with no verdict at all counted as a
+  day it did not answer, which is a recorded outage no run ever observed.
+
+  This is the coercion #116 removed from `vantage.probe_entry_failure`, one file over.
+  It has not fired: `_record_observation` writes a real string and a real bool, so
+  every entry this project has written is readable, and no published rate is affected.
+
+  Both readers are now one, `drift.readable_observations`, and an entry that is not a
+  measurement is dropped from **the numerator and the denominator both** -- because
+  dropping it from the numerator alone would turn an unreadable record into a recorded
+  outage. `MIN_OBSERVATIONS_TO_REPORT` is what stops that shrinking a window into a
+  flattering one: a record that loses enough entries falls under the floor and
+  publishes counts rather than a rate.
+
 - **"Unreachable" was one label doing duty for several very different facts** (#117).
   `fetch.describe_error` already told a hostname that does not resolve apart from a
   certificate that does not verify, a timeout, a refused connection and a refused

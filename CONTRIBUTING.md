@@ -28,6 +28,24 @@ record, so this policy is enforced in code, not by review vigilance.
 
 4. Run `make verify` and a live grade before opening a PR.
 
+### If the claim arrived through the issue form
+
+`fhir-scorecard claim <issue-body.md>` does the mechanical half of steps 1 and 2 for you: it
+refuses an address this project must not request before making any request, retrieves
+`[base]/metadata` and the SMART document, compares the publisher against the submitted
+organization by the same rule `reverify` uses, and writes a proposal file and a comment. It
+writes nothing to `data/registry.json` and opens no pull request.
+
+Step 2 is still yours, and one part of it is not automated at all: **the verb does not retrieve
+the submitted documentation page.** That page is how the publisher is established from the
+organization's own materials, and reading it means requesting something that is not one of the
+two discovery documents — an open decision on
+[#118](https://github.com/ChelseaKR/fhir-scorecard/issues/118). The proposal says so in those
+words, so a proposal is never evidence that the publisher was confirmed.
+
+A claim whose CapabilityStatement was not retrieved proposes nothing, because the
+`publisher_documented` basis rests on exactly the page the verb did not read.
+
 ### Re-checking an entry that is already listed
 
 `fhir-scorecard reverify --older-than 90d` retrieves each selected entry's CapabilityStatement

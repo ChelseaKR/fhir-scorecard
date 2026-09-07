@@ -14,6 +14,30 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **`fhir-scorecard claim` reads an add-endpoint submission; the issue form has been
+  collecting one and nothing has ever read it.** The verb takes the rendered issue body,
+  retrieves the same two discovery documents every other verb retrieves, compares the
+  publisher against the submitted organization by the rule `reverify` already uses, and
+  writes a proposal file and the text of an issue comment. It edits no registry, opens no
+  pull request, and merges nothing.
+
+  The submitted base URL is the only URL in this project chosen by an unauthenticated
+  stranger, so the address boundary runs **before anything is requested**: `https` only, no
+  credentials in the URL, not already a discovery path, and every address the host resolves
+  to must be public — one loopback, private, link-local or reserved address disqualifies the
+  host even when others are public, and a name that will not resolve is refused rather than
+  attempted. `tests/test_intake.py` drives the whole verb with a fetcher that fails the run
+  if it is called, so "nothing was requested" is asserted rather than assumed.
+
+  Two limits are deliberate and are published rather than worked around. **The submitted
+  documentation page is not retrieved** — reading it would mean requesting a page that is not
+  one of the two discovery documents, which is an open decision on #118 — so it is carried
+  through unchecked and recorded as *not retrieved*, and no proposed `verification` block
+  rests on it. And **a claim whose CapabilityStatement was not retrieved proposes nothing at
+  all**, because the other basis, `publisher_documented`, is defined by that same unread page.
+  This is `reverify`'s rule one step earlier: a date nobody earned is never written, and an
+  entry nobody observed is never proposed.
+
 - **An availability observation nobody made was counted as one, and in the flattering
   direction.** `data/history.json` holds a rolling window of `{"date": ..., "up": ...}`
   entries, and both readers of it asked for truthiness: `drift._record_observation`

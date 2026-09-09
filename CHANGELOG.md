@@ -12,6 +12,35 @@ distribution behind it, which consumers pin by tag
 
 Merged changes land here until the next tag.
 
+### Fixed
+
+- **The pin gate read 1 of the 40 action references this repository runs.** The
+  README's Security and Supply-Chain row says Actions are pinned to full commit
+  SHAs. `tests/test_ci_action.py` held `action.yml` to that with its own copy of
+  the 40-hex pattern, and nothing read `.github/workflows` at all. Measured
+  2026-09-09: **39 of 40** references were ungated, including the ones in the
+  jobs that publish the site, create a release, and write the history branch.
+  All 40 are pinned today, so this is a claim nothing was holding rather than a
+  live defect, and the gate is what was missing.
+
+  The assertion now lives once, in
+  `tests/test_workflow_shell_safety.py::test_every_action_reference_this_repository_runs_is_pinned_to_a_commit`,
+  over the same file set the shell-safety checks already read, so a workflow
+  added to one universe cannot be absent from the other. It carries three
+  floors — a total reference count, a count outside `action.yml`, and a
+  requirement that `action.yml` itself contributes one — because a pin scan
+  that has stopped finding references reports the same clean result as one that
+  read every file. `test_ci_action.py` keeps the premise the wide gate cannot
+  check for itself, that `action.yml` references anything at all, and no longer
+  compiles a second copy of the pattern.
+
+  Comment lines are excluded, and that is load-bearing: `release.yml` explains
+  the shipped interface in prose containing `uses: ChelseaKR/fhir-scorecard@vX.Y.Z`,
+  a deliberately unpinned example of how a consumer writes the reference. A raw
+  text scan reports the release workflow as unpinned over a line GitHub never
+  executes. A second test pins that exclusion against the live file, so if the
+  sentence is ever reworded away the filter stops exempting anything and says so.
+
 ## [0.2.0] - 2026-09-07
 
 One hundred and fifteen commits since `v0.1.0`. The verb surface a consumer

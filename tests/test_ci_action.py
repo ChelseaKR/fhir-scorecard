@@ -30,6 +30,7 @@ from typing import Any
 
 import pytest
 from conftest import good_capability, good_smart
+from test_workflow_shell_safety import PINNED_REF, uses_references
 
 from fhir_scorecard import cli
 from fhir_scorecard.fetch import FetchResult
@@ -265,11 +266,22 @@ class TestTheActionPreservesTheExitCode:
         assert _action_text().count("required: true") == 1
         assert 'using: "composite"' in _action_text()
 
-    def test_the_action_pins_every_step_it_uses_to_a_commit(self) -> None:
-        refs = re.findall(r"uses: (\S+)", _action_text())
-        assert refs, "the Action uses no steps; this scan would pass over nothing"
-        for ref in refs:
-            assert re.fullmatch(r"[^@]+@[0-9a-f]{40}", ref), ref
+    def test_the_action_references_a_step_for_the_pin_gate_to_read(self) -> None:
+        """The premise the pin gate rests on, kept where a reader of this file expects it.
+
+        This test used to compile its own copy of the 40-hex pattern and apply it to
+        ``action.yml`` alone. A second, weaker copy of a gate is worse than none: measured on
+        2026-09-09 it covered **1 of the 40** action references this repository runs, and
+        nothing at all read the 39 in ``.github/workflows``. The pinning assertion now lives
+        once, over the same file set the shell-safety checks read, in
+        ``tests/test_workflow_shell_safety.py::test_every_action_reference_this_repository_runs_is_pinned_to_a_commit``.
+
+        What is left here is the premise that gate cannot check for itself without going
+        quietly vacuous over this file: that ``action.yml`` references anything at all.
+        """
+        refs = uses_references(ACTION_YML)
+        assert refs, "the Action uses no steps, so the pin gate would pass over this file"
+        assert all(PINNED_REF.fullmatch(ref) is not None for ref in refs), refs
 
     def test_the_action_runs_the_bundled_checker_and_not_a_downloaded_one(self) -> None:
         run = _gate_step_run()

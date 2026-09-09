@@ -44,6 +44,34 @@ def _scanned() -> list[Path]:
     return [*sorted(WORKFLOWS.glob("*.yml")), *([ACTION] if ACTION.is_file() else [])]
 
 
+#: A third-party action reference resolved to an immutable object, which is the only form a
+#: consumer can reason about: a tag and a branch both move under whoever controls them.
+PINNED_REF = re.compile(r"[^@\s]+@[0-9a-f]{40}$")
+
+_USES = re.compile(r"uses:\s*(\S+)")
+
+
+def uses_references(path: Path) -> list[str]:
+    """Every action reference this file actually runs, in file order.
+
+    Comment lines are dropped, and that is load-bearing rather than tidy. ``release.yml``
+    explains the composite action in prose that contains ``uses: ChelseaKR/fhir-scorecard@vX.Y.Z``
+    -- a deliberately unpinned example of how a *consumer* writes the reference. A raw text scan
+    reads it as a step and reports the release workflow as unpinned, so the check would have
+    been red about a line GitHub never executes. This is the mirror of the portfolio's
+    conformance checks that went green on a tool name appearing in a comment: the same blindness
+    to what is a comment, pointing the other way.
+    """
+    found: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.lstrip().startswith("#"):
+            continue
+        match = _USES.search(line)
+        if match is not None:
+            found.append(match.group(1))
+    return found
+
+
 _RUN_BLOCK = re.compile(r"^(?P<indent>\s*)run: \|\s*$")
 
 REQUIRED_FIRST_STATEMENT = "set -euo pipefail"
@@ -89,6 +117,87 @@ def test_there_are_workflows_to_check() -> None:
     )
     assert ACTION in files, "action.yml ships a shell block to consumers and must be scanned"
     assert sum(len(_blocks(f.read_text(encoding="utf-8"))) for f in files) >= 6
+
+
+def test_every_action_reference_this_repository_runs_is_pinned_to_a_commit() -> None:
+    """The README's supply-chain row says Actions are pinned to full commit SHAs. Nothing read
+    the workflows.
+
+    ``tests/test_ci_action.py`` has gated ``action.yml``'s references since the composite
+    action shipped, with its own copy of this pattern. Measured on 2026-09-09: that is
+    **1 of 40** references this repository runs. The other **39** are in the six workflow
+    files, where a moved tag reaches the token that publishes the site, the token that
+    creates a release, and the token that writes the history branch. All 40 are pinned
+    today, so this is a claim nothing was holding rather than a defect: the gate is the
+    thing that was missing.
+
+    It reads the same file set the shell-safety checks read, deliberately, so a workflow
+    added to one universe cannot be absent from the other. The counts are printed on failure
+    because a pin scan that stopped finding references reports the same clean result as one
+    that read every file.
+    """
+    files = _scanned()
+    references = {path: uses_references(path) for path in files}
+    total = sum(len(refs) for refs in references.values())
+    assert total >= 20, (
+        f"only {total} action reference(s) found across {len(files)} file(s): this scan has "
+        "stopped reading the workflows, and finding none reads exactly like finding none "
+        "unpinned"
+    )
+    assert references.get(ACTION), (
+        "action.yml references no action, so this gate says nothing about the file a consumer "
+        "downloads and runs on their own runner"
+    )
+    workflow_refs = sum(len(refs) for path, refs in references.items() if path != ACTION)
+    assert workflow_refs >= 15, (
+        f"only {workflow_refs} reference(s) outside action.yml: the workflow half of this "
+        "scan is the half that was missing, and it has to be reading something"
+    )
+
+    floating = [
+        f"{path.name}: {ref}"
+        for path, refs in references.items()
+        for ref in refs
+        if PINNED_REF.fullmatch(ref) is None
+    ]
+    assert not floating, (
+        f"{len(floating)} of {total} action reference(s) are not pinned to a 40-character "
+        f"commit SHA: {'; '.join(floating)}. A tag or a branch moves under whoever owns the "
+        "repository it names, and these run with this repository's tokens."
+    )
+
+
+def test_the_pin_scan_does_not_read_an_action_reference_out_of_a_comment() -> None:
+    """A comment is prose, and the release workflow's prose contains an unpinned reference.
+
+    ``release.yml`` explains the shipped interface with ``uses: ChelseaKR/fhir-scorecard@vX.Y.Z``,
+    which is how a consumer writes it and is not a step. A scan that counted it would be red
+    on correct prose, so this pins the exclusion rather than leaving it to be discovered by
+    somebody deleting the comment filter.
+
+    It is asserted against the live file, not a fixture, so it also fails if that sentence is
+    reworded away: at that point the exclusion is exempting nothing and should be reviewed
+    rather than believed.
+    """
+    release = WORKFLOWS / "release.yml"
+    raw = [
+        match.group(1)
+        for line in release.read_text(encoding="utf-8").splitlines()
+        if (match := _USES.search(line)) is not None
+    ]
+    scanned = uses_references(release)
+
+    commented = [ref for ref in raw if ref not in scanned]
+    assert commented, (
+        "release.yml no longer carries an action reference inside a comment, so the comment "
+        "filter in `uses_references` is exempting nothing. Either restore the explanation or "
+        "drop the filter and say why in this test."
+    )
+    assert all(PINNED_REF.fullmatch(ref) is None for ref in commented), (
+        f"the commented reference {commented} is pinned, so it no longer demonstrates the "
+        "false positive this filter exists to avoid"
+    )
+    assert all(PINNED_REF.fullmatch(ref) is not None for ref in scanned)
 
 
 def test_every_multiline_run_block_fails_on_the_first_failed_command() -> None:

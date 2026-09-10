@@ -26,6 +26,12 @@ from fhir_scorecard.grading import (
 
 DEFAULT_ORIGIN = "https://fhir.chelseakr.com"
 
+#: Media type of an Atom document, used for the ``alternate`` links the pages carry and for the
+#: feed files ``feeds.render`` writes. Declared here rather than in ``feeds`` because ``archive``
+#: imports this module and ``feeds`` imports ``archive``, so the constant has to live at the
+#: bottom of that chain for both to read the one spelling.
+ATOM_MEDIA_TYPE = "application/atom+xml"
+
 _PROGRAM_LABELS = {
     "medi-cal": "Medi-Cal managed care",
     "covered-ca": "Covered California",
@@ -135,6 +141,12 @@ class Page:
     body: str
     changefreq: str = "daily"
     priority: str = "0.5"
+    #: Site-relative path of the Atom feed this page is the alternate of, or ``None`` where
+    #: this build wrote no feed for it. Set by ``cli._write_site`` from the paths
+    #: ``feeds.write_feeds`` reports having written, never from an assumption that a feed
+    #: exists: a page advertising a feed the build did not write is the same defect as a
+    #: sitemap entry no file answers.
+    feed: str | None = None
 
 
 def org_slug(name: str) -> str:
@@ -722,12 +734,25 @@ is not violating anything; it is only not independently checkable from outside.<
     )
 
 
-def sitemap(pages: list[Page], origin: str) -> str:
+def sitemap(pages: list[Page], origin: str, feeds: Sequence[str] = ()) -> str:
+    """Every URL this build wrote, pages and feeds alike.
+
+    ``feeds`` carries site-relative *file* paths (``endpoint/humana/feed.xml``) rather than the
+    directory URLs a page gets, which is why they cannot be folded into ``pages``: a ``Page``
+    addresses a directory and this addresses a file. Widened rather than bypassed on purpose -
+    ``audit._check_sitemap`` checks the sitemap in both directions, so a feed the sitemap does
+    not list is a finding and a listed feed no file answers is a different one, and leaving
+    feeds out of the sitemap would have made both unreachable.
+    """
     entries = "".join(
         f"<url><loc>{origin}/{p.path + '/' if p.path else ''}</loc>"
         f"<changefreq>{p.changefreq}</changefreq>"
         f"<priority>{p.priority}</priority></url>"
         for p in pages
+    ) + "".join(
+        f"<url><loc>{origin}/{path}</loc><changefreq>daily</changefreq>"
+        "<priority>0.3</priority></url>"
+        for path in feeds
     )
     return (
         '<?xml version="1.0" encoding="UTF-8"?>'
@@ -852,6 +877,20 @@ def social_card_url(origin: str) -> str:
     return f"{origin.rstrip('/')}/{SOCIAL_CARD}"
 
 
+def _feed_link(page: Page) -> str:
+    """The ``alternate`` link to this page's Atom feed, or nothing where there is no feed.
+
+    Titled, because a page may one day carry more than one alternate and an untitled set of
+    them is what a reader's feed autodiscovery cannot tell apart.
+    """
+    if page.feed is None:
+        return ""
+    return (
+        f'\n<link rel="alternate" type="{ATOM_MEDIA_TYPE}" '
+        f'title="{html.escape(page.title)}: recorded changes" href="/{html.escape(page.feed)}">'
+    )
+
+
 def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str:
     prefix = _site_path_prefix(origin)
     card = social_card_url(origin)
@@ -862,7 +901,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(page.title)} | FHIR Scorecard</title>
 <meta name="description" content="{html.escape(page.description)}">
-<link rel="canonical" href="{html.escape(canonical)}">
+<link rel="canonical" href="{html.escape(canonical)}">{_feed_link(page)}
 <meta property="og:title" content="{html.escape(page.title)}">
 <meta property="og:description" content="{html.escape(page.description)}">
 <meta property="og:type" content="website">

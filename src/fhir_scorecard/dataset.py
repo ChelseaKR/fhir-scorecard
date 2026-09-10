@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+from collections.abc import Sequence
 from pathlib import Path
 
 from fhir_scorecard.grading import Scorecard
@@ -164,13 +165,21 @@ def write_dataset(
     origin: str,
     generated_at: str,
     vantage: str,
+    feeds: Sequence[str] = (),
 ) -> None:
-    """Write dataset.csv, its schema, and a static per-endpoint JSON API."""
+    """Write dataset.csv, its schema, and a static per-endpoint JSON API.
+
+    ``feeds`` is the site-relative path of every Atom feed the site build reported having
+    written. A feed URL is published here only when its path is in that list: an index naming a
+    file the build did not write is the same defect as a sitemap entry no file answers, and the
+    only way to be sure is to be told what was written rather than to assume it.
+    """
     out.mkdir(parents=True, exist_ok=True)
     (out / "dataset.csv").write_text(to_csv(cards, endpoints), encoding="utf-8")
     (out / "dataset.schema.json").write_text(schema_doc(origin), encoding="utf-8")
 
     by_id = {e.endpoint_id: e for e in endpoints}
+    written_feeds = set(feeds)
     api_dir = out / "api" / "endpoint"
     api_dir.mkdir(parents=True, exist_ok=True)
     index: list[dict[str, object]] = []
@@ -215,22 +224,26 @@ def write_dataset(
         (api_dir / f"{card.endpoint_id}.json").write_text(
             json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
         )
-        index.append(
-            {
-                "endpoint_id": card.endpoint_id,
-                "name": card.name,
-                "kind": card.kind,
-                "grade": card.grade,
-                "url": f"{origin}/api/endpoint/{card.endpoint_id}.json",
-                "page": f"{origin}/endpoint/{card.endpoint_id}/",
-            }
-        )
+        entry: dict[str, object] = {
+            "endpoint_id": card.endpoint_id,
+            "name": card.name,
+            "kind": card.kind,
+            "grade": card.grade,
+            "url": f"{origin}/api/endpoint/{card.endpoint_id}.json",
+            "page": f"{origin}/endpoint/{card.endpoint_id}/",
+        }
+        feed_path = f"endpoint/{card.endpoint_id}/feed.xml"
+        if feed_path in written_feeds:
+            entry["feed"] = f"{origin}/{feed_path}"
+        index.append(entry)
+    site_feed = {"feed": f"{origin}/feed.xml"} if "feed.xml" in written_feeds else {}
     (out / "api" / "index.json").write_text(
         json.dumps(
             {
                 "schema_version": SCHEMA_VERSION,
                 "generated_at": generated_at,
                 "vantage": vantage,
+                **site_feed,
                 # Two different facts, published as two numbers so neither can stand in for the other:
                 # how many endpoints the registry lists and this run graded, and how many of them
                 # answered a probe during it.

@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from fhir_scorecard.audit import FINDING_CODES, SiteFinding, audit_site
+from fhir_scorecard.audit import FINDING_CODES, SiteFinding, audit_site, feed_paths
 from fhir_scorecard.cli import main
 from fhir_scorecard.site import DEFAULT_ORIGIN
 
@@ -278,6 +278,11 @@ def test_a_page_nothing_links_to_is_caught(site: Path) -> None:
     orphan = site / "endpoint" / "cms-blue-button-2"
     stray = site / "endpoint" / "stray-copy"
     shutil.copytree(orphan, stray)
+    # An endpoint directory now carries its Atom feed as well as its page, and a copied feed
+    # is a feed the sitemap does not list -- a second, real defect. Removing it keeps this
+    # test asserting the one it names. Its `alternate` link still addresses the original
+    # feed, which exists, so nothing else moves.
+    (stray / "feed.xml").unlink()
     text = (stray / "index.html").read_text(encoding="utf-8")
     # Readdress the copy completely. A page states where it is twice -- in its
     # canonical and in its share card -- and moving only one of them would break a
@@ -662,3 +667,106 @@ def test_the_organization_surface_rule_does_not_fire_on_a_project_named_for_its_
     payload["name"] = "HAPI FHIR public test server"
     page.write_text(text.replace(block.group(1), json.dumps(payload)), encoding="utf-8")
     assert "ORGANIZATION_NAMED_AS_A_SURFACE" not in _codes(site_with_an_org)
+
+
+# --- feeds: the same discipline, one defect class per test (#101) ---
+
+
+def _feed(site: Path) -> Path:
+    return site / "endpoint" / "cms-blue-button-2" / "feed.xml"
+
+
+def test_the_audit_examines_every_feed_the_build_wrote(site: Path) -> None:
+    """The floor under every feed rule below.
+
+    Discovery is by the Atom namespace rather than by a filename, so this asserts the
+    identities and not a count: a discovery that stopped matching would find nothing, every
+    rule below would pass over an empty set, and the report would read clean. Naming them is
+    what makes that impossible to miss.
+    """
+    registry = json.loads((FIXTURES / "registry.json").read_text(encoding="utf-8"))
+    assert feed_paths(site) == sorted(
+        ["feed.xml", *(f"endpoint/{entry['id']}/feed.xml" for entry in registry["endpoints"])]
+    )
+    # sitemap.xml is XML, is in the build, and is not a feed.
+    assert (site / "sitemap.xml").is_file()
+    assert "sitemap.xml" not in feed_paths(site)
+
+
+def test_a_feed_the_sitemap_does_not_list_is_caught(site: Path) -> None:
+    text = (site / "sitemap.xml").read_text(encoding="utf-8")
+    dropped = re.sub(
+        r"<url><loc>[^<]*/endpoint/cms-blue-button-2/feed\.xml</loc>.*?</url>", "", text, count=1
+    )
+    assert dropped != text
+    (site / "sitemap.xml").write_text(dropped, encoding="utf-8")
+    assert "FEED_MISSING_FROM_SITEMAP" in _codes(site)
+
+
+def test_a_feed_that_is_not_well_formed_is_caught(site: Path) -> None:
+    """It keeps the namespace, so it is still discovered as a feed and reported as broken
+    rather than quietly dropped out of the set being examined."""
+    _feed(site).write_text(
+        '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><id>x',
+        encoding="utf-8",
+    )
+    assert "FEED_UNPARSEABLE" in _codes(site)
+
+
+def test_a_well_formed_document_that_is_not_a_feed_is_caught(site: Path) -> None:
+    _feed(site).write_text(
+        '<?xml version="1.0"?><entry xmlns="http://www.w3.org/2005/Atom"/>', encoding="utf-8"
+    )
+    assert "FEED_UNPARSEABLE" in _codes(site)
+
+
+def test_a_feed_missing_an_element_atom_requires_of_a_feed_is_caught(site: Path) -> None:
+    text = _feed(site).read_text(encoding="utf-8")
+    stripped = re.sub(r"  <updated>[^<]*</updated>\n", "", text, count=1)
+    assert stripped != text
+    _feed(site).write_text(stripped, encoding="utf-8")
+    assert "FEED_UNPARSEABLE" in _codes(site)
+
+
+def test_an_entry_missing_an_element_atom_requires_is_caught(site: Path) -> None:
+    text = _feed(site).read_text(encoding="utf-8")
+    stripped = re.sub(r"    <id>[^<]*</id>\n", "", text, count=1)
+    assert stripped != text
+    _feed(site).write_text(stripped, encoding="utf-8")
+    assert "FEED_ENTRY_INCOMPLETE" in _codes(site)
+
+
+def test_two_entries_sharing_an_id_are_caught(site: Path) -> None:
+    """An id scheme that collapsed two events into one would publish the second as an edit of
+    the first, and every subscriber would see one item where the record holds two."""
+    text = _feed(site).read_text(encoding="utf-8")
+    entry = re.search(r"  <entry>.*?</entry>\n", text, re.DOTALL)
+    assert entry is not None
+    _feed(site).write_text(text.replace("</feed>", entry.group(0) + "</feed>"), encoding="utf-8")
+    assert "FEED_ENTRY_ID_DUPLICATED" in _codes(site)
+
+
+def test_an_entry_linking_at_a_path_the_build_never_wrote_is_caught(site: Path) -> None:
+    text = _feed(site).read_text(encoding="utf-8")
+    moved = text.replace(
+        f"{DEFAULT_ORIGIN}/history/cms-blue-button-2/",
+        f"{DEFAULT_ORIGIN}/history/never-built/",
+    )
+    assert moved != text
+    _feed(site).write_text(moved, encoding="utf-8")
+    assert "FEED_ENTRY_LINK_UNBUILT" in _codes(site)
+
+
+def test_a_page_pointing_autodiscovery_at_something_that_is_not_a_feed_is_caught(
+    site: Path,
+) -> None:
+    """The floor's other half: a build that stopped writing feeds and kept the links would
+    leave ``feed_paths`` empty and every rule above satisfied. This is what refuses that."""
+    page = site / "endpoint" / "cms-blue-button-2" / "index.html"
+    page.write_text(
+        page.read_text(encoding="utf-8").replace(
+            'href="/endpoint/cms-blue-button-2/feed.xml"', 'href="/dataset.csv"'
+        ),
+        encoding="utf-8",
+    )
+    assert "FEED_UNPARSEABLE" in _codes(site)

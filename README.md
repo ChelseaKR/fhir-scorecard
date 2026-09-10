@@ -373,11 +373,31 @@ back to* listed separately and counted rather than repeated. One hostname in fro
 backends produces a return every time a probe lands on the other one, and listing those as
 releases would bury the releases that are real.
 
+Any of that can be subscribed to rather than visited. `/feed.xml` carries every event the
+record holds across every endpoint, `/endpoint/<id>/feed.xml` carries one endpoint's, and
+`/<cohort>/feed.xml` carries a cohort's, as Atom 1.0 files rebuilt from the same
+`history.json` the pages are built from. No accounts, no email, no service. Four kinds of
+entry, never merged: an endpoint entering the record, a declaration change, a *return* to a
+declaration already on record marked as a return, and a move between answered and did not
+answer. Every entry carries the date the record holds and never the build's, and its id is a
+function of `(endpoint_id, kind, date, digest)` rather than of the address the site is served
+from, so a rebuild republishes nothing and a hosting change republishes nothing. Every feed
+states how many events it carries out of how many the record holds and over what window: the
+site feed is capped at the newest 100 and says so, because a truncated dataset published as a
+complete one is the defect this project is organised against. An endpoint with no recorded
+event gets a feed with zero entries and a sentence saying which of the two reasons applies,
+not a 404. Two things a feed will not say: it reports no grade, because the record retains
+none; and an availability entry names no vantage, because an observation in the record is a
+date and a reconciled answer and the vantages behind it were never retained.
+
 What the site promises about itself is checked rather than asserted. `fhir-scorecard
 audit-site site/` reads a built directory and reports every page the sitemap omits, every
 sitemap entry no file answers, every missing or misaddressed canonical, every structured-data
 block that does not parse or omits a field this site promises, every internal link pointing at
-a path the build never wrote, and every page no path of internal links reaches. The same command
+a path the build never wrote, every page no path of internal links reaches, and every way a
+feed breaks its own contract - not listed in the sitemap, not readable as Atom, two entries
+sharing an id, an entry linking at a path the build did not write, or a page pointing feed
+autodiscovery at something that is not a feed. The same command
 also runs twelve mechanical accessibility rules - seven naming the WCAG 2.2 Level A criterion
 they implement, five saying plainly that they are this project's own rule and not a criterion -
 and two transfer-size budgets. The publish workflow runs all three families before
@@ -402,6 +422,8 @@ and registry size is gated on payers publishing base URLs.
 | `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift |
 | `api/history/<id>.json` | Every recorded observation for one endpoint, with its date and whether it answered, plus its declaration timeline. `answered_percent` is `null`, never `0`, below the 14-observation reporting floor, and `declaration_returns` is never merged into `declaration_changes` |
 | `scorecards.json` | The complete graded payload in one file |
+| `feed.xml` | Atom 1.0 feed of every recorded event, newest 100, with the count it carries out of the count the record holds |
+| `endpoint/<id>/feed.xml` | The same for one endpoint, uncapped. Also `<cohort>/feed.xml` per cohort. `api/index.json` names every feed this build wrote, and never one it did not |
 | `badge/<id>.svg` | Embeddable current-grade badge linking back to the endpoint evidence |
 
 A dated copy of the dataset, with a manifest a reader can check with `sha256sum`:

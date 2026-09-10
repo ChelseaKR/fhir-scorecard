@@ -648,9 +648,32 @@ def cohort_page(cohort: Cohort, cards: dict[str, Scorecard], origin: str) -> Pag
     # a listed endpoint is a row somebody wrote down, and the number beside "answered" has to
     # come from a probe. They are usually the same number, and when they are not, the difference
     # is the interesting part.
-    listed = [cards[eid] for m in cohort.included for eid in m.endpoint_ids if eid in cards]
+    #
+    # Counted per endpoint, not per (member, endpoint) row, and the difference is not
+    # hypothetical: `florida-marketplace` lists Cigna Healthcare and Cigna Healthcare of Florida
+    # as two member organizations pointing at one published surface, and Florida Blue and
+    # Florida Blue HMO likewise, so the page said "17 endpoints listed" over thirteen endpoints
+    # and counted four of them twice in "answered on this run". `michigan-marketplace` has one
+    # such pair. The table below is right to keep a row per member - the row is about the plan,
+    # and a plan that publishes through another entity's server is still that plan's answer to
+    # the rule - but a count labelled "endpoints" has to be a count of endpoints.
+    rows = [cards[eid] for m in cohort.included for eid in m.endpoint_ids if eid in cards]
+    listed = list({card.endpoint_id: card for card in rows}.values())
     included_endpoints = len(listed)
+    listed_rows = len(rows)
     answered = sum(card.reachable for card in listed)
+    shared = listed_rows - included_endpoints
+    shared_note = (
+        ""
+        if not shared
+        else (
+            f" The table below has {listed_rows} rows rather than {included_endpoints}, because "
+            f"{shared} of these listings {'is' if shared == 1 else 'are'} a second member "
+            "organization publishing through a surface already counted; each is listed under "
+            "its own name, and neither the endpoint count nor the answered count counts it "
+            "twice."
+        )
+    )
     notes = "".join(f"<p>{html.escape(note)}</p>" for note in cohort.notes)
     sources = "".join(
         f'<li><a href="{html.escape(s.url)}" rel="nofollow">{html.escape(s.label)}</a> '
@@ -687,9 +710,9 @@ this project could verify from public documentation, which is a curation record 
 it, not a live figure; {included_endpoints} verified
 {"endpoint is" if included_endpoints == 1 else "endpoints are"} listed below. Of those,
 <strong>{answered} answered when this page was generated</strong>, which is the measured number:
-it comes from this run's probes, and it moves when the endpoints do. The rest of the roster is
-recorded with the reason it could not be listed, because for a cohort whose membership is public
-and finite, the gap is itself a finding.</p>
+it comes from this run's probes, and it moves when the endpoints do.{shared_note} The rest of
+the roster is recorded with the reason it could not be listed, because for a cohort whose
+membership is public and finite, the gap is itself a finding.</p>
 {notes}
 {sources_html}
 <h2>Listed endpoints</h2>

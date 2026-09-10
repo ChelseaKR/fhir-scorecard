@@ -14,6 +14,33 @@ Merged changes land here until the next tag.
 
 ### Fixed
 
+- **A cohort endpoint two plans publish through was counted twice.**
+  `site.cohort_page` counted `(member, endpoint)` rows and labelled the result
+  "endpoints listed", so an endpoint two member organizations both point at was
+  counted twice, in that number and in "answered on this run" beside it. Measured
+  against the live site and the live `dataset.csv` on 2026-09-10:
+
+  | page | was | is |
+  |---|---|---|
+  | `/florida-marketplace/` | 17 endpoints listed, 15 answered | 13 endpoints listed, 11 answered |
+  | `/michigan-marketplace/` | 6 endpoints listed, 4 answered | 5 endpoints listed, 3 answered |
+
+  The curation is right and unchanged: `florida-marketplace` records Cigna
+  Healthcare and Cigna Healthcare of Florida as two member organizations pointing
+  at one published surface, and Florida Blue and Florida Blue HMO likewise;
+  `michigan-marketplace` has one such pair in BCBS Michigan and Blue Care Network.
+  Two legal entities answering the rule through one server is a fact about the
+  roster, not an error in it.
+
+  The table still carries a row per member, because the row is about the plan and
+  a reader looking for their own plan has to find it — and the page now says why
+  the row count and the endpoint count differ, on the cohorts where they do, so
+  nobody has to count rows to work it out. No other surface was affected:
+  `coverage.classify` counts organizations, and every other consumer is keyed by
+  endpoint. Found by the duplicate-entry-id rule the Atom feeds added, before
+  anything was published.
+
+
 - **The pin gate read 1 of the 40 action references this repository runs.** The
   README's Security and Supply-Chain row says Actions are pinned to full commit
   SHAs. `tests/test_ci_action.py` held `action.yml` to that with its own copy of

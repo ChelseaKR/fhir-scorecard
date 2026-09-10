@@ -183,6 +183,94 @@ def test_cohort_endpoint_count_never_exceeds_the_endpoints_it_can_show() -> None
     assert page.body.count('<td><a href="/endpoint/') == 1
 
 
+def test_one_endpoint_two_plans_publish_through_is_counted_once() -> None:
+    """Measured in the shipped curation, not hypothesised.
+
+    ``data/cohorts/florida-marketplace.json`` lists Cigna Healthcare and Cigna Healthcare of
+    Florida as two member organizations pointing at ``cigna-patientaccess`` and
+    ``cigna-provider-directory``, and Florida Blue and Florida Blue HMO likewise, so the page
+    counted (member, endpoint) rows and published **17 endpoints listed** over thirteen
+    endpoints, with four of them counted twice in **answered on this run**.
+    ``michigan-marketplace`` has one such pair.
+
+    The row per member stays: a plan that publishes through another entity's server is still
+    that plan's answer to the rule, and a reader looking for their own plan has to find it. It
+    is the count labelled "endpoints" that has to be a count of endpoints.
+    """
+    cohort = _cohort(
+        CohortMember(
+            member_id="alpha-plan",
+            name="Alpha Plan",
+            programs=("medi-cal",),
+            endpoint_ids=("shared",),
+        ),
+        CohortMember(
+            member_id="alpha-plan-hmo",
+            name="Alpha Plan HMO",
+            programs=("medi-cal",),
+            endpoint_ids=("shared",),
+        ),
+    )
+    page = cohort_page(cohort, {"shared": _answering("shared")}, "https://example.test")
+
+    assert "<strong>1</strong><span>endpoints listed</span>" in page.body
+    assert "<strong>1</strong><span>answered on this run</span>" in page.body
+    assert "1 of 1 listed endpoints answered on the latest run" in page.description
+    # Both organizations still appear, each under its own name.
+    assert page.body.count('<td><a href="/endpoint/shared/"') == 2
+    assert "Alpha Plan HMO" in page.body
+    # And the page says why the two numbers differ, rather than leaving a reader to count rows.
+    assert "The table below has 2 rows rather than 1" in page.body
+    assert "a second member organization publishing through a surface already counted" in page.body
+
+
+def test_a_cohort_with_no_shared_surface_says_nothing_about_rows() -> None:
+    """The other direction. A note that appeared on every cohort would be noise, and a reader
+    who saw it everywhere would stop reading it where it is load-bearing."""
+    cohort = _cohort(
+        CohortMember(
+            member_id="alpha-plan",
+            name="Alpha Plan",
+            programs=("medi-cal",),
+            endpoint_ids=("alpha",),
+        ),
+        CohortMember(
+            member_id="beta-plan",
+            name="Beta Plan",
+            programs=("medi-cal",),
+            endpoint_ids=("beta",),
+        ),
+    )
+    cards = {"alpha": _answering("alpha"), "beta": _answering("beta")}
+    page = cohort_page(cohort, cards, "https://example.test")
+    assert "<strong>2</strong><span>endpoints listed</span>" in page.body
+    assert "The table below has" not in page.body
+
+
+def test_the_shipped_cohorts_are_the_reason_this_rule_exists() -> None:
+    """A regression test over the real curation files, so the finding cannot quietly expire.
+
+    If the duplicates are edited out of the roster one day this test says so rather than
+    silently becoming a statement about nothing - which is what a rule written only against a
+    synthetic fixture would become.
+    """
+    from fhir_scorecard.cohort import load_cohort_dir
+    from fhir_scorecard.registry import load_registry
+
+    root = Path(__file__).resolve().parent.parent
+    endpoints = load_registry(root / "data" / "registry.json")
+    cohorts = load_cohort_dir(
+        root / "data" / "cohorts", frozenset(e.endpoint_id for e in endpoints)
+    )
+    sharing = {
+        cohort.cohort_id: (len(refs), len(set(refs)))
+        for cohort in cohorts
+        for refs in [[eid for m in cohort.included for eid in m.endpoint_ids]]
+        if len(refs) != len(set(refs))
+    }
+    assert sharing == {"florida-marketplace": (17, 13), "michigan-marketplace": (6, 5)}, sharing
+
+
 def test_published_api_reports_both_numbers(tmp_path: Path) -> None:
     registry = tmp_path / "registry.json"
     registry.write_text(

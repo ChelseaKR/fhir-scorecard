@@ -481,3 +481,64 @@ def test_the_feeds_carry_no_build_stamp_although_the_pages_do(tmp_path: Path) ->
     assert "UTC" in stamp
     for relative in feeds:
         assert stamp not in (first / relative).read_text(encoding="utf-8"), relative
+
+
+def test_the_index_names_no_feed_when_the_build_wrote_none() -> None:
+    """The other side of the ``feeds`` argument, and nothing else in the suite reaches it.
+
+    Every build in this file writes a feed for every endpoint, so ``if feed_path in
+    written_feeds`` and an unconditional ``if True`` agree on all of them: a control that
+    deleted the condition passed the whole suite. A record with no date produces no feeds at
+    all, and the index must then name none rather than a URL nothing answers.
+    """
+    from fhir_scorecard.capability import parse_capability, parse_smart
+    from fhir_scorecard.dataset import write_dataset
+    from fhir_scorecard.fetch import FetchResult
+    from fhir_scorecard.grading import build_scorecard
+    from fhir_scorecard.registry import Endpoint
+
+    card = build_scorecard(
+        "alpha",
+        "Alpha Health",
+        FetchResult(
+            url="https://a.test/metadata", ok=True, status=200, elapsed_ms=10, body=b"", error=None
+        ),
+        parse_capability(b"{}"),
+        parse_smart(b"{}"),
+        kind="payer",
+    )
+    endpoint = Endpoint(
+        endpoint_id="alpha",
+        name="Alpha Health",
+        kind="payer",
+        base_url="https://a.test/r4",
+        verified_method="live fetch",
+        verified_date="2026-08-05",
+        expects="r4",
+    )
+    out = Path("out")
+    write_dataset(
+        out,
+        [card],
+        [endpoint],
+        origin=DEFAULT_ORIGIN,
+        generated_at="2026-08-05 00:00 UTC",
+        vantage="fixture",
+        feeds=(),
+    )
+    index = json.loads((out / "api" / "index.json").read_text(encoding="utf-8"))
+    assert "feed" not in index
+    assert all("feed" not in entry for entry in index["endpoints"])
+
+    write_dataset(
+        out,
+        [card],
+        [endpoint],
+        origin=DEFAULT_ORIGIN,
+        generated_at="2026-08-05 00:00 UTC",
+        vantage="fixture",
+        feeds=("feed.xml", "endpoint/alpha/feed.xml"),
+    )
+    index = json.loads((out / "api" / "index.json").read_text(encoding="utf-8"))
+    assert index["feed"] == f"{DEFAULT_ORIGIN}/feed.xml"
+    assert index["endpoints"][0]["feed"] == f"{DEFAULT_ORIGIN}/endpoint/alpha/feed.xml"

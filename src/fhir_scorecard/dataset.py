@@ -14,6 +14,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from fhir_scorecard.grading import Scorecard
+from fhir_scorecard.matrix import API_DIR as DECLARATIONS_DIR
+from fhir_scorecard.matrix import SCHEMA_FILE as DECLARATIONS_SCHEMA
 from fhir_scorecard.registry import Endpoint
 
 SCHEMA_VERSION = 2
@@ -166,6 +168,7 @@ def write_dataset(
     generated_at: str,
     vantage: str,
     feeds: Sequence[str] = (),
+    declarations: Sequence[str] = (),
 ) -> None:
     """Write dataset.csv, its schema, and a static per-endpoint JSON API.
 
@@ -173,6 +176,9 @@ def write_dataset(
     written. A feed URL is published here only when its path is in that list: an index naming a
     file the build did not write is the same defect as a sitemap entry no file answers, and the
     only way to be sure is to be told what was written rather than to assume it.
+
+    ``declarations`` is the same contract for the declared-capability files (#102): the endpoint
+    ids whose ``api/capabilities/<id>.json`` the site build reported having written.
     """
     out.mkdir(parents=True, exist_ok=True)
     (out / "dataset.csv").write_text(to_csv(cards, endpoints), encoding="utf-8")
@@ -180,6 +186,7 @@ def write_dataset(
 
     by_id = {e.endpoint_id: e for e in endpoints}
     written_feeds = set(feeds)
+    declared_ids = set(declarations)
     api_dir = out / "api" / "endpoint"
     api_dir.mkdir(parents=True, exist_ok=True)
     index: list[dict[str, object]] = []
@@ -235,8 +242,12 @@ def write_dataset(
         feed_path = f"endpoint/{card.endpoint_id}/feed.xml"
         if feed_path in written_feeds:
             entry["feed"] = f"{origin}/{feed_path}"
+        if card.endpoint_id in declared_ids:
+            entry["capabilities"] = f"{origin}/{DECLARATIONS_DIR}/{card.endpoint_id}.json"
         index.append(entry)
     site_feed = {"feed": f"{origin}/feed.xml"} if "feed.xml" in written_feeds else {}
+    if declared_ids:
+        site_feed["capabilities_schema"] = f"{origin}/{DECLARATIONS_SCHEMA}"
     (out / "api" / "index.json").write_text(
         json.dumps(
             {

@@ -14,6 +14,44 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **Each endpoint's declared resource and interaction matrix, as pages and as data (#102).**
+  The capability transparency dimension grades whether a CapabilityStatement says what its
+  server runs. The declaration itself was retrieved on every run and published nowhere. It is
+  now `/endpoint/<id>/capabilities/` and `api/capabilities/<id>.json`, documented by
+  `capabilities.schema.json`, and served by a new `declared_capabilities` MCP tool. This is an
+  observation of what a publisher said, dated and hashed. Nothing listed is requested or
+  exercised, and nothing on it is graded: a test strips every search parameter and operation
+  from the three captured documents and asserts no dimension score and no field of the drift
+  fingerprint moves.
+
+  - **Four states.** Not retrieved, retrieved and unreadable, declares nothing, and declares
+    something. The first two publish `null` rows and counts and a sentence, never an empty
+    table or zeros. `capability.CapabilityFacts` already separated them with `observed`, and
+    an empty matrix would have said "declares nothing" about all of them.
+  - **One reader.** The page is grouped from the same flat rows the data carries, and those
+    are built from the facts the grade was built from. The facts are kept at the point where
+    grading has them, never re-parsed from a body. The expected counts in the tests are
+    computed from the raw JSON by code that shares nothing with the extraction.
+  - **Split by resource, never truncated.** Measured over the 68 documents the live probes
+    retrieved on 2026-09-10, one row per (resource, interaction, parameter, operation), which
+    is the issue's page shape, ran from a median of 599 rows to 6,755. That put even the
+    median page past the 65,536-byte budget. The page carries one row per resource instead:
+    51 of 68 fit on one page, 17 run to more, 86 pages in all, the largest 49,692 bytes. A
+    page break never falls inside a resource. A resource too large for a page by itself is
+    written with counts and says so, and every name stays in the data, so no third party can
+    declare its way past the weight gate and stop the site publishing.
+  - **`api/capabilities/`, not the issue's `api/endpoint/<id>/capabilities.json`.**
+    `snapshot._collect` walks `api/endpoint` recursively, so that path would have put 14.2 MB
+    into every dated snapshot without anyone deciding it. A test fails if a snapshot ever
+    starts carrying the declarations.
+  - **Both numbers, again.** A document that repeats a code on one resource declares it once
+    and wrote it twice. The data publishes `interaction_entries_declared` beside
+    `interaction_rows`, and entries that could not be read are counted, never listed and
+    never silently dropped.
+
+  Not in this change: the per-cohort aggregate the issue also asks for. It is separable and
+  it is the next piece.
+
 - **Atom feeds of the observation record (#101).** The record has held a declaration
   timeline and an availability history for a month, and the only way to learn about
   either was to open the page. `fhir_scorecard.feeds` renders the same events as Atom

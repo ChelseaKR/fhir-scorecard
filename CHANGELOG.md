@@ -14,6 +14,22 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **The interval arithmetic a published share needs, wired to nothing (#103).** The cohort,
+  coverage and availability pages publish shares as counts over fixed denominators. They carry
+  no uncertainty and no floor. `statistics.py` is the arithmetic that would attach both:
+  a Wilson score interval at 95%, published as `method="wilson-score"`, with an optional
+  finite-population correction and the clamp that keeps an interval containing its own point
+  estimate. Ported from `mrf-honest`'s ADR 0007 so two published proportions in this portfolio
+  mean the same thing, and narrowed to what this project can use.
+
+  **No published figure moves, because nothing calls it yet.** Two of the three things needed to
+  wire it are the maintainer's: the small-cell threshold, which is a statement about what this
+  site refuses to say about *named organizations* rather than a number to copy from a sibling
+  project; and four new published columns in `dataset.csv` and `api/`. So the module has **no
+  default threshold** - `estimate_proportion` cannot be called without one - and every entry
+  point returns either a `Proportion` carrying its own denominator and interval or a `Refusal`
+  carrying the reason there is no number. There is no third outcome and no bare `float`.
+
 - **What an endpoint declares about app-to-server access, observed and never graded (#97).**
   The two documents this project retrieves say more than the graded dimensions read.
   The SMART discovery document declares how a client may authenticate at the token

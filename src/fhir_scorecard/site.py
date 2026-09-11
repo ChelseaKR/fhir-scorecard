@@ -367,8 +367,14 @@ def endpoint_page(
     verified: str,
     origin: str,
     organization: tuple[str, str] | None = None,
+    declared: bool = False,
 ) -> Page:
     """One endpoint's page.
+
+    ``declared`` is whether this build wrote the endpoint's declared-capability pages (#102),
+    and it decides whether the page links to them. Passed in rather than assumed, for the same
+    reason a page advertises a feed only when one was written: a link to a page the build did
+    not write is a finding the site audit exists to raise.
 
     ``organization`` is ``(display name, slug)`` when this endpoint is one of several surfaces
     the same organization publishes, and ``None`` when it is the only one. It is what puts the
@@ -379,6 +385,12 @@ def endpoint_page(
     """
     kind_label = KIND_LABELS.get(card.kind, card.kind)
     summary = _status_words(card)
+    declared_link = (
+        f'<p><a class="usa-link" href="/endpoint/{html.escape(card.endpoint_id)}/capabilities/">'
+        "What its CapabilityStatement declares, resource by resource →</a></p>"
+        if declared
+        else ""
+    )
     unobserved = card.grade == NOT_OBSERVED
     dimensions = "".join(_dimension_meter(dim.title, dim.score) for dim in card.dimensions)
     record_link = (
@@ -464,6 +476,7 @@ def endpoint_page(
 <p>A grade describes two public discovery documents at one point in time. It does not inspect
 patient data, authenticated behavior, or clinical quality.</p>
 <a class="usa-link" href="/how-we-grade/">Read the scoring method →</a>
+{declared_link}
 </section>
 </div>
 <h2>Findings</h2>

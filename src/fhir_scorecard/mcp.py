@@ -70,6 +70,21 @@ _TOOLS = [
         },
     },
     {
+        "name": "declared_capabilities",
+        "description": (
+            "What one endpoint's CapabilityStatement declared: every resource, interaction, "
+            "search parameter, operation and profile as flat rows, with the retrieval date and "
+            "the document's SHA-256. An observation of a declaration, never a test of it. The "
+            "state field says when there was no readable declaration, and rows is null then, "
+            "never an empty list."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"endpoint_id": {"type": "string"}},
+            "required": ["endpoint_id"],
+        },
+    },
+    {
         "name": "grading_method",
         "description": (
             "How grades are computed, what each finding code checks, and the "
@@ -132,6 +147,30 @@ def _text(payload: object) -> dict[str, Any]:
     return {"content": [{"type": "text", "text": json.dumps(payload, indent=2)}]}
 
 
+def _bare_id(arguments: dict[str, Any]) -> str | None:
+    """The requested endpoint id, or ``None`` if it could address anything but one file.
+
+    Path traversal guard, shared by every tool that turns an id into a filename.
+    """
+    endpoint_id = str(arguments.get("endpoint_id") or "").strip()
+    if not endpoint_id or "/" in endpoint_id or "\\" in endpoint_id or ".." in endpoint_id:
+        return None
+    return endpoint_id
+
+
+def _declared_capabilities(site_dir: Path, arguments: dict[str, Any]) -> dict[str, Any]:
+    """One endpoint's published declaration (#102), exactly as the site serves it."""
+    from fhir_scorecard.matrix import API_DIR
+
+    endpoint_id = _bare_id(arguments)
+    if endpoint_id is None:
+        return _text({"error": "endpoint_id must be a bare identifier"})
+    path = site_dir / API_DIR / f"{endpoint_id}.json"
+    if not path.is_file():
+        return _text({"error": f"no declaration is published for {endpoint_id!r}"})
+    return _text(json.loads(path.read_text(encoding="utf-8")))
+
+
 def call_tool(
     site_dir: Path, name: str, arguments: dict[str, Any], *, root: Path | None = None
 ) -> dict[str, Any]:
@@ -157,10 +196,12 @@ def call_tool(
             }
         )
 
+    if name == "declared_capabilities":
+        return _declared_capabilities(site_dir, arguments)
+
     if name in {"get_endpoint", "cited_passages"}:
-        endpoint_id = str(arguments.get("endpoint_id") or "").strip()
-        # Path traversal guard: only a bare identifier ever becomes a filename.
-        if not endpoint_id or "/" in endpoint_id or "\\" in endpoint_id or ".." in endpoint_id:
+        endpoint_id = _bare_id(arguments)
+        if endpoint_id is None:
             return _text({"error": "endpoint_id must be a bare identifier"})
         path = site_dir / "api" / "endpoint" / f"{endpoint_id}.json"
         if not path.is_file():

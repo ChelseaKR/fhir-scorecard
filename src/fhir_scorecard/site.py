@@ -662,8 +662,34 @@ def _cohort_excluded_rows(cohort: Cohort) -> str:
     return rows
 
 
-def cohort_page(cohort: Cohort, cards: dict[str, Scorecard], origin: str) -> Page:
+def _declared_kinds_html(cohort: Cohort, declared_kinds: tuple[str, ...]) -> str:
+    """Links to this cohort's declaration census pages, or nothing where there are none."""
+    if not declared_kinds:
+        return ""
+    links = "".join(
+        f'<li><a href="/{html.escape(cohort.cohort_id)}/capabilities/{html.escape(kind)}/">'
+        f"What its {html.escape(KIND_LABELS.get(kind, kind))} endpoints declare</a></li>"
+        for kind in declared_kinds
+    )
+    return (
+        "<h2>What the listed endpoints declare</h2>"
+        "<p>How many of the listed endpoints with a readable CapabilityStatement declare each "
+        "resource and each interaction on it, counted within a category and never across one. "
+        "Declared, not tested.</p>"
+        f'<ul class="usa-list">{links}</ul>'
+    )
+
+
+def cohort_page(
+    cohort: Cohort,
+    cards: dict[str, Scorecard],
+    origin: str,
+    declared_kinds: tuple[str, ...] = (),
+) -> Page:
     """A curated cohort: who is in it, who could be listed, and who could not, with reasons.
+
+    ``declared_kinds`` names the kinds this build wrote a declaration census page for
+    (#102). The page links exactly those, and none it was not told about.
 
     The exclusions table is not an appendix. For a cohort whose membership is public and finite,
     "this plan publishes no base URL an unregistered visitor can see" is as much a result as any
@@ -725,6 +751,7 @@ and finite, the gap is itself a finding.</p>
 <tbody>{_cohort_included_rows(cohort, cards)}</tbody></table></div>
 <p>Grades are comparable within a category only: a Patient Access API and a Provider Directory
 API answer to different expectations and are never ranked against each other.</p>
+{_declared_kinds_html(cohort, declared_kinds)}
 {excluded_html}
 <div class="usa-alert usa-alert--info usa-alert--slim site-caveat"><div class="usa-alert__body">
 <p class="usa-alert__text">Observational snapshots of public discovery surfaces. Not audits, not

@@ -14,6 +14,29 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **What a cohort's listed endpoints declare, counted within a category (#102).** Each
+  cohort page links one census page per category it lists, at
+  `/<cohort>/capabilities/<kind>/`. For every resource the listed endpoints declare, the
+  page counts how many of them declare it and each interaction on it, from the same
+  facts the endpoint pages and the grades are built from.
+
+  - **Three populations, one denominator.** Every count is "n of D", where D is the
+    endpoints with a readable declaration on the run, including any CapabilityStatement
+    that declares nothing, because it was read. Endpoints whose document could not be read
+    or was not retrieved are counted and named beside the census, never folded in: an
+    endpoint nobody read has not declared an absence of anything.
+  - **Within a category, never across one,** the rule the grades already keep.
+  - **Counts, not percentages.** On the live record some categories in a state have one
+    readable declaration, and "1 of 1" is what was observed. Whether to attach intervals
+    and a small-cell floor is #103's decision, and nothing here takes a position on it.
+  - **No code dropped.** R4's nine type-level interaction codes each get a column, and any
+    other code a document declares is listed with its count.
+  - Two plans on one surface count once, the same rule the cohort page's own count now
+    keeps.
+
+  Measured over the live declarations and the thirteen shipped cohorts: 25 census pages,
+  none needing a second page, the largest 33,578 bytes against the 65,536-byte budget.
+
 - **Each endpoint's declared resource and interaction matrix, as pages and as data (#102).**
   The capability transparency dimension grades whether a CapabilityStatement says what its
   server runs. The declaration itself was retrieved on every run and published nowhere. It is
@@ -49,8 +72,7 @@ Merged changes land here until the next tag.
     `interaction_rows`, and entries that could not be read are counted, never listed and
     never silently dropped.
 
-  Not in this change: the per-cohort aggregate the issue also asks for. It is separable and
-  it is the next piece.
+  The per-cohort aggregate the issue also asks for is its own change, the entry above.
 
 - **Atom feeds of the observation record (#101).** The record has held a declaration
   timeline and an availability history for a month, and the only way to learn about

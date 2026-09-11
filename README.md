@@ -407,6 +407,15 @@ data. The declarations are not in the dated snapshot, because `snapshot` copies 
 and these live in `api/capabilities`. What a signed dated release carries is the maintainer's
 decision.
 
+Each cohort page also links a census of what its listed endpoints declare, one page per
+category: how many of the endpoints with a readable declaration name each resource, and each
+interaction on it. The counts are out of that number and never percentages, because a
+category in one state can have a single readable declaration. Endpoints whose document was
+not read on the run are named beside the count and never folded into it. An endpoint nobody
+read has not declared an absence of `Patient`. Two plans that publish through one server
+count as one endpoint, and an interaction code outside R4's nine is listed with its count
+rather than dropped.
+
 What the site promises about itself is checked rather than asserted. `fhir-scorecard
 audit-site site/` reads a built directory and reports every page the sitemap omits, every
 sitemap entry no file answers, every missing or misaddressed canonical, every structured-data

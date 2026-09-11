@@ -35,6 +35,8 @@ from fhir_scorecard.capability import (
 )
 from fhir_scorecard.ci_report import EndpointResult, to_junit, to_sarif
 from fhir_scorecard.cohort import Cohort, load_cohort_dir
+from fhir_scorecard.cohort_matrix import censuses
+from fhir_scorecard.cohort_matrix import pages_for as census_pages
 from fhir_scorecard.coverage import classify, read_frame, read_reviewed_rows_by_cohort
 from fhir_scorecard.coverage import page as coverage_page
 from fhir_scorecard.dataset import write_dataset
@@ -1435,6 +1437,26 @@ def _declaration_pages(
     return pages
 
 
+def _cohort_census_pages(
+    cohorts: tuple[Cohort, ...],
+    scorecards: list[Scorecard],
+    declared: dict[str, CapabilityFacts],
+) -> tuple[dict[str, tuple[str, ...]], list[Page]]:
+    """Each cohort's declaration census pages (#102), and the kinds each cohort has one for.
+
+    Returned together so the cohort page links exactly the census pages written beside it.
+    """
+    kinds = {card.endpoint_id: card.kind for card in scorecards}
+    linked: dict[str, tuple[str, ...]] = {}
+    pages: list[Page] = []
+    for cohort in cohorts:
+        items = censuses(cohort, declared, kinds)
+        linked[cohort.cohort_id] = tuple(item.kind for item in items)
+        for item in items:
+            pages.extend(census_pages(item))
+    return linked, pages
+
+
 def _write_declarations(
     out: Path,
     scorecards: list[Scorecard],
@@ -1528,7 +1550,17 @@ def _write_site(
         pages.append(coverage)
     pages.extend(record_page(record, origin) for record in archive)
     cards_by_id = {card.endpoint_id: card for card in scorecards}
-    pages.extend(cohort_page(cohort, cards_by_id, origin) for cohort in cohorts)
+    census_kinds, census_page_list = _cohort_census_pages(cohorts, scorecards, declared)
+    pages.extend(
+        cohort_page(
+            cohort,
+            cards_by_id,
+            origin,
+            declared_kinds=census_kinds[cohort.cohort_id],
+        )
+        for cohort in cohorts
+    )
+    pages.extend(census_page_list)
 
     by_org, org_of = _organizations(scorecards)
     for card in scorecards:

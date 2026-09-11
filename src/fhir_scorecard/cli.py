@@ -10,6 +10,7 @@ import sys
 import time
 from collections import Counter
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -17,6 +18,7 @@ from urllib.parse import urlsplit
 from fhir_scorecard.accessibility import audit_accessibility
 from fhir_scorecard.archive import (
     ARCHIVE_PATH,
+    Record,
     history_json,
     index_page,
     mode_of,
@@ -36,6 +38,7 @@ from fhir_scorecard.coverage import classify, read_frame, read_reviewed_rows_by_
 from fhir_scorecard.coverage import page as coverage_page
 from fhir_scorecard.dataset import write_dataset
 from fhir_scorecard.drift import ensure_mode, load_history, observe, save_history
+from fhir_scorecard.feeds import build_feeds, write_feeds
 from fhir_scorecard.fetch import TIMEOUT_S, FetchResult, fetch_json
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
 from fhir_scorecard.grading import Scorecard, build_scorecard
@@ -1271,7 +1274,7 @@ def main(argv: list[str] | None = None) -> int:
         (args.out / "scorecards.json").write_text(
             to_json(scorecards, generated_at=generated_at, vantage=run_vantage), encoding="utf-8"
         )
-        _write_site(
+        feeds = _write_site(
             scorecards,
             endpoints,
             args.out,
@@ -1288,6 +1291,7 @@ def main(argv: list[str] | None = None) -> int:
             origin=args.origin.rstrip("/"),
             generated_at=generated_at,
             vantage=run_vantage,
+            feeds=feeds,
         )
     except OSError as exc:
         # Exit 2, not 1. `docs/ci-action.md` reserves 1 for "a threshold the caller set was not
@@ -1376,6 +1380,36 @@ def _coverage_page(
     return coverage_page(orgs, origin) if orgs else None
 
 
+def _write_feeds(
+    out: Path, archive: list[Record], cohorts: tuple[Cohort, ...], origin: str
+) -> tuple[str, ...]:
+    """Write the Atom feeds and report the site-relative path of each one written.
+
+    The report is the contract, not the intention: :func:`_advertise_feeds` and
+    ``write_dataset`` both name feeds, and neither may name one this returned value does not
+    carry. ``build_feeds`` writes nothing at all when the record holds no date, so the empty
+    tuple is a real answer.
+    """
+    return write_feeds(out, build_feeds(archive, cohorts), origin)
+
+
+def _advertise_feeds(pages: list[Page], written: tuple[str, ...]) -> list[Page]:
+    """Attach each page's feed, for the feeds this build actually wrote.
+
+    A page's own directory carries its feed, so the mapping is the file path minus the
+    filename - with one addition: an endpoint's record page under ``/history/<id>/`` is a view
+    of the same events and is where every entry in that feed links, so it advertises the
+    endpoint's feed rather than none.
+    """
+    feed_of = {path.rsplit("/", 1)[0] if "/" in path else "": path for path in written}
+    for page_path, path in list(feed_of.items()):
+        if page_path.startswith("endpoint/"):
+            feed_of[f"{ARCHIVE_PATH}/{page_path.removeprefix('endpoint/')}"] = path
+    return [
+        replace(page, feed=feed_of[page.path]) if page.path in feed_of else page for page in pages
+    ]
+
+
 def _write_site(
     scorecards: list[Scorecard],
     endpoints: list[Endpoint],
@@ -1385,9 +1419,13 @@ def _write_site(
     cohorts: tuple[Cohort, ...] = (),
     history: dict[str, Any] | None = None,
     cohorts_dir: Path | None = None,
-) -> None:
+) -> tuple[str, ...]:
     """One indexable page per endpoint, organization, category, cohort and observation
-    record, plus the sitemap and the machine-readable copies of each."""
+    record, plus the sitemap, the Atom feeds, and the machine-readable copies of each.
+
+    Returns the site-relative paths of the feeds actually written, which is what lets
+    ``api/index.json`` name a feed only when there is one behind the name.
+    """
     origin = origin.rstrip("/")
     by_id = {e.endpoint_id: e for e in endpoints}
     coverage = _coverage_page(cohorts_dir, cohorts, endpoints, origin)
@@ -1440,6 +1478,9 @@ def _write_site(
             "two pages target the same output file, so one would silently overwrite the other: "
             + ", ".join(repr(path or "<site root>") for path in collisions)
         )
+    # Feeds are written before the pages, because a page may only advertise a feed that exists.
+    written = _write_feeds(out, archive, cohorts, origin)
+    pages = _advertise_feeds(pages, written)
     for page in pages:
         write_page(out, page, origin, generated_at)
     badge_dir = out / "badge"
@@ -1452,9 +1493,10 @@ def _write_site(
         (archive_dir / f"{record.endpoint_id}.json").write_text(
             history_json(record, generated_at), encoding="utf-8"
         )
-    (out / "sitemap.xml").write_text(sitemap(pages, origin), encoding="utf-8")
+    (out / "sitemap.xml").write_text(sitemap(pages, origin, written), encoding="utf-8")
     (out / "robots.txt").write_text(robots(origin), encoding="utf-8")
     write_assets(out)
+    return written
 
 
 if __name__ == "__main__":

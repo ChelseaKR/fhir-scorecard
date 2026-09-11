@@ -66,11 +66,17 @@ ignore = ["E501"]
 max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
-# S314 flags `xml.etree` as unsafe against hostile input. The only XML these tests parse is the
-# JUnit artifact the test itself just generated three lines earlier, so there is no untrusted
-# document in the path; pulling in `defusedxml` to read our own output would add a runtime-shaped
-# dependency to a project whose `dependencies` list is empty on purpose. Scoped to tests only:
-# nothing under `src` parses XML.
+# S314 flags `xml.etree` as unsafe against hostile input. The XML these tests parse is output
+# the test itself just generated - the JUnit artifact, and the Atom feeds `fhir_scorecard.feeds`
+# renders - so there is no untrusted document in the path; pulling in `defusedxml` to read our
+# own output would add a runtime-shaped dependency to a project whose `dependencies` list is
+# empty on purpose.
+#
+# One place under `src` parses XML and carries its own line-scoped `# noqa: S314` with the
+# reasoning beside it: `audit._feed_findings`, which has to open a feed to be able to say it is
+# readable. A substring test over the text would be a check that cannot fail, which is worse
+# than the risk the rule names - and CPython's parser resolves no external entity and refuses
+# every entity declaration, so neither attack S314 is about is reachable there.
 "tests/*" = ["S101", "S314"]
 
 [tool.pytest.ini_options]

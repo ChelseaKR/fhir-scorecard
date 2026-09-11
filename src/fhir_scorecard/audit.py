@@ -15,6 +15,13 @@ is what the rule cites:
   data rather than templated boilerplate"* and *"JSON-LD: ``Dataset`` on the index,
   ``WebAPI`` / ``Organization`` on endpoint pages"*.
 * ROADMAP phase 4: *"no orphan pages"*.
+* The feeds (#101) are published as a subscribable artifact, so they are held to the same
+  shape: every feed the build wrote is listed in the sitemap, reads as an Atom feed, carries
+  no two entries with one id, and links only at files this build wrote. Feeds are discovered
+  by the Atom namespace rather than by a filename, and every ``href`` a page points feed
+  autodiscovery at must be one of the feeds found - so a generator that stopped writing feeds,
+  or started writing something that is not one, cannot leave this audit examining nothing and
+  reporting clean.
 
 Two things this module deliberately does **not** do.
 
@@ -38,6 +45,8 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
+from xml.etree import ElementTree
+from xml.etree.ElementTree import Element
 
 #: Fields this site promises for each structured-data type it emits. Types not listed are
 #: held to ``@context`` and ``@type`` only; see the module docstring.
@@ -52,6 +61,11 @@ REQUIRED_JSONLD_FIELDS: dict[str, tuple[str, ...]] = {
 #: asserts, so a new rule cannot ship without a documented name.
 FINDING_CODES: dict[str, str] = {
     "PAGE_MISSING_FROM_SITEMAP": "a built page the sitemap does not list",
+    "FEED_MISSING_FROM_SITEMAP": "a built feed the sitemap does not list",
+    "FEED_UNPARSEABLE": "a feed file that is not readable as an Atom feed",
+    "FEED_ENTRY_INCOMPLETE": "a feed entry missing an element Atom requires of every entry",
+    "FEED_ENTRY_ID_DUPLICATED": "two entries in one feed sharing an id",
+    "FEED_ENTRY_LINK_UNBUILT": "a feed entry linking at a path the build did not write",
     "SITEMAP_ENTRY_NOT_BUILT": "a sitemap entry no built file answers",
     "SITEMAP_ENTRY_OFF_ORIGIN": "a sitemap entry that is not under this site's origin",
     "SITEMAP_UNPARSEABLE": "sitemap.xml is missing or is not readable as a urlset",
@@ -80,6 +94,10 @@ _ORGANIZATION_NAME_IS_A_SURFACE = re.compile(
     r"formulary|apis?)\s*$",
     re.IGNORECASE,
 )
+
+#: The media type a page uses to point feed autodiscovery at a file. Spelled here for the same
+#: reason :data:`_ATOM_NAMESPACE` is.
+_ATOM_MEDIA_TYPE = "application/atom+xml"
 
 #: What a page must declare once it declares any of it. A half-written card is one a
 #: crawler completes from somewhere else; a card whose title or description differs from
@@ -128,6 +146,11 @@ class _PageParser(HTMLParser):
         self.canonicals: list[str] = []
         self.jsonld: list[str] = []
         self.references: list[str] = []
+        #: ``href``s this page advertises as Atom feeds. Collected as well as, not instead of,
+        #: ``references``: existence is the link contract's question and being a readable feed
+        #: is the feed contract's, and a page pointing autodiscovery at a file that is not a
+        #: feed satisfies the first while failing the second.
+        self.feeds: list[str] = []
         self.metas: dict[str, str] = {}
         self.title = ""
         self._in_jsonld = False
@@ -155,6 +178,8 @@ class _PageParser(HTMLParser):
             self.canonicals.append(got.get("href", ""))
         elif got.get("href"):
             self.references.append(got["href"])
+            if got.get("type", "").lower().split(";")[0].strip() == _ATOM_MEDIA_TYPE:
+                self.feeds.append(got["href"])
 
     def _script(self, got: dict[str, str]) -> None:
         if got.get("type", "").lower() == "application/ld+json":
@@ -197,6 +222,33 @@ def page_paths(root: Path) -> list[str]:
         relative = html_file.parent.relative_to(root).as_posix()
         found.append("" if relative == "." else relative)
     return sorted(found, key=lambda p: (p != "", p))
+
+
+#: The Atom 1.0 namespace, which is what makes a file in a build a feed rather than some other
+#: XML. Spelled here rather than imported from ``fhir_scorecard.feeds`` for the reason
+#: ``_ORGANIZATION_NAME_IS_A_SURFACE`` is: this module reads what was built, so it must not be
+#: able to agree with the generator by construction. Discovery is by this string and not by a
+#: filename, so renaming the generator's ``FEED_FILENAME`` cannot empty the set of feeds this
+#: audit examines - which is how a gate quietly stops examining anything.
+_ATOM_NAMESPACE = "http://www.w3.org/2005/Atom"
+
+
+def feed_paths(root: Path) -> list[str]:
+    """Site-relative paths of every XML file under ``root`` that presents itself as Atom.
+
+    A separate walk from :func:`page_paths` because a feed is a file and a page is a directory,
+    and the two contracts differ: a page must be reachable by internal links, a feed must be
+    listed in the sitemap and every entry in it must address something the build wrote.
+
+    ``sitemap.xml`` is an XML file and is not in here, because it does not carry the Atom
+    namespace. A file that carries it and is malformed *is* in here, and is reported as
+    unparseable rather than skipped: a broken feed and no feed at all are different facts.
+    """
+    return sorted(
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*.xml")
+        if path.is_file() and _ATOM_NAMESPACE in path.read_text(encoding="utf-8", errors="replace")
+    )
 
 
 def _resolve(reference: str, page_path: str, origin: str) -> str | None:
@@ -281,6 +333,101 @@ def _check_sitemap(root: Path, origin: str, pages: list[str]) -> list[SiteFindin
         target = _resolve(loc, "", origin)
         if target is None or not (root / target).is_file():
             findings.append(SiteFinding("SITEMAP_ENTRY_NOT_BUILT", "sitemap.xml", loc))
+    return findings
+
+
+def _atom(name: str) -> str:
+    return f"{{{_ATOM_NAMESPACE}}}{name}"
+
+
+def _entry_findings(
+    root: Path, origin: str, path: str, index: int, entry: Element, seen: set[str]
+) -> list[SiteFinding]:
+    """One entry's findings: what Atom requires of it, and where it points.
+
+    ``index`` names the entry when it has no id to name it by, which is exactly the entry a
+    finding about a missing id has to be able to talk about.
+    """
+    findings = []
+    for name in ("id", "title", "updated"):
+        if entry.find(_atom(name)) is None:
+            findings.append(
+                SiteFinding("FEED_ENTRY_INCOMPLETE", path, f"entry {index} has no <{name}>")
+            )
+    identifier = entry.findtext(_atom("id"), "").strip()
+    if identifier and identifier in seen:
+        findings.append(
+            SiteFinding("FEED_ENTRY_ID_DUPLICATED", path, f"entry {index} repeats {identifier}")
+        )
+    seen.add(identifier)
+    for link in entry.findall(_atom("link")):
+        reference = link.get("href", "")
+        target = _resolve(reference, "", origin) if reference else None
+        if target is not None and not (root / target).is_file():
+            findings.append(SiteFinding("FEED_ENTRY_LINK_UNBUILT", path, reference))
+    return findings
+
+
+def _feed_findings(root: Path, origin: str, path: str) -> list[SiteFinding]:
+    """Whether one file is a readable Atom feed, and whether its entries address this build.
+
+    The parse is the check. A substring test over the text would pass on a document no reader
+    can open, which is the shape of a gate that cannot fail, and this project publishes the
+    feed as a subscribable artifact rather than as decoration.
+    """
+    try:
+        # S314 warns that `xml.etree` is unsafe against a hostile document. The document here
+        # is a file inside the directory being audited - in CI, one this same build wrote
+        # seconds earlier - and CPython's parser resolves no external entity and refuses any
+        # entity declaration at all, so neither of the attacks the rule names is reachable.
+        # The alternative, a regex "parse", is a check that cannot fail.
+        document = ElementTree.fromstring((root / path).read_text(encoding="utf-8"))  # noqa: S314
+    except (ElementTree.ParseError, UnicodeDecodeError) as exc:
+        return [SiteFinding("FEED_UNPARSEABLE", path, f"not well-formed XML: {exc}")]
+    if document.tag != _atom("feed"):
+        return [SiteFinding("FEED_UNPARSEABLE", path, f"root element is <{document.tag}>")]
+    findings = [
+        SiteFinding("FEED_UNPARSEABLE", path, f"no <{name}> element")
+        for name in ("id", "title", "updated")
+        if document.find(_atom(name)) is None
+    ]
+    seen: set[str] = set()
+    for index, entry in enumerate(document.findall(_atom("entry"))):
+        findings += _entry_findings(root, origin, path, index, entry, seen)
+    return findings
+
+
+def _check_feeds(
+    root: Path, origin: str, locs: list[str], advertised: dict[str, set[str]]
+) -> list[SiteFinding]:
+    """The feed half of the contract, in both directions.
+
+    Every feed the build wrote has to be listed in the sitemap and has to parse; and every
+    ``href`` a page points feed autodiscovery at has to be one of the feeds found. The second
+    direction is the floor under the first: :func:`feed_paths` discovers by content, so a
+    generator that started writing something that is not a feed would produce an empty set and
+    a clean report, and the advertised links are what refuses that.
+    """
+    feeds = feed_paths(root)
+    listed = set(locs)
+    findings = []
+    for path in feeds:
+        url = f"{origin}/{path}"
+        if url not in listed:
+            findings.append(SiteFinding("FEED_MISSING_FROM_SITEMAP", path, f"{url} is not listed"))
+        findings += _feed_findings(root, origin, path)
+    known = set(feeds)
+    for page, references in sorted(advertised.items()):
+        for reference in sorted(references):
+            target = _resolve(reference, page, origin)
+            if target is not None and target not in known:
+                findings.append(
+                    SiteFinding(
+                        "FEED_UNPARSEABLE",
+                        page_file(page),
+                        f"{reference} is advertised as an Atom feed and does not read as one",
+                    )
+                )
     return findings
 
 
@@ -448,8 +595,17 @@ def _check_jsonld(page: str, parser: _PageParser) -> list[SiteFinding]:
     return findings
 
 
-def _read_page(root: Path, page: str, origin: str) -> tuple[list[SiteFinding], set[str]]:
-    """One page's findings, and the site-relative pages it links to."""
+@dataclass(frozen=True)
+class _PageReading:
+    """What one page contributed to the site-wide checks, beside its own findings."""
+
+    links: set[str]
+    #: ``href``s this page advertises as Atom feeds, for :func:`_check_feeds`.
+    feeds: set[str]
+
+
+def _read_page(root: Path, page: str, origin: str) -> tuple[list[SiteFinding], _PageReading]:
+    """One page's findings, and what the site-wide checks need from it."""
     parser = _PageParser()
     parser.feed((root / page_file(page)).read_text(encoding="utf-8"))
     findings = (
@@ -466,7 +622,7 @@ def _read_page(root: Path, page: str, origin: str) -> tuple[list[SiteFinding], s
             findings.append(SiteFinding("INTERNAL_LINK_UNBUILT", page_file(page), reference))
         elif target.endswith("index.html"):
             links.add(target[: -len("index.html")].rstrip("/"))
-    return findings, links
+    return findings, _PageReading(links=links, feeds=set(parser.feeds))
 
 
 def _unreachable(pages: list[str], outgoing: dict[str, set[str]]) -> list[str]:
@@ -492,9 +648,14 @@ def audit_site(root: Path, origin: str) -> list[SiteFinding]:
         return [SiteFinding("SITEMAP_UNPARSEABLE", "", "no pages were built, so nothing was read")]
     findings = _check_sitemap(root, origin, pages) + _check_robots(root, origin)
     outgoing: dict[str, set[str]] = {}
+    advertised: dict[str, set[str]] = {}
     for page in pages:
-        page_findings, outgoing[page] = _read_page(root, page, origin)
+        page_findings, reading = _read_page(root, page, origin)
+        outgoing[page] = reading.links
+        if reading.feeds:
+            advertised[page] = reading.feeds
         findings += page_findings
+    findings += _check_feeds(root, origin, _sitemap_locs(root) or [], advertised)
     findings += [
         SiteFinding("ORPHAN_PAGE", page_file(page), "no internal link path reaches it")
         for page in _unreachable(pages, outgoing)

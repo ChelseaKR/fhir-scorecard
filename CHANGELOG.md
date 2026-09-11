@@ -12,6 +12,58 @@ distribution behind it, which consumers pin by tag
 
 Merged changes land here until the next tag.
 
+### Added
+
+- **Atom feeds of the observation record (#101).** The record has held a declaration
+  timeline and an availability history for a month, and the only way to learn about
+  either was to open the page. `fhir_scorecard.feeds` renders the same events as Atom
+  1.0: `/feed.xml` site-wide, `/endpoint/<id>/feed.xml` per endpoint, and
+  `/<cohort>/feed.xml` per cohort, written from the same `history.json` the pages are
+  built from and reaching no network. Four entry kinds, kept apart exactly as the pages
+  keep them: an endpoint entering the record, a declaration change, a **return** to a
+  declaration already on record rendered as a return, and a move between answered and
+  did not answer.
+
+  Four properties are the reason the module exists rather than a template:
+
+  - **No clock.** A feed is a pure function of the records and the origin. An entry
+    carries the date the record holds; nothing in the module reads the time, so a
+    rebuild from an unchanged record is byte-identical and republishes nothing.
+  - **Ids are the tuple, not the address.** `tag:` URIs over
+    `(endpoint_id, kind, date, digest)`, deliberately not derived from `--origin` — an
+    id that moved when the site moved would look to every subscriber like a fresh copy
+    of the whole history. The digest covers the event's content and not the endpoint's
+    display name, so tidying a registry name republishes nothing and correcting a
+    recorded fact does.
+  - **Both numbers, on every feed.** Each states how many events it carries out of how
+    many the record holds, and over what window. The site feed is capped at the newest
+    100 and says so; a capped feed that did not would be a truncated dataset published
+    as a complete one.
+  - **Empty is a file that says why.** An endpoint with no recorded event gets a feed
+    with zero entries and a sentence naming which of the two reasons applies — no
+    observation at all, or observations and no event — rather than a 404.
+
+  One thing the issue asked for is not built, and the absence is the finding: it asked
+  for a transition into or out of "not observed" **with the vantages named**. An
+  observation in `history.json` is `{"date", "up"}`, across all 1,617 entries the live
+  record holds, so the vantages are not there to name. Availability entries say what
+  the record says and state that it retains the reconciled answer only.
+
+  `audit-site` grew the feed half of the site contract, with the same one-defect-per-test
+  discipline the rest of it has: a feed the sitemap does not list, a feed that is not
+  readable as Atom, an entry missing something Atom requires, two entries sharing an id,
+  and an entry linking at a path the build did not write. Feeds are discovered by the
+  Atom namespace rather than by a filename, and every `href` a page points feed
+  autodiscovery at must be one of the feeds found, so a generator that stopped writing
+  feeds cannot leave the audit examining nothing and reporting clean.
+
+  Found by the new duplicate-id rule before anything was published: two member
+  organizations of `florida-marketplace` (Cigna, Florida Blue) and two of
+  `michigan-marketplace` (BCBS Michigan, Blue Care Network) each point at one shared
+  published surface, so a cohort feed built per member reported one declaration change
+  twice. Cohort feeds count an endpoint once. The cohort *page* still lists a row per
+  member, which is right, because the row is about the plan.
+
 ### Fixed
 
 - **The pin gate read 1 of the 40 action references this repository runs.** The

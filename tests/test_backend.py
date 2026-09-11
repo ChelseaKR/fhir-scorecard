@@ -117,8 +117,14 @@ def test_an_empty_object_was_read_and_declares_nothing() -> None:
 
 
 def test_a_document_not_served_is_not_described_as_unreadable() -> None:
-    detail = {a.question.key: a.detail for a in answers(SMART_NOT_SERVED, READABLE_CAPABILITY)}
-    assert "requested and not served" in detail["private_key_jwt"]
+    """The answer is the claim, not the wording. Deleting the not-served branch leaves the
+    detail saying "requested and not served" - it is the parse error - while the answer becomes
+    ``unreadable``, so a test that read only the detail passed over the broken property."""
+    got = {a.question.key: a for a in answers(SMART_NOT_SERVED, READABLE_CAPABILITY)}
+    assert got["private_key_jwt"].answer == NOT_RETRIEVED
+    assert got["private_key_jwt"].answer != UNREADABLE
+    assert "requested and not served" in got["private_key_jwt"].detail
+    assert ANSWERS[got["private_key_jwt"].answer] == "not retrieved on this run"
 
 
 def test_every_answer_has_words_and_every_rendered_answer_is_documented() -> None:

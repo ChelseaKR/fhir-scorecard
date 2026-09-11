@@ -91,6 +91,25 @@ class SmartFacts:
     has_authorization_endpoint: bool = False
     has_token_endpoint: bool = False
     parse_error: str | None = None
+    # The four fields #97 reads, for ``backend.py``; nothing grades them. Each is ``None`` when the
+    # field is absent from the document, ``()`` when it is present and empty, and its strings
+    # otherwise. Absent and empty are different answers - an absent OPTIONAL field has said
+    # nothing - so they are never collapsed into one value here.
+    token_endpoint_auth_methods: tuple[str, ...] | None = None
+    grant_types: tuple[str, ...] | None = None
+    capabilities: tuple[str, ...] | None = None
+    scopes: tuple[str, ...] | None = None
+    # A field present with a value that is not a list of strings. Named rather than read as
+    # absent or empty, because either of those would be a claim the document did not make.
+    malformed_fields: tuple[str, ...] = field(default=())
+    # The document is ``{}``: read, and empty. ``parsed`` stays False so no grade and no diff
+    # moves. Measured on 2026-09-10: six live endpoints serve exactly this as their SMART
+    # discovery document.
+    empty_object: bool = False
+    # This vantage asked for the SMART document and was not served one - a 404, a refused
+    # connection. Grades exactly as an unusable document, ``parsed`` False and ``observed`` True,
+    # but #97's block says "requested and not served" rather than "could not be read".
+    not_served: bool = False
 
 
 #: Facts for a document no vantage retrieved. Distinct from ``parse_capability(b"")``, which
@@ -104,6 +123,15 @@ NO_SMART_RETRIEVED = SmartFacts(
     parsed=False,
     observed=False,
     parse_error="no SMART discovery document was retrieved from any vantage on this run",
+)
+
+#: Facts for a SMART document this vantage requested and was not served. Grades exactly as the
+#: ``parse_smart(b"")`` it replaces - both are an observation that the document is absent or
+#: unusable - and differs only in saying which, for the declared app-to-server block (#97).
+SMART_NOT_SERVED = SmartFacts(
+    parsed=False,
+    not_served=True,
+    parse_error="the SMART discovery document was requested and not served on this run",
 )
 
 
@@ -346,16 +374,54 @@ def parse_capability(body: bytes) -> CapabilityFacts:
     )
 
 
+_SMART_LIST_FIELDS: tuple[tuple[str, str], ...] = (
+    ("token_endpoint_auth_methods_supported", "token_endpoint_auth_methods"),
+    ("grant_types_supported", "grant_types"),
+    ("capabilities", "capabilities"),
+    ("scopes_supported", "scopes"),
+)
+
+
+def _smart_lists(
+    doc: dict[str, object],
+) -> tuple[dict[str, tuple[str, ...] | None], tuple[str, ...]]:
+    """The four list fields, each absent, empty or read, and the names of any malformed one."""
+    read: dict[str, tuple[str, ...] | None] = {}
+    malformed: list[str] = []
+    for key, attribute in _SMART_LIST_FIELDS:
+        value = doc.get(key)
+        if key not in doc:
+            read[attribute] = None
+        elif isinstance(value, list) and all(isinstance(item, str) for item in value):
+            read[attribute] = tuple(value)
+        else:
+            read[attribute] = None
+            malformed.append(key)
+    return read, tuple(malformed)
+
+
 def parse_smart(body: bytes) -> SmartFacts:
     try:
         doc_raw = json.loads(body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError) as exc:
         return SmartFacts(parsed=False, parse_error=f"not JSON: {type(exc).__name__}")
+    if isinstance(doc_raw, dict) and not doc_raw:
+        return SmartFacts(
+            parsed=False,
+            empty_object=True,
+            parse_error="the document is an empty JSON object, so it declares no field",
+        )
     doc = _as_dict(doc_raw)
     if not doc:
         return SmartFacts(parsed=False, parse_error="JSON body is not an object")
+    lists, malformed = _smart_lists(doc)
     return SmartFacts(
         parsed=True,
         has_authorization_endpoint=_as_str(doc.get("authorization_endpoint")) is not None,
         has_token_endpoint=_as_str(doc.get("token_endpoint")) is not None,
+        token_endpoint_auth_methods=lists["token_endpoint_auth_methods"],
+        grant_types=lists["grant_types"],
+        capabilities=lists["capabilities"],
+        scopes=lists["scopes"],
+        malformed_fields=malformed,
     )

@@ -34,6 +34,37 @@ def _card(artifact: dict[str, Any]) -> dict[str, Any]:
     return first if isinstance(first, dict) else {}
 
 
+def _cell(value: object) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ")
+
+
+def _app_to_server_lines(artifact: dict[str, Any], card: dict[str, Any]) -> list[str]:
+    """The declared app-to-server block, when the check recorded one, rendered as written.
+
+    Nothing is recomputed: each row is the question, the answer's words and the detail the
+    artifact carries. An artifact without the block renders nothing here.
+    """
+    blocks = artifact.get("app_to_server")
+    block = blocks.get(str(card.get("endpoint_id", ""))) if isinstance(blocks, dict) else None
+    rows = block.get("answers") if isinstance(block, dict) else None
+    if not isinstance(rows, list) or not rows:
+        return []
+    lines = [
+        "**Declared app-to-server access** (observed, not graded)",
+        "",
+        "| Question | Answer |",
+        "| --- | --- |",
+    ]
+    for row in rows:
+        if isinstance(row, dict):
+            answer = row.get("answer_text", row.get("answer", ""))
+            lines.append(
+                f"| {_cell(row.get('asks', ''))} | {_cell(answer)}: {_cell(row.get('detail', ''))} |"
+            )
+    lines.append("")
+    return lines
+
+
 def build_summary(artifact: dict[str, Any], passed: bool) -> str:
     """A plain-language job summary grounded entirely in the written result."""
     card = _card(artifact)
@@ -64,6 +95,7 @@ def build_summary(artifact: dict[str, Any], passed: bool) -> str:
             shown = "not observed on this run" if score is None else f"{score} / 100"
             lines.append(f"| {dimension.get('title', '')} | {shown} |")
         lines.append("")
+    lines.extend(_app_to_server_lines(artifact, card))
     disclaimer = artifact.get("disclaimer")
     if isinstance(disclaimer, str) and disclaimer:
         lines.extend([disclaimer, ""])

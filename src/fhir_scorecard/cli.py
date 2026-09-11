@@ -26,10 +26,13 @@ from fhir_scorecard.archive import (
     records,
 )
 from fhir_scorecard.audit import audit_site
+from fhir_scorecard.backend import block_html, block_json, check_lines
 from fhir_scorecard.capability import (
     NO_CAPABILITY_RETRIEVED,
     NO_SMART_RETRIEVED,
+    SMART_NOT_SERVED,
     CapabilityFacts,
+    SmartFacts,
     parse_capability,
     parse_smart,
 )
@@ -115,6 +118,7 @@ def _grade_from_probes(
     today: str,
     other_probes: dict[str, list[VantageProbe]],
     declared: dict[str, CapabilityFacts],
+    smart_declared: dict[str, SmartFacts],
 ) -> Scorecard:
     """Grade from probe files alone, making no request of this run's own.
 
@@ -152,6 +156,7 @@ def _grade_from_probes(
     # built later from a second parse of a body could describe a different document from the
     # one the grade on the same endpoint's page was computed from.
     declared[endpoint.endpoint_id] = facts
+    smart_declared[endpoint.endpoint_id] = smart_facts
     drift = observe(history, endpoint.endpoint_id, facts, today, reachable=reachable)
     # Name the vantages that did report, so a single-vantage merge does not attribute the
     # measurement to a run that never made one.
@@ -184,6 +189,7 @@ def _grade_endpoint(
     other_probes: dict[str, list[VantageProbe]],
     probes_seen: dict[str, VantageProbe],
     declared: dict[str, CapabilityFacts],
+    smart_declared: dict[str, SmartFacts],
 ) -> Scorecard:
     metadata_url = f"{endpoint.base_url}/metadata"
     smart_url = f"{endpoint.base_url}/.well-known/smart-configuration"
@@ -231,7 +237,9 @@ def _grade_endpoint(
         elif consensus is not None and consensus.smart is not None:
             smart_facts = parse_smart(consensus.smart.encode("utf-8"))
         else:
-            smart_facts = parse_smart(b"")
+            # Asked and not served. Grades exactly as the unusable document it replaces;
+            # the declared app-to-server block (#97) is what can tell the two apart.
+            smart_facts = SMART_NOT_SERVED
     elif consensus is not None and consensus.capability is not None:
         # This vantage was blocked but another retrieved the documents: grade their content
         # rather than scoring zero for material we simply never received. ``is not None``, not
@@ -252,6 +260,7 @@ def _grade_endpoint(
 
     # Kept where the graded facts exist, for the reason `_grade_from_probes` gives.
     declared[endpoint.endpoint_id] = facts
+    smart_declared[endpoint.endpoint_id] = smart_facts
     drift = observe(history, endpoint.endpoint_id, facts, today, reachable=was_up)
     return build_scorecard(
         endpoint.endpoint_id,
@@ -293,7 +302,7 @@ def _grade_one(
     vantage: str,
     timeout: float,
     fixtures: Path | None = None,
-) -> tuple[Scorecard, FetchResult]:
+) -> tuple[Scorecard, FetchResult, CapabilityFacts, SmartFacts]:
     """Grade one endpoint from its two public documents, and hand back what was retrieved.
 
     Shared by the single-endpoint check and the operator-registry run so the two cannot drift:
@@ -312,7 +321,7 @@ def _grade_one(
         facts = parse_capability(metadata.body)
         # This run reached the host, so it did ask for the SMART document: a failed fetch is an
         # observation that it is absent or unusable, and grades as one.
-        smart_facts = parse_smart(smart.body) if smart.ok else parse_smart(b"")
+        smart_facts = parse_smart(smart.body) if smart.ok else SMART_NOT_SERVED
     else:
         # Nothing was retrieved. Every content finding would be a claim about a document this
         # run never saw, so the content dimensions are not scored at all.
@@ -330,7 +339,18 @@ def _grade_one(
         # No drift, no availability, no first-seen date. One observation is not a record of
         # one, and a check must not write into the record the daily run keeps.
     )
-    return card, metadata
+    return card, metadata, facts, smart_facts
+
+
+def _print_check(card: Scorecard, base_url: str, facts: CapabilityFacts, smart: SmartFacts) -> None:
+    """The single-endpoint check's terminal report: the grade, each dimension, and the
+    declared app-to-server block (#97), which is observed and never graded."""
+    print(f"{card.grade}  {base_url}")
+    for dimension in card.dimensions:
+        measured = "not observed on this run" if dimension.score is None else f"{dimension.score}"
+        print(f"  {dimension.title}: {measured}")
+    for line in check_lines(smart, facts):
+        print(line)
 
 
 def _cmd_check(args: argparse.Namespace) -> int:
@@ -353,7 +373,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
         print("check: base URL must be https", file=sys.stderr)
         return 2
 
-    card, metadata = _grade_one(
+    card, metadata, facts, smart_facts = _grade_one(
         base_url,
         endpoint_id=_check_slug(base_url),
         name=args.name or urlsplit(base_url).netloc,
@@ -367,6 +387,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
         [card],
         generated_at=time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()),
         vantage=args.vantage,
+        extra={"app_to_server": {card.endpoint_id: block_json(smart_facts, facts)}},
     )
     if args.json_out is not None:
         # Written before the threshold is applied, so a failing gate still leaves behind the
@@ -379,10 +400,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             print(f"check: could not write {args.json_out}: {exc}", file=sys.stderr)
             return 2
 
-    print(f"{card.grade}  {base_url}")
-    for dimension in card.dimensions:
-        measured = "not observed on this run" if dimension.score is None else f"{dimension.score}"
-        print(f"  {dimension.title}: {measured}")
+    _print_check(card, base_url, facts, smart_facts)
 
     outcome = evaluate(card, min_grade=args.min_grade, detail=metadata.error or "")
     if not outcome.passed:
@@ -407,7 +425,7 @@ def _grade_registry(
     """Grade every enabled entry, in id order so the artifacts are stable."""
     results: list[EndpointResult] = []
     for entry in sorted(enabled, key=lambda e: e.endpoint_id):
-        card, metadata = _grade_one(
+        card, metadata, _facts, _smart = _grade_one(
             entry.base_url,
             endpoint_id=entry.endpoint_id,
             name=entry.name,
@@ -1252,6 +1270,7 @@ def main(argv: list[str] | None = None) -> int:
     other_probes = load_probe_files(list(args.probes_in or []))
     probes_seen: dict[str, VantageProbe] = {}
     declared: dict[str, CapabilityFacts] = {}
+    smart_declared: dict[str, SmartFacts] = {}
     run_vantage = args.vantage
     if args.from_probes:
         # The published "vantage" must name where the measurement came from. A run that only
@@ -1260,7 +1279,12 @@ def main(argv: list[str] | None = None) -> int:
         run_vantage = "reconciled from " + ", ".join(labels) if labels else "no vantage reported"
         scorecards = [
             _grade_from_probes(
-                e, history=history, today=today, other_probes=other_probes, declared=declared
+                e,
+                history=history,
+                today=today,
+                other_probes=other_probes,
+                declared=declared,
+                smart_declared=smart_declared,
             )
             for e in endpoints
         ]
@@ -1276,6 +1300,7 @@ def main(argv: list[str] | None = None) -> int:
                 other_probes=other_probes,
                 probes_seen=probes_seen,
                 declared=declared,
+                smart_declared=smart_declared,
             )
             for e in endpoints
         ]
@@ -1304,6 +1329,7 @@ def main(argv: list[str] | None = None) -> int:
             cohorts_path,
             declared=declared,
             retrieved_on=today,
+            smart_declared=smart_declared,
         )
         write_dataset(
             args.out,
@@ -1314,6 +1340,7 @@ def main(argv: list[str] | None = None) -> int:
             vantage=run_vantage,
             feeds=written.feeds,
             declarations=written.declarations,
+            app_to_server=written.app_to_server,
         )
     except OSError as exc:
         # Exit 2, not 1. `docs/ci-action.md` reserves 1 for "a threshold the caller set was not
@@ -1413,6 +1440,8 @@ class _Written:
     feeds: tuple[str, ...]
     #: Endpoint ids whose ``api/capabilities/<id>.json`` this build wrote.
     declarations: tuple[str, ...]
+    #: Each endpoint's declared app-to-server block (#97) as data, for its API file.
+    app_to_server: dict[str, dict[str, object]]
 
 
 def _declaration_pages(
@@ -1455,6 +1484,30 @@ def _cohort_census_pages(
         for item in items:
             pages.extend(census_pages(item))
     return linked, pages
+
+
+def _app_to_server_blocks(
+    scorecards: list[Scorecard],
+    declared: dict[str, CapabilityFacts],
+    smart_declared: dict[str, SmartFacts],
+) -> dict[str, tuple[str, dict[str, object]]]:
+    """Each endpoint's declared app-to-server block (#97), as page HTML and as data.
+
+    Built once, from the facts the grade was built from, so the page and the data are one
+    reading. A card whose facts were not kept stops the build, for the reason
+    ``_declaration_pages`` gives: publishing "not retrieved" for it would state an absence
+    nobody observed.
+    """
+    blocks: dict[str, tuple[str, dict[str, object]]] = {}
+    for card in scorecards:
+        smart = smart_declared.get(card.endpoint_id)
+        facts = declared.get(card.endpoint_id)
+        if smart is None or facts is None:
+            raise ValueError(
+                f"no SMART or CapabilityStatement facts were kept for {card.endpoint_id!r}"
+            )
+        blocks[card.endpoint_id] = (block_html(smart, facts), block_json(smart, facts))
+    return blocks
 
 
 def _write_declarations(
@@ -1526,6 +1579,7 @@ def _write_site(
     *,
     declared: dict[str, CapabilityFacts],
     retrieved_on: str,
+    smart_declared: dict[str, SmartFacts],
 ) -> _Written:
     """One indexable page per endpoint, organization, category, cohort and observation
     record, plus each endpoint's declared-capability pages, the sitemap, the Atom feeds, and
@@ -1562,6 +1616,7 @@ def _write_site(
     )
     pages.extend(census_page_list)
 
+    blocks = _app_to_server_blocks(scorecards, declared, smart_declared)
     by_org, org_of = _organizations(scorecards)
     for card in scorecards:
         entry = by_id.get(card.endpoint_id)
@@ -1575,6 +1630,7 @@ def _write_site(
                 # Every card gets declaration pages: `_declaration_pages` refuses to build
                 # without one, so this link cannot point at a page the build did not write.
                 declared=True,
+                app_to_server=blocks[card.endpoint_id][0],
             )
         )
 
@@ -1627,7 +1683,11 @@ def _write_site(
         origin=origin,
         generated_at=generated_at,
     )
-    return _Written(feeds=written, declarations=declarations)
+    return _Written(
+        feeds=written,
+        declarations=declarations,
+        app_to_server={eid: data for eid, (_, data) in blocks.items()},
+    )
 
 
 if __name__ == "__main__":

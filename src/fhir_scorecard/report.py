@@ -13,13 +13,24 @@ and ``_write_site``, which now refuses to build two pages that target one path.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import asdict
 
 from fhir_scorecard.grading import Scorecard
 
 
-def to_json(scorecards: list[Scorecard], *, generated_at: str, vantage: str = "unspecified") -> str:
-    payload = {
+def to_json(
+    scorecards: list[Scorecard],
+    *,
+    generated_at: str,
+    vantage: str = "unspecified",
+    extra: Mapping[str, object] | None = None,
+) -> str:
+    """The graded result as JSON. ``extra`` adds top-level fields a caller has and the
+    published ``scorecards.json`` does not carry - ``check`` passes the declared
+    app-to-server block (#97) - and it may never overwrite a field every result carries.
+    """
+    payload: dict[str, object] = {
         "generator": "fhir-scorecard",
         "generated_at": generated_at,
         "vantage": vantage,
@@ -30,4 +41,8 @@ def to_json(scorecards: list[Scorecard], *, generated_at: str, vantage: str = "u
         ),
         "scorecards": [asdict(s) for s in scorecards],
     }
+    for key, value in (extra or {}).items():
+        if key in payload:
+            raise ValueError(f"{key!r} would overwrite a field every result carries")
+        payload[key] = value
     return json.dumps(payload, indent=2, sort_keys=True)

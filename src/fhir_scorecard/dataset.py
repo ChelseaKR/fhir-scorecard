@@ -10,7 +10,7 @@ from __future__ import annotations
 import csv
 import io
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from fhir_scorecard.grading import Scorecard
@@ -169,6 +169,7 @@ def write_dataset(
     vantage: str,
     feeds: Sequence[str] = (),
     declarations: Sequence[str] = (),
+    app_to_server: Mapping[str, Mapping[str, object]] | None = None,
 ) -> None:
     """Write dataset.csv, its schema, and a static per-endpoint JSON API.
 
@@ -228,6 +229,10 @@ def write_dataset(
             # fact about the publisher shipping something.
             "drift_alternations": list(card.drift_alternations),
         }
+        # The declared app-to-server block (#97), observed and never graded. Present only
+        # where the build kept the facts it was built from.
+        if app_to_server is not None and card.endpoint_id in app_to_server:
+            payload["app_to_server"] = dict(app_to_server[card.endpoint_id])
         (api_dir / f"{card.endpoint_id}.json").write_text(
             json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
         )

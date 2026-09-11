@@ -14,6 +14,37 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **What an endpoint declares about app-to-server access, observed and never graded (#97).**
+  The two documents this project retrieves say more than the graded dimensions read.
+  The SMART discovery document declares how a client may authenticate at the token
+  endpoint, and which grant types, capability codes and scopes exist. The
+  CapabilityStatement declares operations and the guides it instantiates. Whether an app
+  can get a token without a phone call is exactly what those fields say. Six questions
+  are now answered from the two documents on the endpoint page, in
+  `api/endpoint/<id>.json`, in `check`'s terminal report and result JSON, and in the
+  Action's job summary. The published `scorecards.json` does not change shape.
+
+  - **Five answers, never two:** declared; not listed; not declared because the field is
+    absent; unreadable; not retrieved. `token_endpoint_auth_methods_supported` is OPTIONAL
+    in the retained SMART page, so a document without it has refused nothing.
+  - **Measured over the live probes of 2026-09-10.** 34 of 81 endpoints served a readable
+    SMART document. 14 declare `private_key_jwt`, 16 the `client_credentials` grant, 10
+    `client-confidential-asymmetric`, and 5 a `system/` scope. 17 of 68
+    CapabilityStatements declare an `export` operation and 14 instantiate the Bulk Data
+    guide. A second reader of the raw JSON agrees with every count.
+  - **`{}` is not "not an object".** Six live endpoints serve an empty JSON object as their
+    SMART document. It now carries a true reason and is answered "field absent". It still
+    grades exactly as before, as an unusable document.
+  - **A document asked for and not served is not "unreadable".** `SMART_NOT_SERVED` replaces
+    `parse_smart(b"")` on the two paths where a vantage requested the document and got
+    nothing. It grades identically: a test holds the interop dimension byte-identical across
+    all three fixtures and all five kinds.
+
+  Not built, and both are the maintainer's: grading any of this (the issue's `S1`-`S4`
+  family and its weights), and retaining the Bulk Data Access guide in `corpus/`. Until it
+  is retained, the `export` question cites the retained CapabilityStatement page's
+  definition of `rest.operation` instead of a quoted passage from that guide.
+
 - **What a cohort's listed endpoints declare, counted within a category (#102).** Each
   cohort page links one census page per category it lists, at
   `/<cohort>/capabilities/<kind>/`. For every resource the listed endpoints declare, the

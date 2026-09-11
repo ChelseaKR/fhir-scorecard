@@ -368,8 +368,12 @@ def endpoint_page(
     origin: str,
     organization: tuple[str, str] | None = None,
     declared: bool = False,
+    app_to_server: str = "",
 ) -> Page:
     """One endpoint's page.
+
+    ``app_to_server`` is the declared SMART Backend Services and Bulk Data block (#97),
+    already rendered by ``backend.block_html``; observed, never graded.
 
     ``declared`` is whether this build wrote the endpoint's declared-capability pages (#102),
     and it decides whether the page links to them. Passed in rather than assumed, for the same
@@ -482,6 +486,7 @@ patient data, authenticated behavior, or clinical quality.</p>
 <h2>Findings</h2>
 {_findings_html(card)}
 {drift}
+{app_to_server}
 <section class="verification">
 <p class="eyebrow">Registry provenance</p>
 <h2>How this entry was verified</h2>

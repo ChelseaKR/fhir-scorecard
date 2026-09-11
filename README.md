@@ -416,6 +416,17 @@ read has not declared an absence of `Patient`. Two plans that publish through on
 count as one endpoint, and an interaction code outside R4's nine is listed with its count
 rather than dropped.
 
+Each endpoint page also says what its two documents declare about **app-to-server** access,
+the fields SMART Backend Services and Bulk Data run on. It asks whether the token endpoint
+accepts `private_key_jwt`, whether the `client_credentials` grant, the
+`client-confidential-asymmetric` capability and any `system/` scope are declared, and whether
+the CapabilityStatement declares an `export` operation or instantiates the Bulk Data Access
+guide. None of it is graded. Five answers are kept apart: declared; not listed; not
+declared because the field is absent; unreadable; and not retrieved. The field-absent answer
+matters most, because `token_endpoint_auth_methods_supported` is OPTIONAL, so its absence is
+not a refusal. The same block is in `api/endpoint/<id>.json`, in `check`'s terminal report and
+result JSON, and in the Action's job summary. The published `scorecards.json` does not carry it.
+
 What the site promises about itself is checked rather than asserted. `fhir-scorecard
 audit-site site/` reads a built directory and reports every page the sitemap omits, every
 sitemap entry no file answers, every missing or misaddressed canonical, every structured-data
@@ -445,7 +456,7 @@ and registry size is gated on payers publishing base URLs.
 | `api/index.json` counts | `endpoints_listed` is how many endpoints the registry carries and the run graded; `answered_on_this_run` is how many answered a probe during it. Never one standing in for the other |
 | `dataset.schema.json` | Column names, types, and meanings |
 | `api/index.json` | Every endpoint with links to its detail and its page |
-| `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift |
+| `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift, and `app_to_server`: what the endpoint's own documents declare about SMART Backend Services and Bulk Data, observed and never graded |
 | `api/history/<id>.json` | Every recorded observation for one endpoint, with its date and whether it answered, plus its declaration timeline. `answered_percent` is `null`, never `0`, below the 14-observation reporting floor, and `declaration_returns` is never merged into `declaration_changes` |
 | `scorecards.json` | The complete graded payload in one file |
 | `feed.xml` | Atom 1.0 feed of every recorded event, newest 100, with the count it carries out of the count the record holds |

@@ -107,26 +107,42 @@ def test_the_bounds_match_the_closed_form_written_out_independently(
     assert high == pytest.approx(max(observed, min(1.0, want_high)), abs=1e-12)
 
 
-def test_all_four_clamps_are_needed_and_each_has_a_denominator_that_needs_it() -> None:
-    """Which way the floating-point error runs depends on the denominator, so a test that
-    picked one denominator and one direction would prove a quarter of the clamp.
+def _unclamped_module_form(numerator: int, denominator: int) -> tuple[float, float]:
+    """The module's own expression, term by term, with the clamp left off.
 
-    Measured over n = 1 to 399. At k == n the unclamped upper bound lands above 1.0 for 104
-    denominators and below the observed 1.0 for 90. At k == 0 the unclamped lower bound lands
-    below 0.0 for 48 and above the observed 0.0 for 69. Each of the four clamps gets a case.
+    Deliberately not ``_closed_form``. ``(b - c) / a`` and ``center - spread`` are the same
+    formula and differ in the last bits, and the clamp is exactly a last-bits repair, so
+    denominators chosen with the wrong expression land on cases where the clamp does nothing.
+    A negative control caught that: three of the four cases this test used to name were no-ops,
+    and only one of the four clamps was really being exercised.
     """
-    # min(1.0, ...): the bound overshoots the scale.
-    assert _closed_form(11, 11, 11.0)[1] > 1.0
-    assert wilson_interval(11, 11)[1] == 1.0
-    # max(observed, ...): the bound would exclude the 1.0 it was computed from.
-    assert _closed_form(10, 10, 10.0)[1] < 1.0
+    size = float(denominator)
+    observed = numerator / denominator
+    denom = 1.0 + Z_95 * Z_95 / size
+    center = (observed + Z_95 * Z_95 / (2 * size)) / denom
+    spread = (
+        Z_95 / denom * math.sqrt(observed * (1 - observed) / size + Z_95 * Z_95 / (4 * size * size))
+    )
+    return center - spread, center + spread
+
+
+def test_all_four_clamps_are_needed_and_each_has_a_denominator_that_needs_it() -> None:
+    """Each denominator here was measured against the module's own arithmetic over n = 1 to 599:
+    at k == n the raw upper bound lands above 1.0 for 115 denominators and below the observed
+    1.0 for 193; at k == 0 the raw lower bound lands below 0.0 for 93 and above the observed 0.0
+    for 137. One case per clamp, each one a denominator where that clamp actually does work."""
+    # min(1.0, ...): the raw bound overshoots the scale.
+    assert _unclamped_module_form(16, 16)[1] > 1.0
+    assert wilson_interval(16, 16)[1] == 1.0
+    # max(observed, ...): the raw bound would exclude the 1.0 it was computed from.
+    assert _unclamped_module_form(10, 10)[1] < 1.0
     assert wilson_interval(10, 10)[1] == 1.0
-    # max(0.0, ...): the bound goes negative.
-    assert _closed_form(0, 21, 21.0)[0] < 0.0
-    assert wilson_interval(0, 21)[0] == 0.0
-    # min(observed, ...): the bound would exclude the 0.0 it was computed from.
-    assert _closed_form(0, 3, 3.0)[0] > 0.0
-    assert wilson_interval(0, 3)[0] == 0.0
+    # max(0.0, ...): the raw bound goes negative.
+    assert _unclamped_module_form(0, 27)[0] < 0.0
+    assert wilson_interval(0, 27)[0] == 0.0
+    # min(observed, ...): the raw bound would exclude the 0.0 it was computed from.
+    assert _unclamped_module_form(0, 7)[0] > 0.0
+    assert wilson_interval(0, 7)[0] == 0.0
 
 
 def test_the_published_shares_this_issue_names_get_intervals_a_reader_can_check() -> None:

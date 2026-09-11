@@ -267,6 +267,7 @@ def test_every_declaration_in_a_captured_statement_reaches_the_data(endpoint_id:
 def test_every_row_in_the_data_reaches_a_page(endpoint_id: str) -> None:
     facts = parse_capability(_fixture_bytes(endpoint_id))
     rows = rows_of(facts)
+    assert rows
     listed: list[list[str]] = []
     for page in pages_for(endpoint_id, endpoint_id, facts, DATE):
         listed += _table_rows(page.body)
@@ -286,6 +287,7 @@ def test_the_page_and_the_data_are_one_reading() -> None:
     views = views_of(rows_of(facts))
     counts = counts_of(facts)
     assert counts is not None
+    assert counts["interaction_rows"] > 0
     assert sum(len(v.interactions) for v in views) == counts["interaction_rows"]
     assert sum(len(v.search_parameters) for v in views) == counts["search_parameters"]
     assert sum(len(v.operations) for v in views) == counts["operations"]
@@ -295,6 +297,9 @@ def test_the_page_and_the_data_are_one_reading() -> None:
 def test_rows_run_from_the_whole_server_then_resource_types_a_to_z() -> None:
     facts = parse_capability(_fixture_bytes("oracle-health-open"))
     resources = [row.resource for row in rows_of(facts) if row.kind == "resource"]
+    # The population is the claim: an empty list is sorted too, which is how dropping every
+    # resource row left this test green under a negative control.
+    assert len(resources) == (counts_of(facts) or {}).get("resources") > 0
     assert resources == sorted(resources)
     first = rows_of(facts)[0]
     assert first.resource is None, "oracle-health-open declares `batch` on the whole server"
@@ -465,7 +470,9 @@ def test_a_large_declaration_is_paged_by_resource_and_nothing_is_dropped() -> No
 
 def test_no_page_carries_more_rows_than_its_budget() -> None:
     facts = parse_capability(json.dumps(_giant(300, 40)).encode())
-    for placed in paginate(views_of(rows_of(facts))):
+    pages = paginate(views_of(rows_of(facts)))
+    assert len(pages) > 1, "the fixture has to need more than one page to test the budget"
+    for placed in pages:
         assert sum(len(p.html.encode()) for p in placed) <= TABLE_BYTE_BUDGET
 
 
@@ -587,6 +594,7 @@ def test_the_published_files_validate_against_the_published_schema(built: Path) 
 def test_the_index_names_every_declaration_and_only_those(built: Path) -> None:
     index = json.loads((built / "api" / "index.json").read_text(encoding="utf-8"))
     assert index["capabilities_schema"] == f"{DEFAULT_ORIGIN}/{SCHEMA_FILE}"
+    assert index["endpoints"]
     for entry in index["endpoints"]:
         relative = entry["capabilities"].removeprefix(f"{DEFAULT_ORIGIN}/")
         assert (built / relative).is_file(), entry["capabilities"]

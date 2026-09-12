@@ -17,10 +17,10 @@ Two of them are the reason the feature exists at all:
 
 from __future__ import annotations
 
-import html
 import json
 import re
 from dataclasses import replace
+from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
@@ -166,29 +166,80 @@ def _unreadable_document_card() -> Scorecard:
     )
 
 
+class _VisibleText(HTMLParser):
+    """Everything outside a ``script`` or ``style`` element, with character references resolved."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self._skipping = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in ("script", "style"):
+            self._skipping += 1
+        self.parts.append(" ")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("script", "style") and self._skipping:
+            self._skipping -= 1
+        self.parts.append(" ")
+
+    def handle_data(self, data: str) -> None:
+        if not self._skipping:
+            self.parts.append(data)
+
+
 def text_of(body: str) -> str:
     """The words a reader sees: markup and structured data removed, entities resolved.
 
-    The unescaping is load-bearing rather than cosmetic. Half the sentences in ``ACTIONS``
-    contain an apostrophe, which ``html.escape`` writes as ``&#x27;``, so a
+    The entity resolution is load-bearing rather than cosmetic. Half the sentences in
+    ``ACTIONS`` contain an apostrophe, which ``html.escape`` writes as ``&#x27;``, so an
     ``assert sentence not in body`` over the raw markup passes for those sentences whether or
     not the page published them - a check that cannot fail, aimed at the property this file
-    exists to hold. Every assertion about a rendered sentence reads this.
+    exists to hold.
 
-    The script strip is case-insensitive because CodeQL's ``py/bad-tag-filter`` was right about
-    it: ``<script.*?</script>`` does not match ``<SCRIPT>``, and this is not a sanitiser but it
-    is a *matcher*, which is worse to get wrong here. A page that emitted an upper-case tag
-    would leak its JSON-LD into "the words a reader sees", and the block carries the endpoint's
-    name and URL - so a test asserting that some sentence is absent from the prose could pass
-    or fail on structured data instead. Same defect class as the unescaping above.
+    **Parsed, not pattern-matched, and CodeQL is why.** This began as
+    ``re.sub(r"<script.*?</script>", ...)``. ``py/bad-tag-filter`` flagged it at high security
+    severity for not matching ``<SCRIPT>``; adding ``re.I`` produced a second alert for not
+    matching ``</script >``. Both were right, and the second one is the argument against
+    fixing the first: a regex over HTML tags has an open-ended list of ways to miss one, and
+    this is a *matcher*, which is worse to get wrong here than a sanitiser would be. A page
+    whose JSON-LD leaked into "the words a reader sees" would put the endpoint's name and URL
+    into the prose these tests read, so an assertion that some sentence is absent could pass or
+    fail on structured data. ``audit.py`` and ``accessibility.py`` already read this site's
+    HTML with ``HTMLParser``; so does this.
     """
-    stripped = re.sub(r"<script.*?</script>", " ", body, flags=re.S | re.I)
-    return html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", stripped)))
+    parser = _VisibleText()
+    parser.feed(body)
+    parser.close()
+    return re.sub(r"\s+", " ", "".join(parser.parts))
 
 
 # --------------------------------------------------------------------------------------
 # The action vocabulary
 # --------------------------------------------------------------------------------------
+
+
+def test_the_text_reader_excludes_structured_data_and_resolves_entities() -> None:
+    """The helper every other assertion in this file runs through, tested rather than trusted.
+
+    If it stopped excluding the JSON-LD, "the words a reader sees" would start containing the
+    endpoint's name and URL from the structured-data block, and several assertions here would
+    be reading machine data as prose. The two tag shapes below are the exact ones CodeQL named
+    on the regex this replaced, pinned so a future "simplification" back to a pattern fails.
+    """
+    body = render(_failing_card())
+    assert "@context" in body, "the page stopped emitting structured data; this test is vacuous"
+    assert "&#x27;" in body, "nothing on the page is entity-escaped; this test is vacuous"
+
+    words = text_of(body)
+    assert "@context" not in words
+    assert "schema.org" not in words
+    assert "&#x27;" not in words and "guide's" in words
+
+    assert "leaked" not in text_of("<p>kept</p><SCRIPT>leaked</SCRIPT>")
+    assert "leaked" not in text_of("<p>kept</p><script>leaked</script >")
+    assert "kept" in text_of("<p>kept</p><SCRIPT>leaked</SCRIPT>")
 
 
 def test_every_documented_finding_code_has_an_action_or_a_stated_reason_for_having_none() -> None:

@@ -44,6 +44,7 @@ from fhir_scorecard.coverage import classify, read_frame, read_reviewed_rows_by_
 from fhir_scorecard.coverage import page as coverage_page
 from fhir_scorecard.dataset import write_dataset
 from fhir_scorecard.drift import ensure_mode, load_history, observe, save_history
+from fhir_scorecard.entity_report import pages_for as entity_report_pages
 from fhir_scorecard.feeds import build_feeds, write_feeds
 from fhir_scorecard.fetch import (
     TIMEOUT_S,
@@ -1732,6 +1733,22 @@ def _write_site(
             pages.append(org_page(org_display_name([c.name for c in cards]), cards, origin))
 
     pages.extend(_declaration_pages(scorecards, declared, retrieved_on))
+
+    # One free, unauthenticated report per endpoint, linked from the endpoint page it describes.
+    # Built from the cards this run already graded and the registry entries already read: it
+    # reaches no network and adds no request to anybody's server.
+    pages.extend(
+        entity_report_pages(
+            scorecards,
+            {entry.endpoint_id: entry.base_url for entry in endpoints},
+            {
+                card.endpoint_id: _verification_sentence(by_id.get(card.endpoint_id))
+                for card in scorecards
+            },
+            origin,
+            generated_at,
+        )
+    )
 
     # Two pages resolving to one file is a silent data loss, not a layout quirk: `write_page`
     # resolves `path=""` to `out_dir` itself, so a page added with an empty path overwrites the

@@ -270,7 +270,13 @@ def json_ld(payload: dict[str, object]) -> str:
     return f'<script type="application/ld+json">{encoded}</script>'
 
 
-def _grade_badge(grade: str) -> str:
+def grade_badge(grade: str) -> str:
+    """The grade or status, as one accessible badge.
+
+    Public because the endpoint page and the single-endpoint report (``entity_report``)
+    both render this, and two readers of one card would agree today and disagree the day
+    one of them was tightened, with nothing to say so.
+    """
     word = _GRADE_WORDS.get(grade, "grade unavailable")
     noun = "Status" if grade == NOT_OBSERVED else "Grade"
     return (
@@ -325,8 +331,10 @@ def _signal_map(cards: Sequence[Scorecard]) -> str:
     return "".join(rows)
 
 
-def _last_answered_words(card: Scorecard) -> str:
+def last_answered_words(card: Scorecard) -> str:
     """When this endpoint last answered, said so a reader cannot mistake the window for eternity.
+
+    Public for the reason ``grade_badge`` is: the report renders the same values.
 
     An endpoint answering nowhere today is a different story if it answered last week, and until
     #139 nothing published the difference: the only dates on the page were the run\u2019s and the
@@ -344,8 +352,10 @@ def _last_answered_words(card: Scorecard) -> str:
     return "not in the recorded window"
 
 
-def _vantage_rows(card: Scorecard) -> str:
+def vantage_rows(card: Scorecard) -> str:
     """Every reporting vantage's own result, as a table, never resolved to a winner.
+
+    Public for the reason ``grade_badge`` is: the report renders the same values.
 
     The endpoint-level claim above this table is unchanged and stays correct: one vantage
     reaching an endpoint settles that it is up, and one failing settles nothing. That asymmetry
@@ -410,8 +420,10 @@ def _vantage_rows(card: Scorecard) -> str:
     )
 
 
-def _dimension_unanswered(dimension: DimensionScore) -> bool:
+def dimension_unanswered(dimension: DimensionScore) -> bool:
     """Whether this whole dimension is the "asked everywhere, answered nowhere" state.
+
+    Public for the reason ``grade_badge`` is: the report renders the same values.
 
     Every finding, not any: a dimension with one unanswered check beside checks that did run is
     a partial measurement, and calling the whole thing "no answer" would overstate it in the
@@ -449,8 +461,10 @@ def _dimension_meter(title: str, score: int | None, *, unanswered: bool = False)
     )
 
 
-def _finding_mark(finding: Finding) -> tuple[str, str, str]:
+def finding_mark(finding: Finding) -> tuple[str, str, str]:
     """Class, glyph, and screen-reader prefix for one finding.
+
+    Public for the reason ``grade_badge`` is: the report renders the same values.
 
     Three states, not two. A check that never ran is neither a pass nor a failure, and a ✗ beside
     it would publish the thing this project exists not to publish. A finding worth no points is
@@ -474,7 +488,7 @@ def _findings_html(card: Scorecard) -> str:
     for dim in card.dimensions:
         items = ""
         for f in dim.findings:
-            state, glyph, prefix = _finding_mark(f)
+            state, glyph, prefix = finding_mark(f)
             items += (
                 f'<li class="finding {state}">'
                 f'<span class="mark" aria-hidden="true">{glyph}</span>'
@@ -487,7 +501,7 @@ def _findings_html(card: Scorecard) -> str:
             )
         out.append(
             '<section class="finding-group">'
-            f"{_dimension_meter(dim.title, dim.score, unanswered=_dimension_unanswered(dim))}"
+            f"{_dimension_meter(dim.title, dim.score, unanswered=dimension_unanswered(dim))}"
             f'<ul class="findings">{items}</ul></section>'
         )
     return "".join(out)
@@ -527,9 +541,18 @@ def endpoint_page(
         if declared
         else ""
     )
+    # Unconditional, because `entity_report.pages_for` builds one report for every card in the
+    # build -- including the cards nothing answered, which are the ones whose publishers have
+    # most reason to read the page that says so. A link at a page the build did not write is
+    # what `audit_site` exists to catch, and it would catch this one.
+    report_link = (
+        f'<p><a class="usa-link" href="/endpoint/{html.escape(card.endpoint_id)}/report/">'
+        "This endpoint's full report: what was observed, what was not, and what would change "
+        "it →</a></p>"
+    )
     unobserved = card.grade == NOT_OBSERVED
     dimensions = "".join(
-        _dimension_meter(dim.title, dim.score, unanswered=_dimension_unanswered(dim))
+        _dimension_meter(dim.title, dim.score, unanswered=dimension_unanswered(dim))
         for dim in card.dimensions
     )
     record_link = (
@@ -593,7 +616,7 @@ def endpoint_page(
 <p class="lede">This endpoint {html.escape(summary)}.</p>
 </div>
 <div class="hero-grade"><span>{"Current status" if unobserved else "Current grade"}</span>
-{_grade_badge(card.grade)}</div>
+{grade_badge(card.grade)}</div>
 </header>
 <section class="score-overview" aria-label="Dimension scores">{dimensions}</section>
 <div class="evidence-grid">
@@ -603,7 +626,7 @@ def endpoint_page(
   <dt>Base URL</dt><dd><code>{html.escape(base_url)}</code></dd>
   <dt>Category</dt><dd>{html.escape(kind_label)}</dd>
   <dt>Availability</dt><dd>{html.escape(card.availability or "not yet recorded")}</dd>
-  <dt>Last answered</dt><dd>{_last_answered_words(card)}</dd>
+  <dt>Last answered</dt><dd>{last_answered_words(card)}</dd>
   {
         f"<dt>Vantage agreement</dt><dd>{html.escape(card.vantage_note)}</dd>"
         if card.vantage_note
@@ -611,12 +634,13 @@ def endpoint_page(
     }
 </dl>
 </section>
-{_vantage_rows(card)}
+{vantage_rows(card)}
 <section class="evidence-card evidence-card-accent">
 <p class="eyebrow">Interpretation</p>
 <p>A grade describes two public discovery documents at one point in time. It does not inspect
 patient data, authenticated behavior, or clinical quality.</p>
 <a class="usa-link" href="/how-we-grade/">Read the scoring method →</a>
+{report_link}
 {declared_link}
 </section>
 </div>
@@ -688,7 +712,7 @@ def org_page(name: str, cards: list[Scorecard], origin: str) -> Page:
     )
     rows = "".join(
         '<li class="surface-card">'
-        f'<div>{_grade_badge(c.grade)}<span class="eyebrow">'
+        f'<div>{grade_badge(c.grade)}<span class="eyebrow">'
         f"{html.escape(KIND_LABELS.get(c.kind, c.kind))}</span></div>"
         f'<a href="/endpoint/{c.endpoint_id}/">{html.escape(c.name)}</a>'
         f"<p>{html.escape(_status_words(c))}.</p></li>"
@@ -720,7 +744,7 @@ def kind_page(kind: str, cards: list[Scorecard], origin: str) -> Page:
     blurb = _KIND_BLURBS.get(kind, "")
     rows = "".join(
         f'<tr><td><a href="/endpoint/{c.endpoint_id}/">'
-        f"{html.escape(c.name)}</a></td><td>{_grade_badge(c.grade)}</td>"
+        f"{html.escape(c.name)}</a></td><td>{grade_badge(c.grade)}</td>"
         f"<td>{html.escape(c.availability or 'not yet recorded')}</td></tr>"
         for c in sorted(cards, key=lambda c: (c.grade, c.name))
     )
@@ -771,7 +795,7 @@ def _cohort_included_rows(cohort: Cohort, cards: dict[str, Scorecard]) -> str:
         f'<td><a href="/endpoint/{card.endpoint_id}/">'
         f"{html.escape(card.name)}</a></td>"
         f"<td>{html.escape(KIND_LABELS.get(card.kind, card.kind))}</td>"
-        f"<td>{_grade_badge(card.grade)}</td></tr>"
+        f"<td>{grade_badge(card.grade)}</td></tr>"
         for member in cohort.included
         for card in (cards[eid] for eid in member.endpoint_ids if eid in cards)
     )

@@ -280,16 +280,24 @@ def test_a_page_nothing_links_to_is_caught(site: Path) -> None:
     orphan = site / "endpoint" / "cms-blue-button-2"
     stray = site / "endpoint" / "stray-copy"
     shutil.copytree(orphan, stray)
-    # An endpoint directory now carries its Atom feed as well as its page, and a copied feed
-    # is a feed the sitemap does not list -- a second, real defect. Removing it keeps this
-    # test asserting the one it names. Its `alternate` link still addresses the original
-    # feed, which exists, so nothing else moves.
-    (stray / "feed.xml").unlink()
-    # The same for the declared-capability pages under it (#102): a copied `capabilities/`
-    # page is a second orphan whose canonical still names the original, which is two more
-    # real defects and not the one this test is about. The stray page's own link to them is
-    # root-relative, so it still addresses the originals, which exist.
-    shutil.rmtree(stray / "capabilities")
+    # Everything *under* an endpoint directory is its own published file: the Atom feed, the
+    # declared-capability pages (#102), the single-endpoint report. A copy of any of them is a
+    # second, real defect of its own kind -- a feed the sitemap does not list, an orphan whose
+    # canonical still names the original -- and this test is about exactly one finding.
+    #
+    # Two of them were once removed by name here, and the third arrived later and turned this
+    # assertion into one about four findings. So the copy is reduced to the page itself,
+    # derived rather than listed: whatever per-endpoint surface is added next cannot break this
+    # test by existing. The stray page's own links are root-relative, so they still address the
+    # originals, which are all still there.
+    for child in sorted(stray.iterdir()):
+        if child.name == "index.html":
+            continue
+        if child.is_dir():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+    assert (stray / "index.html").is_file()
     text = (stray / "index.html").read_text(encoding="utf-8")
     # Readdress the copy completely. A page states where it is twice -- in its
     # canonical and in its share card -- and moving only one of them would break a

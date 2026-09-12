@@ -324,7 +324,7 @@ def grade_reachability(
     else:
         # The message has always said this was not measured. Everything else about the finding
         # said it was: `observed` defaulted True, so `_withheld` returned 0, `_score` divided
-        # 0 earned points by a denominator of 100 and published **0**, and `_finding_mark`
+        # 0 earned points by a denominator of 100 and published **0**, and `finding_mark`
         # rendered a red "✗ Needs attention" beside the sentence "latency unmeasured". A check
         # that says in words that it did not run must not also be scored as one that ran and
         # failed.

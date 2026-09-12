@@ -36,6 +36,7 @@ from fhir_scorecard.cli import main
 from fhir_scorecard.entity_report import (
     ACTIONS,
     NO_ACTION,
+    notes,
     page_path,
     recoverable,
     report_page,
@@ -213,6 +214,14 @@ def test_an_endpoint_nothing_answered_is_offered_no_action_at_all() -> None:
     Ranking the checks this endpoint "failed" would hand a named organization a to-do list
     derived from an absence: no document was retrieved, so nothing about what it declares was
     observed, and every sentence in ``ACTIONS`` is about a document.
+
+    **This test cannot be made red by a one-line sabotage, and that is a fact about the code
+    rather than about the test.** Measured 2026-09-12: deleting the ``observed`` refusal from
+    ``recoverable`` left it green, because an unreached card's findings also carry
+    ``max_points == 0`` and ``points == 0``, so the points refusal and the gap refusal each
+    catch what the first one would have. Three overlapping refusals is the right arrangement
+    for this property and the wrong one for a control, so the branch itself is proven one test
+    down, against a finding built by hand, which *did* go red on that sabotage.
     """
     card = unreached()
     assert card.grade == NOT_OBSERVED
@@ -443,9 +452,21 @@ def test_a_note_worth_no_points_is_kept_out_of_the_ranked_list_and_still_publish
     codes = [f.code for d in card.dimensions for f in d.findings]
     assert "I4" in codes, "the fixture no longer reaches the prose-only note"
     assert "I4" not in [f.code for _, f, _ in recoverable(card)]
+
+    # The exact set, not membership. Measured 2026-09-12 by negative control: widening the
+    # note rule from `max_points == 0` to `>= 0` swept every pointed failure into the notes
+    # list as well, and a membership assertion could not see it - the note was still there,
+    # its sentence was still there, and the page was now publishing I1 twice, once ranked with
+    # its points and once as "worth no points in either direction".
+    assert [f.code for _, f in notes(card)] == ["I4"]
+    assert all(f.max_points == 0 for _, f in notes(card))
+
     words = text_of(render(card))
     assert "Worth no points in either direction, in Interop readiness." in words
+    assert words.count("Worth no points in either direction") == 1
     assert ACTIONS["I4"] in words
+    # I1 failed and carries points, so it belongs in the ranked list and nowhere else.
+    assert words.count(ACTIONS["I1"]) == 1
 
 
 # --------------------------------------------------------------------------------------
@@ -510,9 +531,27 @@ def _endpoint_ids() -> list[str]:
     return ids
 
 
+def test_the_report_lives_where_the_endpoint_page_says_it_does() -> None:
+    """One literal, checked against the generator, in one place.
+
+    Measured 2026-09-12 by negative control: renaming ``page_path``'s output to ``reports``
+    left three tests green, because they addressed the file through ``page_path`` itself and
+    followed the rename. A fixture derived from the constant it tests cannot catch a wrong
+    constant. So the path is written out here, once, and every build assertion below uses the
+    literal - while this test is what holds ``page_path`` and the endpoint page's ``href`` to
+    the same string.
+    """
+    assert page_path("example-id") == "endpoint/example-id/report"
+    card = graded()
+    body = endpoint_page(
+        card, base_url="https://payer.test/r4", verified=_VERIFIED, origin=DEFAULT_ORIGIN
+    ).body
+    assert f'href="/{page_path(card.endpoint_id)}/"' in body
+
+
 def test_every_graded_endpoint_gets_a_report_page(built: Path) -> None:
     for endpoint_id in _endpoint_ids():
-        page = built / page_path(endpoint_id) / "index.html"
+        page = built / "endpoint" / endpoint_id / "report" / "index.html"
         assert page.is_file(), f"no report was written for {endpoint_id}"
         assert "<h1>" in page.read_text(encoding="utf-8")
 
@@ -526,22 +565,29 @@ def test_each_endpoint_page_links_its_report_and_the_link_resolves(built: Path) 
     for endpoint_id in _endpoint_ids():
         page = (built / "endpoint" / endpoint_id / "index.html").read_text(encoding="utf-8")
         assert f'href="/endpoint/{endpoint_id}/report/"' in page
-        assert (built / page_path(endpoint_id) / "index.html").is_file()
+        # The literal the link names, not the path the generator computes: the point is that
+        # the two agree, and reading both from one function cannot show that.
+        assert (built / "endpoint" / endpoint_id / "report" / "index.html").is_file()
 
 
 def test_every_report_is_listed_in_the_sitemap(built: Path) -> None:
     sitemap = (built / "sitemap.xml").read_text(encoding="utf-8")
     for endpoint_id in _endpoint_ids():
-        assert f"<loc>{DEFAULT_ORIGIN}/{page_path(endpoint_id)}/</loc>" in sitemap
+        assert f"<loc>{DEFAULT_ORIGIN}/endpoint/{endpoint_id}/report/</loc>" in sitemap
 
 
 def test_a_report_carries_its_own_canonical_and_does_not_reuse_the_endpoint_page_title(
     built: Path,
 ) -> None:
     for endpoint_id in _endpoint_ids():
-        report = (built / page_path(endpoint_id) / "index.html").read_text(encoding="utf-8")
+        report = (built / "endpoint" / endpoint_id / "report" / "index.html").read_text(
+            encoding="utf-8"
+        )
         endpoint = (built / "endpoint" / endpoint_id / "index.html").read_text(encoding="utf-8")
-        assert f'<link rel="canonical" href="{DEFAULT_ORIGIN}/{page_path(endpoint_id)}/">' in report
+        assert (
+            f'<link rel="canonical" href="{DEFAULT_ORIGIN}/endpoint/{endpoint_id}/report/">'
+            in report
+        )
         report_title = re.search(r"<title>(.*?)</title>", report, re.S)
         endpoint_title = re.search(r"<title>(.*?)</title>", endpoint, re.S)
         assert report_title and endpoint_title
@@ -550,7 +596,7 @@ def test_a_report_carries_its_own_canonical_and_does_not_reuse_the_endpoint_page
 
 def test_no_report_page_exceeds_the_page_weight_budget(built: Path) -> None:
     sizes = {
-        endpoint_id: (built / page_path(endpoint_id) / "index.html").stat().st_size
+        endpoint_id: (built / "endpoint" / endpoint_id / "report" / "index.html").stat().st_size
         for endpoint_id in _endpoint_ids()
     }
     assert sizes, "no report pages were measured"
@@ -572,7 +618,9 @@ def test_the_built_report_for_an_unreached_endpoint_publishes_no_zero(built: Pat
     ]
     assert unreachable, "no fixture in this build reaches the unobserved state"
     for endpoint_id in unreachable:
-        report = (built / page_path(endpoint_id) / "index.html").read_text(encoding="utf-8")
+        report = (built / "endpoint" / endpoint_id / "report" / "index.html").read_text(
+            encoding="utf-8"
+        )
         assert "--score:" not in report
         assert "out of 100" not in text_of(report)
         assert "No score is published" in text_of(report)

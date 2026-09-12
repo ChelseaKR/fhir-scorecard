@@ -250,7 +250,7 @@ def write_dataset(
                     # surface where a reader could not.
                     #
                     # Neither is recoverable from what was published. `max_points == 0` is not a
-                    # proxy for `observed`: `site._finding_mark` already uses that condition for
+                    # proxy for `observed`: `site.finding_mark` already uses that condition for
                     # the *note* state -- "not applicable to a Provider Directory API" -- so it
                     # conflates a check nobody could make with one deliberately not scored. And
                     # without `withheld_points` a null score cannot be explained at all: a

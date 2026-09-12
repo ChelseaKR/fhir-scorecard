@@ -14,6 +14,37 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **A free single-endpoint report, at `/endpoint/<id>/report/`.** The endpoint page answers
+  "what is this endpoint's grade". This answers the question the organization responsible for
+  the endpoint asks about itself: what did you observe, what did you *not* observe, and what
+  would we have to change? One report per graded endpoint, linked from the endpoint page it
+  describes, in the sitemap, indexable, built to print, and free - no paywall, no email gate,
+  no sign-up, no analytics, no cookie.
+
+  **It carries the three states rather than flattening them.** Every check is published as one
+  of: it ran, it was asked from every reporting vantage and answered by none, or it was never
+  asked because nothing was retrieved for it to read. A dimension with no score says which of
+  those produced the silence and, where part of its scale went unmeasured, how many of its
+  points that was. Nothing renders an absence as a number.
+
+  **The action list is built from observed findings only.** Ranked by the points each change
+  would recover, each item naming the document element to populate, quoting the observation it
+  came from, and linking the method and the spec clause. An endpoint no vantage reached is
+  offered nothing at all, because a to-do list derived from an absence is the #135 defect with
+  a larger blast radius - and `tests/test_entity_report.py` holds that against the rendered
+  page, not against the object behind it.
+
+  **Both vantage numbers travel with the reachability claim**: how many vantages reached it,
+  how many reported, and how many networks those sit on, with every vantage's own row beneath.
+  An endpoint reached from 1 of 3 is a different fact from one reached from 3 of 3, and hosts
+  on one provider's network are one network's view sampled several times.
+
+  **What this deliberately does not add:** any way to count how many reports are read. The site
+  is static GitHub Pages output and this repository adds no analytics or tracking, so there is
+  no privacy-respecting way to measure views, and a counter that tracked readers would cost
+  more than the answer is worth. The demand signal is an inbound request, and `/claim/` is
+  already that channel; the report links to it.
+
 - **The interval arithmetic a published share needs, wired to nothing (#103).** The cohort,
   coverage and availability pages publish shares as counts over fixed denominators. They carry
   no uncertainty and no floor. `statistics.py` is the arithmetic that would attach both:

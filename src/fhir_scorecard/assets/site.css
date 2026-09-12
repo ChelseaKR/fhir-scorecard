@@ -384,6 +384,14 @@ li.unanswered .finding-copy { color: var(--usa-ink); }
   .usa-header, .usa-footer, .hero-actions { display: none; }
   .site-main { width: 100%; padding: 0; }
   a { color: inherit; }
+  /* The single-endpoint report is meant to leave the browser as a document, so the things a
+   * printed copy loses are printed back: the address behind every link that leaves this page,
+   * and a page break that never falls inside a check table or an action. The note telling a
+   * reader to print is the one thing a printed copy does not need. */
+  .report-print-note { display: none; }
+  .report-dimension, .report-action, .report-summary, .vantage-reports { break-inside: avoid; }
+  .report-checks { font-size: .85rem; }
+  .site-main a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; word-break: break-all; }
 }
 
 /* Logo lockup: the site's own signal dots, rising. Original mark - deliberately unlike the
@@ -402,3 +410,15 @@ li.unanswered .finding-copy { color: var(--usa-ink); }
 .drift-timeline ul {
   margin: 0.25rem 0 0;
 }
+
+/* Single-endpoint report: the ranked list of what would change a result. Numbered by the
+ * ordered list itself, so the rank a reader sees is the rank `recoverable` computed. */
+.report-actions { margin: 1rem 0 0; padding-left: 1.25rem; }
+.report-action { margin-bottom: 1.25rem; }
+.report-action h3 { margin: 0 0 .35rem; font-size: 1.05rem; }
+.report-action p { margin: 0 0 .35rem; }
+.report-action-worth { font-weight: 600; }
+.report-note .report-action-worth { font-weight: 400; font-style: italic; }
+.report-dimension { margin-bottom: 2rem; }
+.report-print-note { font-size: .9rem; color: #4d5867; }
+.report-summary .facts { margin-bottom: 0; }

@@ -64,6 +64,7 @@ SCOPED = (
     "src/fhir_scorecard/vantage.py",
     "src/fhir_scorecard/grading.py",
     "src/fhir_scorecard/site.py",
+    "src/fhir_scorecard/entity_report.py",
     "src/fhir_scorecard/weight.py",
     "src/fhir_scorecard/audit.py",
 )

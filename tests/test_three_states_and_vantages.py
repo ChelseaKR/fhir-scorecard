@@ -474,7 +474,7 @@ def test_a_reached_vantage_carrying_a_failure_kind_still_publishes_none() -> Non
 def test_the_card_renders_the_per_vantage_table(tmp_path: Path) -> None:
     """On the page, not only in the JSON.
 
-    A control that stopped `_vantage_rows` returning anything left all 1,163 tests green: every
+    A control that stopped `vantage_rows` returning anything left all 1,163 tests green: every
     assertion about the rows read `api/endpoint/<id>.json`, and none read the HTML a person
     actually sees. The requirement was that the disagreement be visible on the card.
     """

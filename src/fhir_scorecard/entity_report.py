@@ -311,15 +311,24 @@ def _summary(card: Scorecard, base_url: str, generated_at: str) -> str:
 
 
 def _states_paragraph(card: Scorecard) -> str:
+    """All three counts, always, including the zeros.
+
+    A zero here is a count of checks in a state, which is a measurement; it is not the absent
+    number this whole page exists to withhold. Printing only the non-zero clauses would make
+    the vocabulary itself conditional, and a reader who never saw the third state named would
+    have no way to know it exists.
+    """
     ran, unanswered, unasked = _states(card)
     total = ran + unanswered + unasked
     return (
-        f"<p>This report covers {total} checks. <strong>{ran}</strong> ran. "
-        f"<strong>{unanswered}</strong> were asked from every reporting vantage and answered by "
-        f"none. <strong>{unasked}</strong> were never asked, because nothing was retrieved for "
-        "them to read. The three are different facts and none of them is a zero: a check that "
-        "did not run publishes no number, no mark against this endpoint, and nothing below to "
-        "act on.</p>"
+        f"<p>This report covers {total} {'check' if total == 1 else 'checks'}. "
+        f"<strong>{ran}</strong> ran. "
+        f"<strong>{unanswered}</strong> {'was' if unanswered == 1 else 'were'} asked from every "
+        "reporting vantage and answered by none. "
+        f"<strong>{unasked}</strong> {'was' if unasked == 1 else 'were'} never asked, because "
+        f"nothing was retrieved for {'it' if unasked == 1 else 'them'} to read. The three are "
+        "different facts and none of them is a zero: a check that did not run publishes no "
+        "number, no mark against this endpoint, and nothing below to act on.</p>"
     )
 
 

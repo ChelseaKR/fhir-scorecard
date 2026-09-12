@@ -325,6 +325,12 @@ def test_the_three_states_are_counted_separately_and_all_three_are_named() -> No
     assert "2 were asked from every reporting vantage and answered by none." in words
     assert "2 were never asked, because nothing was retrieved for them to read." in words
 
+    # One check in a state is still a count, and the sentence has to read as English: the
+    # one-of-each case is where a published surface starts saying "1 were never asked".
+    single = text_of(render(reached_by_one_of_three()))
+    assert "1 was never asked, because nothing was retrieved for it to read." in single
+    assert "0 was asked" not in single and "0 were asked" in single
+
 
 def test_a_withheld_dimension_says_how_much_of_its_scale_went_unmeasured() -> None:
     """The third state inside an otherwise scored dimension.

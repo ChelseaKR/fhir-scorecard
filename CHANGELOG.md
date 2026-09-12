@@ -204,6 +204,45 @@ Merged changes land here until the next tag.
 
 ### Fixed
 
+- **A cohort endpoint two plans publish through was counted twice.**
+  `site.cohort_page` counted `(member, endpoint)` rows and labelled the result
+  "endpoints listed", so an endpoint two member organizations both point at was
+  counted twice, in that number and in "answered on this run" beside it. Measured
+  against the live site and the live `dataset.csv` on 2026-09-10:
+
+  | page | was | is |
+  |---|---|---|
+  | `/florida-marketplace/` | 17 endpoints listed, 15 answered | 13 endpoints listed, 11 answered |
+  | `/michigan-marketplace/` | 6 endpoints listed, 4 answered | 5 endpoints listed, 3 answered |
+
+  The curation is right and unchanged: `florida-marketplace` records Cigna
+  Healthcare and Cigna Healthcare of Florida as two member organizations pointing
+  at one published surface, and Florida Blue and Florida Blue HMO likewise;
+  `michigan-marketplace` has one such pair in BCBS Michigan and Blue Care Network.
+  Two legal entities answering the rule through one server is a fact about the
+  roster, not an error in it.
+
+  "Endpoints listed" counts endpoints, and the listings now have a labelled number
+  of their own — `plan listings`, printed on the two cohorts where it differs from
+  the endpoint count, beside the sentence saying why. The word in the label is
+  "endpoints", the table under it is headed "Listed endpoints", and the number
+  beside it counts probes, so reading one as listings and the other as endpoints
+  would publish a ratio ("11 of 17") whose halves count different things — and the
+  page's own description prints exactly that ratio.
+
+  The table still carries a row per member, because the row is about the plan and
+  a reader looking for their own plan has to find it. No other surface was
+  affected: `coverage.classify` counts organizations, and every other consumer is
+  keyed by endpoint. Found by the duplicate-entry-id rule the Atom feeds added,
+  before anything was published.
+
+  `test_every_shipped_cohort_publishes_the_counts_its_own_curation_implies` derives
+  both figures from `data/cohorts/*.json` for all thirteen cohorts rather than
+  pinning 13 and 5 as literals, and asserts underneath that at least one shipped
+  cohort still exercises the rule — without that floor, editing the shared surfaces
+  out of the roster would leave every assertion comparing a number with itself.
+
+
 - **The pin gate read 1 of the 40 action references this repository runs.** The
   README's Security and Supply-Chain row says Actions are pinned to full commit
   SHAs. `tests/test_ci_action.py` held `action.yml` to that with its own copy of

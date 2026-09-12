@@ -65,14 +65,20 @@ class EndpointResult:
     def observed(self) -> bool:
         """Whether this run has a grade for this endpoint at all.
 
-        The unit of the claim is the endpoint, not the dimension. When nothing was retrieved,
-        ``reachability`` still holds two findings that are ``observed=True`` and ``ok=False`` --
-        this vantage really did try and really did get nothing -- and rendering those as a
-        ``<failure>`` turns a blocked runner or a TLS-intercepting middlebox into a red build
-        attributed to the endpoint. :mod:`fhir_scorecard.gate` says in terms that such a
-        problem "reads as what it is rather than as something the endpoint did", so an entry
+        The unit of the claim is the endpoint, not the dimension. Rendering an endpoint nobody
+        reached as a ``<failure>`` turns a blocked runner or a TLS-intercepting middlebox into a
+        red build attributed to the endpoint. :mod:`fhir_scorecard.gate` says in terms that such
+        a problem "reads as what it is rather than as something the endpoint did", so an entry
         graded ``not observed`` reports as not observed throughout, in both formats, with the
         retrieval error carried in the message rather than dropped.
+
+        This used to be the *only* place that held that line. It said so here: when nothing was
+        retrieved, ``reachability`` still held two findings that were ``observed=True`` and
+        ``ok=False``, and this property covered for them. Every other surface published what
+        those two findings said -- ``reachability_score: 0`` in the CSV and the JSON, a meter at
+        zero and two red ✗ marks on the page (#135). The findings are ``observed=False`` now, so
+        the branch below that reads ``finding.observed`` catches them on their own and this
+        endpoint-level test is a second line rather than the first.
 
         The exit code is unaffected: a caller who set a threshold still fails, because
         :func:`fhir_scorecard.gate.evaluate` refuses to evaluate a threshold it has no grade

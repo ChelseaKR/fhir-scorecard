@@ -45,7 +45,13 @@ from fhir_scorecard.coverage import page as coverage_page
 from fhir_scorecard.dataset import write_dataset
 from fhir_scorecard.drift import ensure_mode, load_history, observe, save_history
 from fhir_scorecard.feeds import build_feeds, write_feeds
-from fhir_scorecard.fetch import TIMEOUT_S, FetchResult, fetch_json
+from fhir_scorecard.fetch import (
+    TIMEOUT_S,
+    UNCLASSIFIED,
+    FetchResult,
+    fetch_json,
+    normalise_failure_kind,
+)
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
 from fhir_scorecard.grading import Scorecard, build_scorecard
 from fhir_scorecard.intake import ClaimError, assess, claim_from_form
@@ -99,8 +105,54 @@ from fhir_scorecard.snapshot import verify as verify_snapshot
 from fhir_scorecard.vantage import VantageProbe, load_probe_files, reconcile, write_probes
 from fhir_scorecard.weight import audit_weight
 
+#: A fixture directory holding this instead of documents replays a *refusal*: an endpoint the
+#: capture could not retrieve, with the condition it reported. It carries the three fields
+#: :class:`fhir_scorecard.fetch.FetchResult` needs to describe one -- ``status`` (``null`` when
+#: the connection never produced an HTTP response), ``error`` (the sentence, verbatim) and
+#: ``failure_kind`` (from the closed vocabulary).
+#:
+#: It exists because the offline fixture set could express only one kind of failure -- a missing
+#: directory, which reports ``no fixture`` and ``unclassified`` -- and so the one test that pins
+#: a *published card* could pin only endpoints that answered. See ``tests/fixtures/README.md``
+#: and the tests in ``tests/test_failure_kinds.py`` that read these.
+REFUSAL_FIXTURE = "refusal.json"
+
+
+def _offline_refusal(path: Path, url: str) -> FetchResult:
+    """Replay a captured refusal. Anything unreadable is itself a retrieval failure.
+
+    Nothing here coerces: a ``failure_kind`` outside the published vocabulary reads as
+    ``unclassified`` through the same normaliser a foreign probe file goes through, rather than
+    being trusted because it came off disk.
+    """
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return FetchResult(
+            url=url,
+            ok=False,
+            status=None,
+            elapsed_ms=0,
+            body=b"",
+            error=f"unreadable refusal fixture: {exc}",
+            failure_kind=UNCLASSIFIED,
+        )
+    status = raw.get("status") if isinstance(raw.get("status"), int) else None
+    return FetchResult(
+        url=url,
+        ok=False,
+        status=status,
+        elapsed_ms=0,
+        body=b"",
+        error=str(raw.get("error") or "refusal fixture names no condition"),
+        failure_kind=normalise_failure_kind(raw.get("failure_kind")),
+    )
+
 
 def _offline_fetch(fixtures: Path, endpoint_id: str, filename: str, url: str) -> FetchResult:
+    refusal = fixtures / endpoint_id / REFUSAL_FIXTURE
+    if refusal.is_file():
+        return _offline_refusal(refusal, url)
     path = fixtures / endpoint_id / filename
     if not path.is_file():
         return FetchResult(
@@ -151,7 +203,19 @@ def _grade_from_probes(
         else (consensus.detail if consensus is not None else "no vantage reported"),
     )
     facts = parse_capability(capability_body) if capability_retrieved else NO_CAPABILITY_RETRIEVED
-    smart_facts = parse_smart(smart_body) if smart_retrieved else NO_SMART_RETRIEVED
+    if smart_retrieved:
+        smart_facts = parse_smart(smart_body)
+    elif consensus is not None and consensus.smart_requested:
+        # Every vantage that reached this endpoint asked for the SMART document and none was
+        # served one. That is the same observation `_grade_endpoint` makes when it probes
+        # directly, and it grades identically: `parsed` False, `observed` True, I2 scored 0 of
+        # 35. Reading it as an absence instead withheld those 35 points, and `grading.letter`
+        # then could not pin a band, so eighteen of the eighty-one live endpoints published no
+        # letter on 2026-09-12 while all three vantages held their CapabilityStatements.
+        smart_facts = SMART_NOT_SERVED
+    else:
+        # Nobody asked, or nobody's file says whether they did. Unknown, and it stays unknown.
+        smart_facts = NO_SMART_RETRIEVED
     # Kept at the one point where the facts this grade was built from exist (#102). A matrix
     # built later from a second parse of a body could describe a different document from the
     # one the grade on the same endpoint's page was computed from.
@@ -215,6 +279,11 @@ def _grade_endpoint(
         # document, and a SMART failure beside a retrieved CapabilityStatement is a different
         # finding that this field would silently absorb.
         failure_kind=metadata.failure_kind,
+        # Unconditionally true: both fetches above run for every endpoint, whatever /metadata
+        # did. Recorded rather than assumed by the reader of this file, because `smart=None`
+        # cannot distinguish a document this vantage was refused from one it never asked for,
+        # and the publishing run has only the file to go on.
+        smart_requested=True,
     )
     probes_seen[endpoint.endpoint_id] = mine
     all_probes = [mine, *other_probes.get(endpoint.endpoint_id, [])]

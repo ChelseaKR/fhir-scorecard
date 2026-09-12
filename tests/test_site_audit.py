@@ -75,8 +75,10 @@ def test_a_site_with_cohort_and_organization_pages_also_satisfies_it(tmp_path: P
     shutil.copytree(FIXTURES, fixtures)
     shutil.copytree(fixtures / "cms-blue-button-2", fixtures / "cms-blue-button-2-pd")
     registry = json.loads((FIXTURES / "registry.json").read_text(encoding="utf-8"))
-    first = registry["endpoints"][0]
-    assert first["id"] == "cms-blue-button-2"
+    # By id, not by position. The fixture registry is sorted by id and #137 added entries that
+    # sort ahead of this one, so `[0]` silently became a different endpoint -- and this test
+    # copies its directory, so it would have duplicated the wrong capture.
+    first = next(e for e in registry["endpoints"] if e["id"] == "cms-blue-button-2")
     second = dict(first)
     second["id"] = "cms-blue-button-2-pd"
     second["name"] = first["name"] + " Provider Directory"

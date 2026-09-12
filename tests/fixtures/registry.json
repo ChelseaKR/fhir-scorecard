@@ -1,6 +1,34 @@
 {
-  "policy": "The three endpoints whose public discovery documents are captured under this directory, so `--offline --fixtures tests/fixtures` grades a complete registry rather than a registry of missing files. Entries are copied verbatim from data/registry.json, including the verification records, because a fixture registry that drifted from the real one would demo something this project does not publish.",
+  "policy": "The five endpoints whose public discovery surfaces are captured under this directory, so `--offline --fixtures tests/fixtures` grades a complete registry rather than a registry of missing files. Entries are copied verbatim from data/registry.json, including the verification records, because a fixture registry that drifted from the real one would demo something this project does not publish. Three answered when they were captured and two did not: an offline set where everything answers cannot exercise the unreachable path, which is how a published `reachability_score: 0` survived on 14 live endpoints (#135, #137).",
   "endpoints": [
+    {
+      "id": "aspirus-patient-access",
+      "name": "Aspirus Health Plan Patient Access API",
+      "kind": "payer",
+      "base_url": "https://prodpfotzinterop.healthtranzformdev.com/ug/patientaccess",
+      "verification": {
+        "method": "base URL read verbatim from servers[0].url of the OpenAPI 3.0.1 document published anonymously by Aspirus Health Plan's own branded developer portal, which the plan links from https://www.aspirushealthplan.com/insurance/Interoperability/ under 'Developers'. Catalog entry id 'patient-access'",
+        "date": "2026-09-04",
+        "basis": "publisher_documented",
+        "source": "https://www.aspirushealthplan.com/insurance/Interoperability/",
+        "observed": "no answer to an unauthenticated GET of /metadata on 2026-09-04. The host resolves; the sibling portal host presents an incomplete TLS chain, which is the likeliest cause"
+      },
+      "enabled": true
+    },
+    {
+      "id": "bcbs-arizona-patient-access",
+      "name": "Blue Cross Blue Shield of Arizona Patient Access API",
+      "kind": "payer",
+      "base_url": "https://azblue.innovaccer.com/fhir/",
+      "verification": {
+        "method": "base URL printed verbatim on the plan's own page at azblue.com/interoperability, section 'For App Developers': 'The base URL for our APIs is https://azblue.innovaccer.com/fhir/'. Vendor is Innovaccer; the plan prints the finished address itself rather than pointing at a template",
+        "date": "2026-09-04",
+        "basis": "publisher_documented",
+        "source": "https://www.azblue.com/interoperability",
+        "observed": "HTTP 403 to an unauthenticated GET of /metadata on 2026-09-04. The address is published without qualification, so what this records is that a stranger following the plan's own instructions retrieves no conformance document. No Provider Directory base URL is published anywhere on the site, although the same page asserts the capability"
+      },
+      "enabled": true
+    },
     {
       "id": "cms-blue-button-2",
       "name": "CMS Blue Button 2.0 (Medicare)",

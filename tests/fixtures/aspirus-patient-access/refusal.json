@@ -1,0 +1,11 @@
+{
+  "captured": "2026-09-12",
+  "error": "TLS certificate verification failed (unable to get local issuer certificate); likely a vantage-local interception, not an endpoint fault",
+  "failure_kind": "tls",
+  "status": null,
+  "vantages": [
+    "github-actions/macos-latest",
+    "github-actions/ubuntu-latest",
+    "github-actions/windows-latest"
+  ]
+}

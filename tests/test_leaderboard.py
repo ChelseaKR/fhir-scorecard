@@ -237,7 +237,11 @@ def test_a_first_run_publishes_the_empty_state_rather_than_a_one_day_ranking(sit
     rather than publish three endpoints at 100% off a single day."""
     body = _text((site / LEADERBOARD_PATH / "index.html").read_text(encoding="utf-8"))
     assert "Nothing is ordered yet" in body
-    assert "0 of 3 endpoints have enough recorded observations" in body
+    # The denominator is the fixture set's size, derived rather than written down (it grew from
+    # three to five when #137 added the unreachable captures). The load-bearing half is the
+    # zero: a one-day history orders nothing, whatever it holds.
+    listed = len(json.loads((FIXTURES / "registry.json").read_text())["endpoints"])
+    assert f"0 of {listed} endpoints have enough recorded observations" in body
 
 
 def test_the_page_and_the_record_agree_about_who_is_below_the_floor(site: Path) -> None:

@@ -37,7 +37,13 @@ _COLUMNS = [
         "about the endpoint",
     ),
     ("reachable", "Whether /metadata answered on this run, from any vantage"),
-    ("reachability_score", "0-100 for the reachability dimension"),
+    (
+        "reachability_score",
+        "0-100 for the reachability dimension, empty when no vantage reached the endpoint on "
+        "this run. It was previously 0 in that case, which read as a measured zero against the "
+        "organization; whether /metadata answers 2xx is not established by a run whose vantages "
+        "all sit on one network",
+    ),
     (
         "transparency_score",
         "0-100 for the capability transparency dimension, empty when no "
@@ -209,12 +215,30 @@ def write_dataset(
                     "key": d.key,
                     "title": d.title,
                     "score": d.score,
+                    # `observed` and `withheld_points` travel with `ok` and `max_points`, never
+                    # apart from them. Dropping the two meant a check that was never made
+                    # published as `"ok": false` -- a failing verdict about a named payer -- to
+                    # every consumer of this file, while the site's own reader saw "○ Not
+                    # observed" for the same finding. The HTML surface has honoured both fields
+                    # since they existed and `ci_report.py` says in its docstring that "nothing
+                    # here reads `ok` without reading `observed` first"; this writer was the one
+                    # surface where a reader could not.
+                    #
+                    # Neither is recoverable from what was published. `max_points == 0` is not a
+                    # proxy for `observed`: `site._finding_mark` already uses that condition for
+                    # the *note* state -- "not applicable to a Provider Directory API" -- so it
+                    # conflates a check nobody could make with one deliberately not scored. And
+                    # without `withheld_points` a null score cannot be explained at all: a
+                    # consumer cannot tell a dimension where nothing was observed from one where
+                    # some checks ran and some did not, nor reconstruct the denominator.
                     "findings": [
                         {
                             "code": f.code,
                             "ok": f.ok,
+                            "observed": f.observed,
                             "points": f.points,
                             "max_points": f.max_points,
+                            "withheld_points": f.withheld_points,
                             "message": f.message,
                             "citation": f.citation,
                         }

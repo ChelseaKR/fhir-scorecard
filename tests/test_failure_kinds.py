@@ -411,7 +411,17 @@ def test_one_vantage_whose_samples_disagree_establishes_no_condition() -> None:
 #: any of this existed -- and pinned here as literals. The classification is data beside the
 #: grade and must never become an input to it, and the only way to hold that is to state what
 #: the grades were and fail when they are not that.
+#:
+#: The two unreachable rows were added later (#137). Before them this pinned three endpoints,
+#: all of which answered, so the one test in the suite that reads a *published card* could not
+#: see the unreachable path at all -- and #135 shipped a `reachability_score` of **0** on 14 live
+#: endpoints underneath it. On the code that was live on 2026-09-12 these two rows would read
+#: ``("not observed", 0, "", "")``; the empty string is what a dimension with no score publishes,
+#: and the point of pinning them is that no later change can put a number back without saying so
+#: here.
 PINNED_GRADES = {
+    "aspirus-patient-access": ("not observed", "", "", ""),
+    "bcbs-arizona-patient-access": ("not observed", "", "", ""),
     "cms-blue-button-2": ("B", 100, 100, 60),
     "inferno-reference": ("A", 100, 80, 100),
     "oracle-health-open": ("C", 100, 80, 40),
@@ -451,38 +461,107 @@ def test_no_published_grade_moved(tmp_path: Path) -> None:
     assert seen == PINNED_GRADES
 
 
-def test_the_offline_fixtures_all_reach_so_they_prove_nothing_about_a_failure(
-    tmp_path: Path,
-) -> None:
-    """Stated rather than left for a reader to discover.
-
-    Every fixture endpoint is reachable, so `test_no_published_grade_moved` above cannot
-    exercise a single failure kind: the grades it pins are all grades of endpoints that were
-    reached. It holds the invariance that matters -- classification did not disturb grading --
-    and it is not evidence that the classification works. That evidence is every other test in
-    this file, which is why they are in the same one.
-    """
+def _published_cards(tmp_path: Path) -> list[dict]:
+    """Build the offline site once and hand back every published per-endpoint card."""
     from fhir_scorecard.cli import main as cli_main
 
     out = tmp_path / "site"
-    cli_main(
-        [
-            "grade",
-            "--offline",
-            "--fixtures",
-            str(REPO / "tests" / "fixtures"),
-            "--registry",
-            str(REPO / "tests" / "fixtures" / "registry.json"),
-            "--out",
-            str(out),
-            "--history",
-            str(tmp_path / "history.json"),
-        ]
+    assert (
+        cli_main(
+            [
+                "grade",
+                "--offline",
+                "--fixtures",
+                str(REPO / "tests" / "fixtures"),
+                "--registry",
+                str(REPO / "tests" / "fixtures" / "registry.json"),
+                "--out",
+                str(out),
+                "--history",
+                str(tmp_path / "history.json"),
+            ]
+        )
+        == 0
     )
-    for path in sorted((out / "api" / "endpoint").glob("*.json")):
-        record = json.loads(path.read_text(encoding="utf-8"))["endpoint"]
-        assert record["reachable"] == "true", record["endpoint_id"]
-        assert record["failure_kinds"] == [], record["endpoint_id"]
+    return [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted((out / "api" / "endpoint").glob("*.json"))
+    ]
+
+
+def test_the_offline_fixtures_cover_both_populations(tmp_path: Path) -> None:
+    """The gate's own coverage, asserted rather than left for a reader to discover.
+
+    This test used to be called ``test_the_offline_fixtures_all_reach_so_they_prove_nothing_
+    about_a_failure`` and it was right: every fixture endpoint answered, so the published-card
+    pin above exercised **3 of 81** registry endpoints and **0 of the 14** that were failing.
+    Under it, `grade_reachability` published a 0 for an unmeasured dimension for as long as
+    anyone cared to look (#135).
+
+    Both populations now have to be present. A future fixture refresh that quietly drops the
+    unreachable captures -- or one where those endpoints start answering and the capture is
+    updated without thought -- fails here rather than silently restoring the blind spot.
+    """
+    cards = _published_cards(tmp_path)
+    reached = [c["endpoint"] for c in cards if c["endpoint"]["reachable"] == "true"]
+    refused = [c["endpoint"] for c in cards if c["endpoint"]["reachable"] != "true"]
+    assert len(reached) >= 3, "the fixture set must still grade endpoints that answered"
+    assert len(refused) >= 2, (
+        "the fixture set must carry at least two endpoints no vantage reached, or no test in "
+        "this suite reads a published card for the unreachable path"
+    )
+    # Both branches of the classification, not two of the same: one condition that produced an
+    # HTTP status and one that never completed a connection.
+    kinds = {k for e in refused for k in e["failure_kinds"]}
+    assert len(kinds) >= 2, f"the refused fixtures name only {kinds}"
+    assert any(c["endpoint"]["failure_kinds"] == ["tls"] for c in cards)
+    assert any(c["endpoint"]["failure_kinds"] == ["forbidden"] for c in cards)
+
+
+def test_a_published_card_never_scores_what_it_did_not_measure(tmp_path: Path) -> None:
+    """The invariants #135 and #136 were each one half of, held on the serialized artifact.
+
+    Every assertion the suite had about the unreachable path was on an in-process
+    ``DimensionScore`` or a rendered HTML fragment. Nothing read ``api/endpoint/<id>.json``,
+    which is the file ``dataset.csv``, ``api/index.json`` and every downstream consumer are
+    built from, and which was the one surface publishing a check that was never made as
+    ``"ok": false`` with no way to tell.
+    """
+    for card in _published_cards(tmp_path):
+        record = card["endpoint"]
+        eid = record["endpoint_id"]
+        unreached = record["reachable"] != "true"
+
+        # `failure_kinds` is non-empty exactly when the endpoint was not reached. An empty tuple
+        # is not a population, and a kind beside a reachable endpoint files a working service
+        # under a failure.
+        assert bool(record["failure_kinds"]) is unreached, eid
+
+        for dimension in card["dimensions"]:
+            for finding in dimension["findings"]:
+                # #136: both fields travel with the verdict they qualify, on every surface.
+                assert "observed" in finding, (eid, finding["code"])
+                assert "withheld_points" in finding, (eid, finding["code"])
+                if not finding["observed"]:
+                    # A check nobody made may not read as a passed one either. `ok` is only
+                    # meaningful beside `observed`, which is the whole reason it is published.
+                    assert finding["ok"] is False, (eid, finding["code"])
+                    assert finding["points"] == 0, (eid, finding["code"])
+
+            if unreached:
+                # #135: no dimension of an endpoint nobody reached carries a score. This is the
+                # assertion that fails on the code that was live on 2026-09-12, where
+                # reachability published 0 while the other two published null.
+                assert dimension["score"] is None, (eid, dimension["key"])
+                assert all(not f["observed"] for f in dimension["findings"]), (
+                    eid,
+                    dimension["key"],
+                )
+
+        if unreached:
+            for column in ("reachability_score", "transparency_score", "interop_score"):
+                assert record[column] == "", (eid, column)
+            assert record["grade"] == "not observed", eid
 
 
 def test_an_unreached_endpoint_with_no_consensus_still_names_its_condition() -> None:

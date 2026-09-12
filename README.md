@@ -337,7 +337,12 @@ Neither is a compliance determination, and both say so.
 
 Every endpoint, organization, category, and cohort gets its own indexable page with a canonical URL,
 description, and structured data, plus a sitemap and a methodology page that every finding links
-into. Every endpoint's observation record is browsable at `/history/`: an index saying what window
+into. Each endpoint also gets a **single-endpoint report** at `/endpoint/<id>/report/`, linked from
+the endpoint page: what this project observed, what it did not observe and which of the two kinds of
+nothing that was, every reporting vantage's own result, and what a publisher would change to score
+better, ranked by the points each change would recover. It is free, unauthenticated, indexable, and
+built to print; nothing about it is behind a sign-in and no action is ever listed for a check that
+did not run. Every endpoint's observation record is browsable at `/history/`: an index saying what window
 the record covers and how many endpoints are still below the reporting floor, and one page per
 endpoint listing every observation with its date and whether the endpoint answered. An endpoint
 with no observations says so; it does not render a zero. No rate is published below fourteen

@@ -287,6 +287,16 @@ li.no .mark { color: var(--usa-error-dark); background: #f4e3db; }
 li.ok .mark { color: var(--usa-success-dark); background: #dfeacd; }
 li.unobserved .mark, li.note .mark { color: var(--usa-base-dark); background: var(--usa-base-lightest); }
 li.unobserved .finding-copy, li.note .finding-copy { color: var(--usa-base-dark); font-style: italic; }
+/* "Asked from every vantage and answered by none" is a finding, not a silence, so it is not
+   greyed out like .unobserved -- and it is not red like .no either, because it is not a verdict
+   against the endpoint. Its own weight, between the two. */
+li.unanswered .mark { color: #71767a; background: var(--usa-base-lightest); border: 1px solid #71767a; }
+li.unanswered .finding-copy { color: var(--usa-ink); }
+.vantage-reports { grid-column: 1 / -1; }
+.vantage-table { width: 100%; font-size: .88rem; }
+.vantage-table caption { text-align: left; font-weight: 700; padding-bottom: .5rem; }
+.vantage-table code { font-size: .82rem; }
+.vantage-note { margin: .75rem 0 0; color: var(--usa-base-dark); font-size: .82rem; }
 .finding-copy { font-size: .92rem; }
 .finding-links { display: flex; gap: .8rem; font-family: var(--font-mono); font-size: .7rem; }
 .verification { margin-top: 3rem; padding: 2rem; border-left: 4px solid var(--usa-primary); background: var(--usa-base-lightest); }

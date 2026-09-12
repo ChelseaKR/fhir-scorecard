@@ -14,7 +14,7 @@ page is a daily rescore of live third-party endpoints, every page footer carries
 a minute-resolution `Generated` stamp, and the availability and history pages
 derive from `data/history.json`, which CI restores from the `capability-history`
 branch rather than from `main`. Rebuilding any of that here would mean probing
-45 third-party servers to produce numbers that legitimately differ from the ones
+every registry endpoint to produce numbers that legitimately differ from the ones
 already published, so it is not attempted.
 
 What IS a pure function of committed inputs is checked exactly:

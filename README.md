@@ -390,6 +390,43 @@ not a 404. Two things a feed will not say: it reports no grade, because the reco
 none; and an availability entry names no vantage, because an observation in the record is a
 date and a reconciled answer and the vantages behind it were never retained.
 
+Each endpoint is also published as what its CapabilityStatement *declares*, not only as a
+grade. `/endpoint/<id>/capabilities/` lists every declared resource with its interactions,
+search parameters, operations and declared profiles, and `api/capabilities/<id>.json` carries
+the same declaration as flat rows, documented by `capabilities.schema.json`. It answers "does
+this payer support `Coverage` search by `patient`?" from a document this project already
+retrieves, and the page says where the table is that a declaration is not a test: nothing
+listed was requested or exercised, and none of it is graded. Four states are kept apart: no
+document was retrieved on this run, a document arrived and could not be read, a
+CapabilityStatement declares nothing, and one declares something. The first two publish
+`null` rows and a sentence, never an empty table. Pages are split by resource and never
+truncated. Over the 68 documents the live probes retrieved on 2026-09-10, 51 fit on one page
+and 17 run to more, 86 pages in all, the largest 49,692 bytes against the 65,536-byte budget.
+A resource too large for a page by itself is written with counts, and every name stays in the
+data. The declarations are not in the dated snapshot, because `snapshot` copies `api/endpoint`
+and these live in `api/capabilities`. What a signed dated release carries is the maintainer's
+decision.
+
+Each cohort page also links a census of what its listed endpoints declare, one page per
+category: how many of the endpoints with a readable declaration name each resource, and each
+interaction on it. The counts are out of that number and never percentages, because a
+category in one state can have a single readable declaration. Endpoints whose document was
+not read on the run are named beside the count and never folded into it. An endpoint nobody
+read has not declared an absence of `Patient`. Two plans that publish through one server
+count as one endpoint, and an interaction code outside R4's nine is listed with its count
+rather than dropped.
+
+Each endpoint page also says what its two documents declare about **app-to-server** access,
+the fields SMART Backend Services and Bulk Data run on. It asks whether the token endpoint
+accepts `private_key_jwt`, whether the `client_credentials` grant, the
+`client-confidential-asymmetric` capability and any `system/` scope are declared, and whether
+the CapabilityStatement declares an `export` operation or instantiates the Bulk Data Access
+guide. None of it is graded. Five answers are kept apart: declared; not listed; not
+declared because the field is absent; unreadable; and not retrieved. The field-absent answer
+matters most, because `token_endpoint_auth_methods_supported` is OPTIONAL, so its absence is
+not a refusal. The same block is in `api/endpoint/<id>.json`, in `check`'s terminal report and
+result JSON, and in the Action's job summary. The published `scorecards.json` does not carry it.
+
 What the site promises about itself is checked rather than asserted. `fhir-scorecard
 audit-site site/` reads a built directory and reports every page the sitemap omits, every
 sitemap entry no file answers, every missing or misaddressed canonical, every structured-data
@@ -419,11 +456,13 @@ and registry size is gated on payers publishing base URLs.
 | `api/index.json` counts | `endpoints_listed` is how many endpoints the registry carries and the run graded; `answered_on_this_run` is how many answered a probe during it. Never one standing in for the other |
 | `dataset.schema.json` | Column names, types, and meanings |
 | `api/index.json` | Every endpoint with links to its detail and its page |
-| `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift |
+| `api/endpoint/<id>.json` | Full scorecard: dimensions, findings, citations, drift, and `app_to_server`: what the endpoint's own documents declare about SMART Backend Services and Bulk Data, observed and never graded |
 | `api/history/<id>.json` | Every recorded observation for one endpoint, with its date and whether it answered, plus its declaration timeline. `answered_percent` is `null`, never `0`, below the 14-observation reporting floor, and `declaration_returns` is never merged into `declaration_changes` |
 | `scorecards.json` | The complete graded payload in one file |
 | `feed.xml` | Atom 1.0 feed of every recorded event, newest 100, with the count it carries out of the count the record holds |
 | `endpoint/<id>/feed.xml` | The same for one endpoint, uncapped. Also `<cohort>/feed.xml` per cohort. `api/index.json` names every feed this build wrote, and never one it did not |
+| `endpoint/<id>/capabilities/` | Every resource the endpoint's CapabilityStatement declares, with its interactions, search parameters, operations and profile count. Split by resource on the largest declarations, never truncated |
+| `api/capabilities/<id>.json` | The same declaration as flat rows (`resource`, `interaction`, `search_parameter`, `operation`, `profile`), with the retrieval date and the document's SHA-256. `rows` is `null` where nothing could be read and `[]` only where a CapabilityStatement declares nothing. Documented by `capabilities.schema.json` |
 | `badge/<id>.svg` | Embeddable current-grade badge linking back to the endpoint evidence |
 
 A dated copy of the dataset, with a manifest a reader can check with `sha256sum`:
@@ -481,7 +520,9 @@ file this project already publishes. Its `grading_method` tool returns the docum
 an assistant can be told what the numbers do not mean. Its `cited_passages` tool returns, for
 one endpoint, each finding with the verbatim passages of the specification page it cites, quoted
 from the copies retained under [`corpus/`](corpus/SOURCES.json); no model is called, and an
-assistant that explains a grade can quote the specification rather than recall it.
+assistant that explains a grade can quote the specification rather than recall it. Its `declared_capabilities` tool returns one endpoint's published declaration (#102)
+exactly as `api/capabilities/<id>.json` serves it, including the state that says when there was
+no readable declaration at all.
 
 The one command that does call a model is `narrate`
 ([ADR 0003](docs/adr/0003-ai-narration-outside-the-graded-path.md)):

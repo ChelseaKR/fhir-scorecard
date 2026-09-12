@@ -11,6 +11,7 @@ has to say so rather than report absence as a property of the server.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass, field
 
@@ -51,6 +52,36 @@ class CapabilityFacts:
     resource_interactions: tuple[tuple[str, tuple[str, ...]], ...] = field(default=())
     declares_oauth_security: bool = False
     parse_error: str | None = None
+    # Everything below exists for the declared-capability matrix (#102) and nothing grades it.
+    # None of it is in ``drift._FINGERPRINT_FIELDS``, which is an explicit list, so adding it
+    # moves no stored history and no published score; ``tests/test_matrix.py`` pins both.
+    #
+    # SHA-256 of the bytes this document was parsed from, for every document that was
+    # retrieved - including one that turned out not to be JSON or not to be a
+    # CapabilityStatement, because "a document with this digest arrived and could not be read"
+    # is a checkable claim and "could not be read" alone is not. ``None`` only when nothing was
+    # retrieved at all.
+    document_sha256: str | None = None
+    # ``rest.resource[].interaction[]`` entries with a readable code, counted as written. The
+    # matrix lists each distinct (resource, interaction) once, so it publishes this beside its
+    # own count: a document that repeats ``read`` under one resource declares it once and
+    # wrote it twice, and a reader comparing counts deserves both numbers.
+    interaction_entries: int = 0
+    # (resource type, name, search parameter type, definition), in document order.
+    search_parameters: tuple[tuple[str, str, str | None, str | None], ...] = field(default=())
+    # (resource type, or None for an operation declared on the whole server, name, definition).
+    operations: tuple[tuple[str | None, str, str | None], ...] = field(default=())
+    # ``rest.interaction[].code``: interactions declared on the server rather than on a type.
+    system_interactions: tuple[str, ...] = field(default=())
+    # (resource type, profile canonicals), merged per type and sorted, from ``supportedProfile``
+    # and ``profile``. ``conformance_profiles`` holds the same canonicals without the type,
+    # which is what grading needs and not what a reader of one resource's row needs.
+    resource_profiles: tuple[tuple[str, tuple[str, ...]], ...] = field(default=())
+    # Declarations in the server block that could not be read - an interaction with no code, a
+    # search parameter or operation with no name, a resource entry with no type. Counted, never
+    # listed and never dropped silently: a matrix that quietly omitted them would be a truncated
+    # declaration published as a complete one.
+    unreadable_declarations: int = 0
 
 
 @dataclass(frozen=True)
@@ -60,6 +91,25 @@ class SmartFacts:
     has_authorization_endpoint: bool = False
     has_token_endpoint: bool = False
     parse_error: str | None = None
+    # The four fields #97 reads, for ``backend.py``; nothing grades them. Each is ``None`` when the
+    # field is absent from the document, ``()`` when it is present and empty, and its strings
+    # otherwise. Absent and empty are different answers - an absent OPTIONAL field has said
+    # nothing - so they are never collapsed into one value here.
+    token_endpoint_auth_methods: tuple[str, ...] | None = None
+    grant_types: tuple[str, ...] | None = None
+    capabilities: tuple[str, ...] | None = None
+    scopes: tuple[str, ...] | None = None
+    # A field present with a value that is not a list of strings. Named rather than read as
+    # absent or empty, because either of those would be a claim the document did not make.
+    malformed_fields: tuple[str, ...] = field(default=())
+    # The document is ``{}``: read, and empty. ``parsed`` stays False so no grade and no diff
+    # moves. Measured on 2026-09-10: six live endpoints serve exactly this as their SMART
+    # discovery document.
+    empty_object: bool = False
+    # This vantage asked for the SMART document and was not served one - a 404, a refused
+    # connection. Grades exactly as an unusable document, ``parsed`` False and ``observed`` True,
+    # but #97's block says "requested and not served" rather than "could not be read".
+    not_served: bool = False
 
 
 #: Facts for a document no vantage retrieved. Distinct from ``parse_capability(b"")``, which
@@ -75,6 +125,15 @@ NO_SMART_RETRIEVED = SmartFacts(
     parse_error="no SMART discovery document was retrieved from any vantage on this run",
 )
 
+#: Facts for a SMART document this vantage requested and was not served. Grades exactly as the
+#: ``parse_smart(b"")`` it replaces - both are an observation that the document is absent or
+#: unusable - and differs only in saying which, for the declared app-to-server block (#97).
+SMART_NOT_SERVED = SmartFacts(
+    parsed=False,
+    not_served=True,
+    parse_error="the SMART discovery document was requested and not served on this run",
+)
+
 
 def _as_dict(value: object) -> dict[str, object]:
     return value if isinstance(value, dict) else {}
@@ -88,12 +147,21 @@ def _as_str(value: object) -> str | None:
     return value if isinstance(value, str) and value.strip() else None
 
 
-def _rest_resources(doc: dict[str, object]) -> list[dict[str, object]]:
+def _server_rest(doc: dict[str, object]) -> dict[str, object]:
+    """The ``rest`` block this project reads: the first one in server mode or carrying resources.
+
+    One function, so the grader and the declared-capability matrix read the same block and
+    cannot disagree about which declaration a server made.
+    """
     for rest in _as_list(doc.get("rest")):
         rest_d = _as_dict(rest)
         if rest_d.get("mode") == "server" or "resource" in rest_d:
-            return [_as_dict(r) for r in _as_list(rest_d.get("resource"))]
-    return []
+            return rest_d
+    return {}
+
+
+def _rest_resources(doc: dict[str, object]) -> list[dict[str, object]]:
+    return [_as_dict(r) for r in _as_list(_server_rest(doc).get("resource"))]
 
 
 def _security_declares_oauth(doc: dict[str, object]) -> bool:
@@ -175,24 +243,104 @@ def _resource_interactions(
     return tuple((name, tuple(sorted(codes))) for name, codes in sorted(interactions.items()))
 
 
+@dataclass(frozen=True)
+class _Declarations:
+    """What the matrix reads from the server block, gathered in one pass."""
+
+    interaction_entries: int
+    search_parameters: tuple[tuple[str, str, str | None, str | None], ...]
+    operations: tuple[tuple[str | None, str, str | None], ...]
+    system_interactions: tuple[str, ...]
+    resource_profiles: tuple[tuple[str, tuple[str, ...]], ...]
+    unreadable: int
+
+
+def _named(items: object, key: str) -> tuple[list[dict[str, object]], int]:
+    """The entries of ``items`` carrying a readable ``key``, and how many did not."""
+    readable: list[dict[str, object]] = []
+    unreadable = 0
+    for item in _as_list(items):
+        entry = _as_dict(item)
+        if _as_str(entry.get(key)) is None:
+            unreadable += 1
+        else:
+            readable.append(entry)
+    return readable, unreadable
+
+
+def _declarations(rest: dict[str, object], resources: list[dict[str, object]]) -> _Declarations:
+    """Search parameters, operations, profiles and server-level entries, as declared."""
+    search: list[tuple[str, str, str | None, str | None]] = []
+    operations: list[tuple[str | None, str, str | None]] = []
+    profiles: dict[str, set[str]] = {}
+    entries = 0
+    unreadable = 0
+    for resource in resources:
+        type_name = _as_str(resource.get("type"))
+        if type_name is None:
+            unreadable += 1
+            continue
+        coded, missing = _named(resource.get("interaction"), "code")
+        entries += len(coded)
+        unreadable += missing
+        params, missing = _named(resource.get("searchParam"), "name")
+        unreadable += missing
+        search.extend(
+            (type_name, str(p["name"]), _as_str(p.get("type")), _as_str(p.get("definition")))
+            for p in params
+        )
+        ops, missing = _named(resource.get("operation"), "name")
+        unreadable += missing
+        operations.extend((type_name, str(o["name"]), _as_str(o.get("definition"))) for o in ops)
+        declared = profiles.setdefault(type_name, set())
+        declared.update(
+            c for c in (_canonical(v) for v in _as_list(resource.get("supportedProfile"))) if c
+        )
+        single = _canonical(resource.get("profile"))
+        if single:
+            declared.add(single)
+    server_ops, missing = _named(rest.get("operation"), "name")
+    unreadable += missing
+    operations.extend((None, str(o["name"]), _as_str(o.get("definition"))) for o in server_ops)
+    server_codes, missing = _named(rest.get("interaction"), "code")
+    unreadable += missing
+    return _Declarations(
+        interaction_entries=entries,
+        search_parameters=tuple(search),
+        operations=tuple(operations),
+        system_interactions=tuple(sorted({str(i["code"]) for i in server_codes})),
+        resource_profiles=tuple(
+            (name, tuple(sorted(canonicals))) for name, canonicals in sorted(profiles.items())
+        ),
+        unreadable=unreadable,
+    )
+
+
 def parse_capability(body: bytes) -> CapabilityFacts:
+    digest = hashlib.sha256(body).hexdigest()
     try:
         doc_raw = json.loads(body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError) as exc:
-        return CapabilityFacts(parsed=False, parse_error=f"not JSON: {type(exc).__name__}")
+        return CapabilityFacts(
+            parsed=False, parse_error=f"not JSON: {type(exc).__name__}", document_sha256=digest
+        )
     doc = _as_dict(doc_raw)
     if not doc:
-        return CapabilityFacts(parsed=False, parse_error="JSON body is not an object")
+        return CapabilityFacts(
+            parsed=False, parse_error="JSON body is not an object", document_sha256=digest
+        )
     if doc.get("resourceType") != "CapabilityStatement":
         return CapabilityFacts(
             parsed=True,
             resource_type_ok=False,
             parse_error=f"resourceType is {doc.get('resourceType')!r}",
+            document_sha256=digest,
         )
 
     software = _as_dict(doc.get("software"))
     implementation = _as_dict(doc.get("implementation"))
     resources = _rest_resources(doc)
+    declarations = _declarations(_server_rest(doc), resources)
     with_interactions = sum(1 for r in resources if _as_list(r.get("interaction")))
     profiles: list[str] = []
     for r in resources:
@@ -216,7 +364,40 @@ def parse_capability(body: bytes) -> CapabilityFacts:
         conformance_profiles=tuple(_conformance_profiles(doc, resources)),
         resource_interactions=_resource_interactions(resources),
         declares_oauth_security=_security_declares_oauth(doc),
+        document_sha256=digest,
+        interaction_entries=declarations.interaction_entries,
+        search_parameters=declarations.search_parameters,
+        operations=declarations.operations,
+        system_interactions=declarations.system_interactions,
+        resource_profiles=declarations.resource_profiles,
+        unreadable_declarations=declarations.unreadable,
     )
+
+
+_SMART_LIST_FIELDS: tuple[tuple[str, str], ...] = (
+    ("token_endpoint_auth_methods_supported", "token_endpoint_auth_methods"),
+    ("grant_types_supported", "grant_types"),
+    ("capabilities", "capabilities"),
+    ("scopes_supported", "scopes"),
+)
+
+
+def _smart_lists(
+    doc: dict[str, object],
+) -> tuple[dict[str, tuple[str, ...] | None], tuple[str, ...]]:
+    """The four list fields, each absent, empty or read, and the names of any malformed one."""
+    read: dict[str, tuple[str, ...] | None] = {}
+    malformed: list[str] = []
+    for key, attribute in _SMART_LIST_FIELDS:
+        value = doc.get(key)
+        if key not in doc:
+            read[attribute] = None
+        elif isinstance(value, list) and all(isinstance(item, str) for item in value):
+            read[attribute] = tuple(value)
+        else:
+            read[attribute] = None
+            malformed.append(key)
+    return read, tuple(malformed)
 
 
 def parse_smart(body: bytes) -> SmartFacts:
@@ -224,11 +405,23 @@ def parse_smart(body: bytes) -> SmartFacts:
         doc_raw = json.loads(body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError) as exc:
         return SmartFacts(parsed=False, parse_error=f"not JSON: {type(exc).__name__}")
+    if isinstance(doc_raw, dict) and not doc_raw:
+        return SmartFacts(
+            parsed=False,
+            empty_object=True,
+            parse_error="the document is an empty JSON object, so it declares no field",
+        )
     doc = _as_dict(doc_raw)
     if not doc:
         return SmartFacts(parsed=False, parse_error="JSON body is not an object")
+    lists, malformed = _smart_lists(doc)
     return SmartFacts(
         parsed=True,
         has_authorization_endpoint=_as_str(doc.get("authorization_endpoint")) is not None,
         has_token_endpoint=_as_str(doc.get("token_endpoint")) is not None,
+        token_endpoint_auth_methods=lists["token_endpoint_auth_methods"],
+        grant_types=lists["grant_types"],
+        capabilities=lists["capabilities"],
+        scopes=lists["scopes"],
+        malformed_fields=malformed,
     )

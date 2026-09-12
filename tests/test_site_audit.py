@@ -75,8 +75,10 @@ def test_a_site_with_cohort_and_organization_pages_also_satisfies_it(tmp_path: P
     shutil.copytree(FIXTURES, fixtures)
     shutil.copytree(fixtures / "cms-blue-button-2", fixtures / "cms-blue-button-2-pd")
     registry = json.loads((FIXTURES / "registry.json").read_text(encoding="utf-8"))
-    first = registry["endpoints"][0]
-    assert first["id"] == "cms-blue-button-2"
+    # By id, not by position. The fixture registry is sorted by id and #137 added entries that
+    # sort ahead of this one, so `[0]` silently became a different endpoint -- and this test
+    # copies its directory, so it would have duplicated the wrong capture.
+    first = next(e for e in registry["endpoints"] if e["id"] == "cms-blue-button-2")
     second = dict(first)
     second["id"] = "cms-blue-button-2-pd"
     second["name"] = first["name"] + " Provider Directory"
@@ -283,6 +285,11 @@ def test_a_page_nothing_links_to_is_caught(site: Path) -> None:
     # test asserting the one it names. Its `alternate` link still addresses the original
     # feed, which exists, so nothing else moves.
     (stray / "feed.xml").unlink()
+    # The same for the declared-capability pages under it (#102): a copied `capabilities/`
+    # page is a second orphan whose canonical still names the original, which is two more
+    # real defects and not the one this test is about. The stray page's own link to them is
+    # root-relative, so it still addresses the originals, which exist.
+    shutil.rmtree(stray / "capabilities")
     text = (stray / "index.html").read_text(encoding="utf-8")
     # Readdress the copy completely. A page states where it is twice -- in its
     # canonical and in its share card -- and moving only one of them would break a

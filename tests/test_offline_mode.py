@@ -21,12 +21,24 @@ FIXTURE_REGISTRY = FIXTURES / "registry.json"
 
 
 def test_the_fixtures_the_readme_names_exist() -> None:
+    """Every listed endpoint has a capture, of one of the two kinds a capture can be.
+
+    A directory holds either the documents that were retrieved or a ``refusal.json`` saying what
+    stopped the retrieval. Requiring ``metadata.json`` of all of them is what kept the fixture
+    set to endpoints that answered, and that gap is #137.
+    """
     assert FIXTURES.is_dir()
     assert FIXTURE_REGISTRY.is_file()
     ids = [e["id"] for e in json.loads(FIXTURE_REGISTRY.read_text())["endpoints"]]
     assert ids, "the fixture registry must list the endpoints it has captures for"
     for endpoint_id in ids:
-        assert (FIXTURES / endpoint_id / "metadata.json").is_file(), endpoint_id
+        captured = FIXTURES / endpoint_id / "metadata.json"
+        refused = FIXTURES / endpoint_id / "refusal.json"
+        assert captured.is_file() or refused.is_file(), endpoint_id
+        assert not (captured.is_file() and refused.is_file()), (
+            f"{endpoint_id} carries both a retrieved document and a refusal; one capture "
+            "cannot be both"
+        )
 
 
 def test_the_documented_offline_command_grades_real_captured_documents(tmp_path: Path) -> None:
@@ -52,9 +64,18 @@ def test_the_documented_offline_command_grades_real_captured_documents(tmp_path:
     cards = {
         c["endpoint_id"]: c for c in json.loads((out / "scorecards.json").read_text())["scorecards"]
     }
-    assert set(cards) == {"cms-blue-button-2", "inferno-reference", "oracle-health-open"}
-    # Every one of them was retrieved, so every one of them is graded rather than "not observed".
-    assert all(card["grade"] in set("ABCDF") for card in cards.values())
+    # Derived from the registry rather than written down, so adding a capture does not need this
+    # literal edited -- and cannot silently fail to be graded either.
+    assert set(cards) == {e["id"] for e in json.loads(FIXTURE_REGISTRY.read_text())["endpoints"]}
+    retrieved = {eid for eid in cards if (FIXTURES / eid / "metadata.json").is_file()}
+    # Every endpoint whose documents were retrieved is graded rather than "not observed" ...
+    assert retrieved
+    assert all(cards[eid]["grade"] in set("ABCDF") for eid in retrieved)
+    # ... and every endpoint whose capture is a refusal is not graded at all, which is the half
+    # this fixture set could not express before #137.
+    for eid in set(cards) - retrieved:
+        assert cards[eid]["grade"] == "not observed", eid
+        assert cards[eid]["reachable"] is False, eid
 
     # Facts from the real documents, which no hand-written fixture in conftest.py exercises.
     findings = {

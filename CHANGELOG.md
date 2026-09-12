@@ -14,6 +14,113 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **The interval arithmetic a published share needs, wired to nothing (#103).** The cohort,
+  coverage and availability pages publish shares as counts over fixed denominators. They carry
+  no uncertainty and no floor. `statistics.py` is the arithmetic that would attach both:
+  a Wilson score interval at 95%, published as `method="wilson-score"`, with an optional
+  finite-population correction and the clamp that keeps an interval containing its own point
+  estimate. Ported from `mrf-honest`'s ADR 0007 so two published proportions in this portfolio
+  mean the same thing, and narrowed to what this project can use.
+
+  **No published figure moves, because nothing calls it yet.** Two of the three things needed to
+  wire it are the maintainer's: the small-cell threshold, which is a statement about what this
+  site refuses to say about *named organizations* rather than a number to copy from a sibling
+  project; and four new published columns in `dataset.csv` and `api/`. So the module has **no
+  default threshold** - `estimate_proportion` cannot be called without one - and every entry
+  point returns either a `Proportion` carrying its own denominator and interval or a `Refusal`
+  carrying the reason there is no number. There is no third outcome and no bare `float`.
+
+- **What an endpoint declares about app-to-server access, observed and never graded (#97).**
+  The two documents this project retrieves say more than the graded dimensions read.
+  The SMART discovery document declares how a client may authenticate at the token
+  endpoint, and which grant types, capability codes and scopes exist. The
+  CapabilityStatement declares operations and the guides it instantiates. Whether an app
+  can get a token without a phone call is exactly what those fields say. Six questions
+  are now answered from the two documents on the endpoint page, in
+  `api/endpoint/<id>.json`, in `check`'s terminal report and result JSON, and in the
+  Action's job summary. The published `scorecards.json` does not change shape.
+
+  - **Five answers, never two:** declared; not listed; not declared because the field is
+    absent; unreadable; not retrieved. `token_endpoint_auth_methods_supported` is OPTIONAL
+    in the retained SMART page, so a document without it has refused nothing.
+  - **Measured over the live probes of 2026-09-10.** 34 of 81 endpoints served a readable
+    SMART document. 14 declare `private_key_jwt`, 16 the `client_credentials` grant, 10
+    `client-confidential-asymmetric`, and 5 a `system/` scope. 17 of 68
+    CapabilityStatements declare an `export` operation and 14 instantiate the Bulk Data
+    guide. A second reader of the raw JSON agrees with every count.
+  - **`{}` is not "not an object".** Six live endpoints serve an empty JSON object as their
+    SMART document. It now carries a true reason and is answered "field absent". It still
+    grades exactly as before, as an unusable document.
+  - **A document asked for and not served is not "unreadable".** `SMART_NOT_SERVED` replaces
+    `parse_smart(b"")` on the two paths where a vantage requested the document and got
+    nothing. It grades identically: a test holds the interop dimension byte-identical across
+    all three fixtures and all five kinds.
+
+  Not built, and both are the maintainer's: grading any of this (the issue's `S1`-`S4`
+  family and its weights), and retaining the Bulk Data Access guide in `corpus/`. Until it
+  is retained, the `export` question cites the retained CapabilityStatement page's
+  definition of `rest.operation` instead of a quoted passage from that guide.
+
+- **What a cohort's listed endpoints declare, counted within a category (#102).** Each
+  cohort page links one census page per category it lists, at
+  `/<cohort>/capabilities/<kind>/`. For every resource the listed endpoints declare, the
+  page counts how many of them declare it and each interaction on it, from the same
+  facts the endpoint pages and the grades are built from.
+
+  - **Three populations, one denominator.** Every count is "n of D", where D is the
+    endpoints with a readable declaration on the run, including any CapabilityStatement
+    that declares nothing, because it was read. Endpoints whose document could not be read
+    or was not retrieved are counted and named beside the census, never folded in: an
+    endpoint nobody read has not declared an absence of anything.
+  - **Within a category, never across one,** the rule the grades already keep.
+  - **Counts, not percentages.** On the live record some categories in a state have one
+    readable declaration, and "1 of 1" is what was observed. Whether to attach intervals
+    and a small-cell floor is #103's decision, and nothing here takes a position on it.
+  - **No code dropped.** R4's nine type-level interaction codes each get a column, and any
+    other code a document declares is listed with its count.
+  - Two plans on one surface count once, the same rule the cohort page's own count now
+    keeps.
+
+  Measured over the live declarations and the thirteen shipped cohorts: 25 census pages,
+  none needing a second page, the largest 33,578 bytes against the 65,536-byte budget.
+
+- **Each endpoint's declared resource and interaction matrix, as pages and as data (#102).**
+  The capability transparency dimension grades whether a CapabilityStatement says what its
+  server runs. The declaration itself was retrieved on every run and published nowhere. It is
+  now `/endpoint/<id>/capabilities/` and `api/capabilities/<id>.json`, documented by
+  `capabilities.schema.json`, and served by a new `declared_capabilities` MCP tool. This is an
+  observation of what a publisher said, dated and hashed. Nothing listed is requested or
+  exercised, and nothing on it is graded: a test strips every search parameter and operation
+  from the three captured documents and asserts no dimension score and no field of the drift
+  fingerprint moves.
+
+  - **Four states.** Not retrieved, retrieved and unreadable, declares nothing, and declares
+    something. The first two publish `null` rows and counts and a sentence, never an empty
+    table or zeros. `capability.CapabilityFacts` already separated them with `observed`, and
+    an empty matrix would have said "declares nothing" about all of them.
+  - **One reader.** The page is grouped from the same flat rows the data carries, and those
+    are built from the facts the grade was built from. The facts are kept at the point where
+    grading has them, never re-parsed from a body. The expected counts in the tests are
+    computed from the raw JSON by code that shares nothing with the extraction.
+  - **Split by resource, never truncated.** Measured over the 68 documents the live probes
+    retrieved on 2026-09-10, one row per (resource, interaction, parameter, operation), which
+    is the issue's page shape, ran from a median of 599 rows to 6,755. That put even the
+    median page past the 65,536-byte budget. The page carries one row per resource instead:
+    51 of 68 fit on one page, 17 run to more, 86 pages in all, the largest 49,692 bytes. A
+    page break never falls inside a resource. A resource too large for a page by itself is
+    written with counts and says so, and every name stays in the data, so no third party can
+    declare its way past the weight gate and stop the site publishing.
+  - **`api/capabilities/`, not the issue's `api/endpoint/<id>/capabilities.json`.**
+    `snapshot._collect` walks `api/endpoint` recursively, so that path would have put 14.2 MB
+    into every dated snapshot without anyone deciding it. A test fails if a snapshot ever
+    starts carrying the declarations.
+  - **Both numbers, again.** A document that repeats a code on one resource declares it once
+    and wrote it twice. The data publishes `interaction_entries_declared` beside
+    `interaction_rows`, and entries that could not be read are counted, never listed and
+    never silently dropped.
+
+  The per-cohort aggregate the issue also asks for is its own change, the entry above.
+
 - **Atom feeds of the observation record (#101).** The record has held a declaration
   timeline and an availability history for a month, and the only way to learn about
   either was to open the page. `fhir_scorecard.feeds` renders the same events as Atom

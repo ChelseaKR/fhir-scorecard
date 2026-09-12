@@ -20,6 +20,7 @@ from fhir_scorecard.cohort import Cohort, CohortMember
 from fhir_scorecard.grading import (
     NOT_OBSERVED,
     WEIGHTED_DIMENSIONS,
+    DimensionScore,
     Finding,
     Scorecard,
 )
@@ -123,6 +124,29 @@ def _status_words(card: Scorecard) -> str:
     if card.grade != NOT_OBSERVED:
         return _GRADE_WORDS.get(card.grade, "")
     if card.reachable:
+        # Two different things reach here, and one sentence used to cover both. `letter` returns
+        # NOT_OBSERVED when nothing was retrieved *and* when the weighted score's bounds land in
+        # two different bands because some check could not be made -- and in the second case the
+        # documents very much were retrieved. On 2026-09-12 that sentence sat on 18 live pages
+        # above the resource-by-resource table drawn from the CapabilityStatement it said nobody
+        # had: hapi-fhir-r4's read "no vantage retrieved its public documents" and then listed
+        # 146 resource types and a declared fhirVersion of 4.0.1.
+        #
+        # So ask what was actually retrieved rather than inferring it from the letter -- and ask
+        # it of the *content* dimensions only. Reachability's own findings are observed whenever
+        # the endpoint answered, which is true in both of these states, so reading them here
+        # would report "some of what it publishes was read" for an endpoint whose documents
+        # nobody carried.
+        if any(
+            f.observed
+            for dimension in card.dimensions
+            if dimension.key != "reachability"
+            for f in dimension.findings
+        ):
+            return (
+                "answered on this run, and some of what it publishes was read; one check could "
+                "not be made, so this run cannot pin a single letter"
+            )
         return (
             "answered on this run, but no vantage retrieved its public documents, so nothing "
             "here describes what it declares"
@@ -301,18 +325,121 @@ def _signal_map(cards: Sequence[Scorecard]) -> str:
     return "".join(rows)
 
 
-def _dimension_meter(title: str, score: int | None) -> str:
-    """A dimension's score, or the absence of one.
+def _last_answered_words(card: Scorecard) -> str:
+    """When this endpoint last answered, said so a reader cannot mistake the window for eternity.
+
+    An endpoint answering nowhere today is a different story if it answered last week, and until
+    #139 nothing published the difference: the only dates on the page were the run\u2019s and the
+    curation record\u2019s. ``availability`` gives a rate, and a rate is not a date -- at 94% a
+    reader cannot tell whether the last success was yesterday or three weeks ago, which is
+    exactly the band where it decides whether the listing is worth acting on.
+
+    The record is a bounded rolling window, so the absence of a success in it is not a claim that
+    the endpoint has never answered, and the sentence says which.
+    """
+    if card.last_answered:
+        if card.reachable:
+            return f"{html.escape(card.last_answered)} (answered on this run)"
+        return html.escape(card.last_answered)
+    return "not in the recorded window"
+
+
+def _vantage_rows(card: Scorecard) -> str:
+    """Every reporting vantage's own result, as a table, never resolved to a winner.
+
+    The endpoint-level claim above this table is unchanged and stays correct: one vantage
+    reaching an endpoint settles that it is up, and one failing settles nothing. That asymmetry
+    is a property of the claims, not a preference for a vantage -- "it is reachable" needs one
+    witness, "it is unreachable" is a universal statement and needs every vantage this run had,
+    bounded to the networks they sit on.
+
+    What the table adds is the breadth of the agreement, which no single verdict can carry.
+    Measured 2026-09-12 over all 81 endpoints, three GitHub vantages against one residential
+    vantage: three disagreed, one in each direction plus a third, so no vantage here is the
+    reliable one. Publishing the rows is the honest alternative to electing one.
+    """
+    if not card.vantage_reports:
+        return ""
+    reached = sum(1 for r in card.vantage_reports if r.reachable)
+    total = len(card.vantage_reports)
+    networks = len({r.network for r in card.vantage_reports})
+    rows = ""
+    for report in sorted(card.vantage_reports, key=lambda r: r.vantage):
+        if report.reachable:
+            saw = (
+                f"answered in {report.elapsed_ms} ms"
+                if report.elapsed_ms is not None
+                else "answered"
+            )
+        else:
+            saw = report.error or "no answer, and no condition was reported"
+        detail = ""
+        if report.status is not None:
+            detail = f"HTTP {report.status}"
+        if report.failure_kind:
+            detail = f"{detail}, {report.failure_kind}" if detail else report.failure_kind
+        rows += (
+            "<tr>"
+            f'<th scope="row"><code>{html.escape(report.vantage)}</code></th>'
+            f"<td>{'reached' if report.reachable else 'not reached'}</td>"
+            f"<td>{html.escape(saw)}</td>"
+            f"<td>{html.escape(detail) or '&mdash;'}</td>"
+            "</tr>"
+        )
+    # Both numbers, and what they are numbers *of*. Several hosts on one provider's network share
+    # its address space and any rule a payer edge applies to it, so the vantage count on its own
+    # would overstate how independent the agreement is.
+    caption = (
+        f"reached from {reached} of {total} reporting "
+        f"{'vantage' if total == 1 else 'vantages'}, on "
+        f"{networks} {'network' if networks == 1 else 'networks'}"
+    )
+    return (
+        '<section class="evidence-card vantage-reports">'
+        '<p class="eyebrow">What each vantage saw</p>'
+        '<div class="usa-table-container--scrollable" tabindex="0" role="region" '
+        'aria-label="Per-vantage results">'
+        '<table class="usa-table usa-table--striped vantage-table">'
+        f"<caption>{html.escape(caption)}</caption>"
+        '<thead><tr><th scope="col">Vantage</th><th scope="col">Result</th>'
+        '<th scope="col">What it saw</th><th scope="col">Condition</th></tr></thead>'
+        f"<tbody>{rows}</tbody></table></div>"
+        '<p class="vantage-note">Vantages on one network are one network\u2019s view sampled '
+        "several times. A rule applied to that network\u2019s address space reaches every one of "
+        "them at once and reads exactly like agreement.</p></section>"
+    )
+
+
+def _dimension_unanswered(dimension: DimensionScore) -> bool:
+    """Whether this whole dimension is the "asked everywhere, answered nowhere" state.
+
+    Every finding, not any: a dimension with one unanswered check beside checks that did run is
+    a partial measurement, and calling the whole thing "no answer" would overstate it in the
+    other direction.
+    """
+    return bool(dimension.findings) and all(f.unanswered for f in dimension.findings)
+
+
+def _dimension_meter(title: str, score: int | None, *, unanswered: bool = False) -> str:
+    """A dimension's score, or the absence of one, or the fact that nothing answered.
 
     An unobserved dimension gets no bar and no number. Rendering it as 0 was the visual half of
     the same error: a bar at zero next to a named organization reads as a measurement.
+
+    ``unanswered`` gets no bar and no number either -- the score is exactly as absent -- and a
+    different word, because "not observed" over a dimension where three networks asked and none
+    was answered understates a real finding.
     """
     if score is None:
+        label = "no answer" if unanswered else "not observed"
+        described = (
+            "no vantage was answered on this run" if unanswered else "not observed on this run"
+        )
         return (
             '<div class="dimension-meter dimension-meter-unscored">'
-            f"<div><span>{html.escape(title)}</span><strong>not observed</strong></div>"
+            f"<div><span>{html.escape(title)}</span><strong>{label}</strong></div>"
             f'<span class="meter meter-unscored" '
-            f'aria-label="{html.escape(title)}: not observed on this run"></span></div>'
+            f'aria-label="{html.escape(title)}: {described}"></span></div>'
         )
     return (
         '<div class="dimension-meter">'
@@ -330,6 +457,11 @@ def _finding_mark(finding: Finding) -> tuple[str, str, str]:
     not a verdict either: "not applicable to a Provider Directory API" and "this document names
     CARIN in prose" are notes, and a ✓ or a ✗ would both misread them.
     """
+    if finding.unanswered:
+        # A fourth mark for the third state. "Not observed" is what a run says when nobody
+        # looked; this is what it says when it looked from every vantage it had and was answered
+        # by none of them. Both withhold the score and only one of them is silence.
+        return "unanswered", "⊘", "No answer"
     if not finding.observed:
         return "unobserved", "○", "Not observed"
     if finding.max_points == 0:
@@ -355,7 +487,7 @@ def _findings_html(card: Scorecard) -> str:
             )
         out.append(
             '<section class="finding-group">'
-            f"{_dimension_meter(dim.title, dim.score)}"
+            f"{_dimension_meter(dim.title, dim.score, unanswered=_dimension_unanswered(dim))}"
             f'<ul class="findings">{items}</ul></section>'
         )
     return "".join(out)
@@ -367,8 +499,18 @@ def endpoint_page(
     verified: str,
     origin: str,
     organization: tuple[str, str] | None = None,
+    declared: bool = False,
+    app_to_server: str = "",
 ) -> Page:
     """One endpoint's page.
+
+    ``app_to_server`` is the declared SMART Backend Services and Bulk Data block (#97),
+    already rendered by ``backend.block_html``; observed, never graded.
+
+    ``declared`` is whether this build wrote the endpoint's declared-capability pages (#102),
+    and it decides whether the page links to them. Passed in rather than assumed, for the same
+    reason a page advertises a feed only when one was written: a link to a page the build did
+    not write is a finding the site audit exists to raise.
 
     ``organization`` is ``(display name, slug)`` when this endpoint is one of several surfaces
     the same organization publishes, and ``None`` when it is the only one. It is what puts the
@@ -379,8 +521,17 @@ def endpoint_page(
     """
     kind_label = KIND_LABELS.get(card.kind, card.kind)
     summary = _status_words(card)
+    declared_link = (
+        f'<p><a class="usa-link" href="/endpoint/{html.escape(card.endpoint_id)}/capabilities/">'
+        "What its CapabilityStatement declares, resource by resource →</a></p>"
+        if declared
+        else ""
+    )
     unobserved = card.grade == NOT_OBSERVED
-    dimensions = "".join(_dimension_meter(dim.title, dim.score) for dim in card.dimensions)
+    dimensions = "".join(
+        _dimension_meter(dim.title, dim.score, unanswered=_dimension_unanswered(dim))
+        for dim in card.dimensions
+    )
     record_link = (
         f'<p><a href="/history/{html.escape(card.endpoint_id)}/">'
         "Every observation on record for this endpoint</a>, with the dates it answered and the "
@@ -452,6 +603,7 @@ def endpoint_page(
   <dt>Base URL</dt><dd><code>{html.escape(base_url)}</code></dd>
   <dt>Category</dt><dd>{html.escape(kind_label)}</dd>
   <dt>Availability</dt><dd>{html.escape(card.availability or "not yet recorded")}</dd>
+  <dt>Last answered</dt><dd>{_last_answered_words(card)}</dd>
   {
         f"<dt>Vantage agreement</dt><dd>{html.escape(card.vantage_note)}</dd>"
         if card.vantage_note
@@ -459,16 +611,19 @@ def endpoint_page(
     }
 </dl>
 </section>
+{_vantage_rows(card)}
 <section class="evidence-card evidence-card-accent">
 <p class="eyebrow">Interpretation</p>
 <p>A grade describes two public discovery documents at one point in time. It does not inspect
 patient data, authenticated behavior, or clinical quality.</p>
 <a class="usa-link" href="/how-we-grade/">Read the scoring method →</a>
+{declared_link}
 </section>
 </div>
 <h2>Findings</h2>
 {_findings_html(card)}
 {drift}
+{app_to_server}
 <section class="verification">
 <p class="eyebrow">Registry provenance</p>
 <h2>How this entry was verified</h2>
@@ -649,8 +804,34 @@ def _cohort_excluded_rows(cohort: Cohort) -> str:
     return rows
 
 
-def cohort_page(cohort: Cohort, cards: dict[str, Scorecard], origin: str) -> Page:
+def _declared_kinds_html(cohort: Cohort, declared_kinds: tuple[str, ...]) -> str:
+    """Links to this cohort's declaration census pages, or nothing where there are none."""
+    if not declared_kinds:
+        return ""
+    links = "".join(
+        f'<li><a href="/{html.escape(cohort.cohort_id)}/capabilities/{html.escape(kind)}/">'
+        f"What its {html.escape(KIND_LABELS.get(kind, kind))} endpoints declare</a></li>"
+        for kind in declared_kinds
+    )
+    return (
+        "<h2>What the listed endpoints declare</h2>"
+        "<p>How many of the listed endpoints with a readable CapabilityStatement declare each "
+        "resource and each interaction on it, counted within a category and never across one. "
+        "Declared, not tested.</p>"
+        f'<ul class="usa-list">{links}</ul>'
+    )
+
+
+def cohort_page(
+    cohort: Cohort,
+    cards: dict[str, Scorecard],
+    origin: str,
+    declared_kinds: tuple[str, ...] = (),
+) -> Page:
     """A curated cohort: who is in it, who could be listed, and who could not, with reasons.
+
+    ``declared_kinds`` names the kinds this build wrote a declaration census page for
+    (#102). The page links exactly those, and none it was not told about.
 
     The exclusions table is not an appendix. For a cohort whose membership is public and finite,
     "this plan publishes no base URL an unregistered visitor can see" is as much a result as any
@@ -752,6 +933,7 @@ membership is public and finite, the gap is itself a finding.</p>
 <tbody>{_cohort_included_rows(cohort, cards)}</tbody></table></div>
 <p>Grades are comparable within a category only: a Patient Access API and a Provider Directory
 API answer to different expectations and are never ranked against each other.</p>
+{_declared_kinds_html(cohort, declared_kinds)}
 {excluded_html}
 <div class="usa-alert usa-alert--info usa-alert--slim site-caveat"><div class="usa-alert__body">
 <p class="usa-alert__text">Observational snapshots of public discovery surfaces. Not audits, not
@@ -1371,15 +1553,23 @@ added on an unverified submission.</p>
 us about an endpoint</a></p></section>
 <section><span class="action-number">02</span><h2>Something here is wrong</h2>
 <p>This has happened. A live payer endpoint was recorded as dead because a middlebox on the
-probing network intercepted TLS and the error surfaced as one uninformative word. That is why
-every published grade reconciles probes from more than one vantage, and why reaching an endpoint
-from any of them settles that it is up.</p>
+probing network intercepted TLS and the error surfaced as one uninformative word. Probing now
+runs from more than one vantage, and reaching an endpoint from any of them settles that it is up.
+<strong>That did not solve the problem above, and we should not imply it did.</strong> It removed
+one shape of it &mdash; a fault local to a single host &mdash; and left the shape that matters to
+you untouched.</p>
 <p>What those vantages are, exactly: three GitHub-hosted runner images (Ubuntu, macOS, Windows).
-They are three hosts on one provider's network, not three independent networks. They catch a
-fault local to one host, which is the failure above; they cannot catch a source-address rule,
-bot filter, geo rule, or rate limit your edge applies to that provider's address space, because
-that hits all three at once. So when all three fail, the page says the endpoint was not reached
-from that network on that day. It does not say the endpoint is down.</p>
+They are three hosts on one provider's network, not three independent networks. They cannot catch
+a source-address rule, bot filter, geo rule, rate limit, or TLS interception applied to that
+provider's address space, because that hits all three at once and looks exactly like agreement.
+So when all three fail, the page says the endpoint was not reached from that network on that day.
+It does not say the endpoint is down, and it publishes no grade and no score &mdash; not a zero,
+which would be a measurement we did not make.</p>
+<p>This is not hypothetical, and it is not rare. On 12 September 2026, of the 14 endpoints here
+that no vantage reached, re-probing by hand from an ordinary residential network found
+<strong>4 that answered</strong> &mdash; two of them with an HTTP 2xx and a certificate that
+verified, which is exactly the criterion all three runners had just failed. If your endpoint is
+listed as not reached and you believe it is serving, you are very likely right.</p>
 <p>You do not need to prove anything before asking us to look again.</p>
 <p><a class="usa-button usa-button--outline" href="https://github.com/ChelseaKR/fhir-scorecard/issues/new?template=remove-or-dispute.yml">Dispute
 or remove an entry</a></p></section>

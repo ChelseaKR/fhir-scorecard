@@ -76,8 +76,25 @@ def test_unreachable_endpoint_publishes_no_findings_about_the_document() -> None
         assert findings[0].max_points == 0
         assert findings[0].observed is False
         assert "no CapabilityStatement was retrieved" in findings[0].message
-    # Reachability is still measured and still fails: the endpoint does not vanish.
-    assert by_key["reachability"].score == 0
+    # Reachability publishes no score either (#135). This assertion used to read
+    # `score == 0`, under the comment "reachability is still measured and still fails" -- and
+    # that is the thing it is not. R1 asks whether /metadata answers 2xx; every vantage failing
+    # from one network establishes only that it did not answer *here*, which is what R1's own
+    # message says, and `pages.yml` predicts the source-address rule that makes the difference.
+    # Re-probed from a residential network on 2026-09-12, two of the 14 endpoints publishing
+    # this zero answered 200 and 204.
+    #
+    # The endpoint still does not vanish: both findings are published, with their messages
+    # intact, and the reason is carried in `failure_kinds`. What changes is that a reader is no
+    # longer shown a number, or a ✗, where nothing was established.
+    assert by_key["reachability"].score is None
+    reachability = by_key["reachability"].findings
+    assert [f.code for f in reachability] == ["R1", "R2"]
+    assert all(f.observed is False for f in reachability)
+    assert all(f.max_points == 0 for f in reachability)
+    # The full scale is still recoverable, so a consumer can see that all 100 points went
+    # unmeasured rather than inferring it from an absent number.
+    assert by_key["reachability"].withheld_points == 100
     assert card.grade == NOT_OBSERVED
     assert card.reachable is False
 
@@ -130,12 +147,32 @@ def test_the_unreachable_page_says_what_happened_and_claims_nothing_else() -> No
     assert "Current status" in page.body and "Current grade" not in page.body
     for claim in _CLAIMS_ABOUT_A_DOCUMENT:
         assert claim not in page.body
-    # A meter at zero is the same claim drawn instead of written. Reachability keeps its zero,
-    # because that one was measured; the two content dimensions get no bar and no number.
+    # A meter at zero is the same claim drawn instead of written -- and that was as true of the
+    # reachability meter as of the other two. No dimension gets a bar or a number when no vantage
+    # reached the endpoint (#135).
+    assert page.body.count("dimension-meter-unscored") == 6  # three dimensions, rendered twice
+    assert "FHIR endpoint not observed" in page.title
+
+    # But the three are not the same fact, and the page says two different things about them.
+    # Reachability's subject is the *attempt*, and the attempt is the finding: this run asked and
+    # was answered by nobody, which is dated, sourced information about the endpoint. The content
+    # dimensions' subject is a *document*, and there is no document, so there is nothing to say
+    # about what it declares -- which is the distinction `grading`'s module docstring draws.
+    assert "<span>Reachability</span><strong>no answer</strong>" in page.body
     for title in ("Capability transparency", "Interop readiness"):
         assert f"<span>{title}</span><strong>not observed</strong>" in page.body
-    assert page.body.count("dimension-meter-unscored") == 4  # two dimensions, rendered twice
-    assert "FHIR endpoint not observed" in page.title
+
+    # No glyph on this page may read as a verdict against the endpoint. "✗ Needs attention"
+    # beside "latency unmeasured: endpoint unreachable" told a named organization to fix a
+    # measurement that was never taken, and beside R1's sentence it contradicted the sentence
+    # itself, which says the failure is "likely a vantage-local interception, not an endpoint
+    # fault".
+    assert "Needs attention" not in page.body
+    assert page.body.count('class="finding unanswered"') == 2  # R1 and R2: asked, not answered
+    assert page.body.count('class="finding unobserved"') == 2  # the two NR findings
+    # And the reader is told which of the two states each mark is.
+    assert "No answer: " in page.body
+    assert "Not observed: " in page.body
 
 
 def test_reached_but_no_documents_says_that_and_not_that_it_was_unreachable() -> None:

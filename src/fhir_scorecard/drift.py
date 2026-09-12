@@ -85,6 +85,13 @@ class Availability:
 
     observations: int
     reachable: int
+    #: The latest recorded date this endpoint answered, or ``None`` when no observation in the
+    #: window is a success (#139). Derived from the same list the counts come from, so the two
+    #: can never disagree.
+    #:
+    #: The window is bounded, so ``None`` means "not in the recorded window". Every surface that
+    #: publishes this has to say so rather than letting it read as "never".
+    last_answered: str | None = None
 
     @property
     def reportable(self) -> bool:
@@ -497,6 +504,11 @@ def _record_observation(entry: dict[str, Any], today: str, reachable: bool) -> A
         # a real bool, and this says so at the point of counting rather than relying on a
         # filter three lines up staying correct.
         reachable=sum(1 for o in observations if o["up"] is True),
+        # ``max``, not ``[-1]``. The list is appended to in run order and trimmed from the left,
+        # which is date order in practice -- but "in practice" is how a re-run out of order, or a
+        # record repaired by hand, publishes a date that is not the latest one. The dates are
+        # ISO-8601, so comparing them as strings is comparing them as dates.
+        last_answered=max((o["date"] for o in observations if o["up"] is True), default=None),
     )
 
 

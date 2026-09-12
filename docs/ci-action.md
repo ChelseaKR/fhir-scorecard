@@ -104,7 +104,7 @@ reports what happened.
 | `observed` | `true` when the run retrieved the documents and produced a letter. |
 | `reachable` | `true` when the endpoint answered this run's request for `/metadata`. |
 | `passed` | `true` when the check ran and every threshold was met. |
-| `result-json` | Path to the complete result, written **before** the threshold is applied, so it survives a failing gate. |
+| `result-json` | Path to the complete result, written **before** the threshold is applied, so it survives a failing gate. Beside the graded card it carries `app_to_server`: what the endpoint's own documents declare about SMART Backend Services and Bulk Data, observed and never graded. The job summary renders it. |
 
 ```yaml
       - id: fhir

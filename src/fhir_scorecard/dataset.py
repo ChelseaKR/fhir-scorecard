@@ -10,10 +10,12 @@ from __future__ import annotations
 import csv
 import io
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from fhir_scorecard.grading import Scorecard
+from fhir_scorecard.matrix import API_DIR as DECLARATIONS_DIR
+from fhir_scorecard.matrix import SCHEMA_FILE as DECLARATIONS_SCHEMA
 from fhir_scorecard.registry import Endpoint
 
 SCHEMA_VERSION = 2
@@ -35,7 +37,13 @@ _COLUMNS = [
         "about the endpoint",
     ),
     ("reachable", "Whether /metadata answered on this run, from any vantage"),
-    ("reachability_score", "0-100 for the reachability dimension"),
+    (
+        "reachability_score",
+        "0-100 for the reachability dimension, empty when no vantage reached the endpoint on "
+        "this run. It was previously 0 in that case, which read as a measured zero against the "
+        "organization; whether /metadata answers 2xx is not established by a run whose vantages "
+        "all sit on one network",
+    ),
     (
         "transparency_score",
         "0-100 for the capability transparency dimension, empty when no "
@@ -48,6 +56,22 @@ _COLUMNS = [
     ),
     ("expects_fhir", "FHIR release this endpoint is registered as intending to serve"),
     ("availability", "Rolling reachability across recorded runs, as published text"),
+    (
+        "last_answered",
+        "Most recent recorded date this endpoint answered, empty when no observation in the "
+        "recorded window is a success. The window is bounded, so empty means 'not in the "
+        "recorded window', never 'not ever'",
+    ),
+    (
+        "vantages_reached",
+        "How many reporting vantages reached the endpoint. Read with vantages_reporting: this "
+        "project publishes both numbers and never a verdict that hides their disagreement",
+    ),
+    (
+        "vantages_reporting",
+        "How many vantages reported on this endpoint at all. Zero means nobody looked, which is "
+        "a different fact from every vantage looking and none being answered",
+    ),
     ("observed_since", "First date this endpoint was observed"),
     ("verified_method", "How the entry was verified before entering the registry"),
     ("verified_date", "Date of that verification"),
@@ -100,6 +124,15 @@ def _row(card: Scorecard, endpoint: Endpoint | None) -> dict[str, object]:
         "interop_score": _dimension(card, "interop"),
         "expects_fhir": endpoint.expects if endpoint else "",
         "availability": card.availability,
+        # Empty, not a placeholder date and not "never": the record is a bounded window and the
+        # column description says so.
+        "last_answered": card.last_answered or "",
+        # Two numbers, always. A single "reachable" boolean is the endpoint-level claim and it is
+        # correct -- one vantage reaching settles that it is up -- but on its own it hides
+        # whether that was 3 of 3 or 1 of 3, and on a reachability scorecard that is the
+        # interesting part.
+        "vantages_reached": sum(1 for r in card.vantage_reports if r.reachable),
+        "vantages_reporting": len(card.vantage_reports),
         "observed_since": card.observed_since or "",
         "verified_method": endpoint.verified_method if endpoint else "",
         "verified_date": endpoint.verified_date if endpoint else "",
@@ -166,6 +199,8 @@ def write_dataset(
     generated_at: str,
     vantage: str,
     feeds: Sequence[str] = (),
+    declarations: Sequence[str] = (),
+    app_to_server: Mapping[str, Mapping[str, object]] | None = None,
 ) -> None:
     """Write dataset.csv, its schema, and a static per-endpoint JSON API.
 
@@ -173,6 +208,9 @@ def write_dataset(
     written. A feed URL is published here only when its path is in that list: an index naming a
     file the build did not write is the same defect as a sitemap entry no file answers, and the
     only way to be sure is to be told what was written rather than to assume it.
+
+    ``declarations`` is the same contract for the declared-capability files (#102): the endpoint
+    ids whose ``api/capabilities/<id>.json`` the site build reported having written.
     """
     out.mkdir(parents=True, exist_ok=True)
     (out / "dataset.csv").write_text(to_csv(cards, endpoints), encoding="utf-8")
@@ -180,6 +218,7 @@ def write_dataset(
 
     by_id = {e.endpoint_id: e for e in endpoints}
     written_feeds = set(feeds)
+    declared_ids = set(declarations)
     api_dir = out / "api" / "endpoint"
     api_dir.mkdir(parents=True, exist_ok=True)
     index: list[dict[str, object]] = []
@@ -201,12 +240,34 @@ def write_dataset(
                     "key": d.key,
                     "title": d.title,
                     "score": d.score,
+                    # `observed` and `withheld_points` travel with `ok` and `max_points`, never
+                    # apart from them. Dropping the two meant a check that was never made
+                    # published as `"ok": false` -- a failing verdict about a named payer -- to
+                    # every consumer of this file, while the site's own reader saw "○ Not
+                    # observed" for the same finding. The HTML surface has honoured both fields
+                    # since they existed and `ci_report.py` says in its docstring that "nothing
+                    # here reads `ok` without reading `observed` first"; this writer was the one
+                    # surface where a reader could not.
+                    #
+                    # Neither is recoverable from what was published. `max_points == 0` is not a
+                    # proxy for `observed`: `site._finding_mark` already uses that condition for
+                    # the *note* state -- "not applicable to a Provider Directory API" -- so it
+                    # conflates a check nobody could make with one deliberately not scored. And
+                    # without `withheld_points` a null score cannot be explained at all: a
+                    # consumer cannot tell a dimension where nothing was observed from one where
+                    # some checks ran and some did not, nor reconstruct the denominator.
                     "findings": [
                         {
                             "code": f.code,
                             "ok": f.ok,
+                            "observed": f.observed,
+                            # The third state (#135 follow-up). `observed: false` alone cannot
+                            # separate "every vantage asked and none was answered" from "nobody
+                            # asked", and only the first is information.
+                            "unanswered": f.unanswered,
                             "points": f.points,
                             "max_points": f.max_points,
+                            "withheld_points": f.withheld_points,
                             "message": f.message,
                             "citation": f.citation,
                         }
@@ -215,12 +276,32 @@ def write_dataset(
                 }
                 for d in card.dimensions
             ],
+            # Published rows, one per reporting vantage, never resolved to a winner. See
+            # `vantage.VantageReport`: measured 2026-09-12, vantage disagreement runs in both
+            # directions, so there is no vantage this project could elect without relocating the
+            # misdiagnosis it exists to prevent.
+            "vantages": [
+                {
+                    "vantage": r.vantage,
+                    "network": r.network,
+                    "reachable": r.reachable,
+                    "status": r.status,
+                    "failure_kind": r.failure_kind,
+                    "elapsed_ms": r.elapsed_ms,
+                    "error": r.error,
+                }
+                for r in card.vantage_reports
+            ],
             "drift_events": list(card.drift_events),
             # Kept out of drift_events so a consumer counting capability changes counts changes.
             # A return to a declaration already on record is a fact about the address, not a
             # fact about the publisher shipping something.
             "drift_alternations": list(card.drift_alternations),
         }
+        # The declared app-to-server block (#97), observed and never graded. Present only
+        # where the build kept the facts it was built from.
+        if app_to_server is not None and card.endpoint_id in app_to_server:
+            payload["app_to_server"] = dict(app_to_server[card.endpoint_id])
         (api_dir / f"{card.endpoint_id}.json").write_text(
             json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
         )
@@ -235,8 +316,12 @@ def write_dataset(
         feed_path = f"endpoint/{card.endpoint_id}/feed.xml"
         if feed_path in written_feeds:
             entry["feed"] = f"{origin}/{feed_path}"
+        if card.endpoint_id in declared_ids:
+            entry["capabilities"] = f"{origin}/{DECLARATIONS_DIR}/{card.endpoint_id}.json"
         index.append(entry)
     site_feed = {"feed": f"{origin}/feed.xml"} if "feed.xml" in written_feeds else {}
+    if declared_ids:
+        site_feed["capabilities_schema"] = f"{origin}/{DECLARATIONS_SCHEMA}"
     (out / "api" / "index.json").write_text(
         json.dumps(
             {

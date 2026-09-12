@@ -424,7 +424,7 @@
       "software_version": "7.0.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-06",
+    "last_seen": "2026-09-12",
     "observations": [
       {
         "date": "2026-09-04",
@@ -460,7 +460,7 @@
       },
       {
         "date": "2026-09-12",
-        "up": false
+        "up": true
       }
     ],
     "states": [
@@ -519,7 +519,7 @@
       },
       {
         "date": "2026-09-12",
-        "up": true
+        "up": false
       }
     ],
     "states": [

@@ -430,8 +430,8 @@ def _declaration_key(document: str) -> str:
     CapabilityStatement does not read as changed", and byte equality across vantages fails that
     test for the same reasons it fails across days: a generation timestamp, a request id, a
     load balancer serving two equally-current renderings, or a dict that serialised in a
-    different order. Measured on the live registry, byte comparison called 19 of 45 endpoints
-    disagreeing in one run - including three-of-three unique documents from a reference server
+    different order. Measured 2026-09-04 on the live registry, which held 45 endpoints then,
+    byte comparison called 19 of those 45 disagreeing in one run - including three-of-three unique documents from a reference server
     that plainly does not serve three different declarations.
 
     A document that cannot be parsed is keyed by its own bytes: two unparseable responses are

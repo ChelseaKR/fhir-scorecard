@@ -32,7 +32,8 @@ jobs:
         # `uv sync --locked`, not `pip install -e .`. The pip form resolved hatchling and its
         # transitive build dependencies from PyPI at build time - unpinned, unhashed, and never
         # seen by `make audit`, which scans the locked set. This job holds a write token and
-        # parses documents fetched from 45 third-party servers, and it is the job that produces
+        # parses documents fetched from every third-party server in the registry, and it is the job
+        # that produces
         # the citable dataset, so it installs exactly what the lockfile pins like every other
         # job that matters. `--no-dev` because nothing here runs the linters or the test suite.
         run: uv sync --locked --no-dev

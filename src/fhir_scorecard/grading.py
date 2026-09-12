@@ -210,9 +210,23 @@ def grade_reachability(
             code="R1",
             ok=reachable,
             points=60 if reachable else 0,
-            max_points=60,
+            # Out of the denominator when no vantage reached the endpoint, for the reason the
+            # whole module gives one step in: R1 asks whether /metadata answers 2xx, and a run
+            # where every vantage sits on one network cannot answer that question -- only the
+            # narrower "it did not answer *here*", which is what the message already says.
+            # Scored, the two findings summed to 0 out of 100 and `_score` published a bare **0**
+            # beside a named health insurer while transparency and interop published nothing at
+            # all for the identical condition. Measured 2026-09-12: 14 of 81 endpoints carried
+            # that zero, and re-probing them from a residential network returned HTTP 200 and
+            # HTTP 204 for two of them -- R1's own pass criterion.
+            max_points=60 if reachable else 0,
             message=r1_message,
             citation=_FHIR_HTTP,
+            observed=reachable,
+            # The full 60 when it could not be asked, so the dimension's scale stays recoverable
+            # and a reader can see that *all* of it went unmeasured rather than inferring it from
+            # an absent number.
+            withheld_points=0 if reachable else 60,
         )
     )
     if reachable:
@@ -246,14 +260,22 @@ def grade_reachability(
             )
         )
     else:
+        # The message has always said this was not measured. Everything else about the finding
+        # said it was: `observed` defaulted True, so `_withheld` returned 0, `_score` divided
+        # 0 earned points by a denominator of 100 and published **0**, and `_finding_mark`
+        # rendered a red "✗ Needs attention" beside the sentence "latency unmeasured". A check
+        # that says in words that it did not run must not also be scored as one that ran and
+        # failed.
         findings.append(
             Finding(
                 code="R2",
                 ok=False,
                 points=0,
-                max_points=40,
+                max_points=0,
                 message="latency unmeasured: endpoint unreachable",
                 citation=_FHIR_HTTP,
+                observed=False,
+                withheld_points=40,
             )
         )
     return DimensionScore(

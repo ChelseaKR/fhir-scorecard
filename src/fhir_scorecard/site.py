@@ -123,6 +123,29 @@ def _status_words(card: Scorecard) -> str:
     if card.grade != NOT_OBSERVED:
         return _GRADE_WORDS.get(card.grade, "")
     if card.reachable:
+        # Two different things reach here, and one sentence used to cover both. `letter` returns
+        # NOT_OBSERVED when nothing was retrieved *and* when the weighted score's bounds land in
+        # two different bands because some check could not be made -- and in the second case the
+        # documents very much were retrieved. On 2026-09-12 that sentence sat on 18 live pages
+        # above the resource-by-resource table drawn from the CapabilityStatement it said nobody
+        # had: hapi-fhir-r4's read "no vantage retrieved its public documents" and then listed
+        # 146 resource types and a declared fhirVersion of 4.0.1.
+        #
+        # So ask what was actually retrieved rather than inferring it from the letter -- and ask
+        # it of the *content* dimensions only. Reachability's own findings are observed whenever
+        # the endpoint answered, which is true in both of these states, so reading them here
+        # would report "some of what it publishes was read" for an endpoint whose documents
+        # nobody carried.
+        if any(
+            f.observed
+            for dimension in card.dimensions
+            if dimension.key != "reachability"
+            for f in dimension.findings
+        ):
+            return (
+                "answered on this run, and some of what it publishes was read; one check could "
+                "not be made, so this run cannot pin a single letter"
+            )
         return (
             "answered on this run, but no vantage retrieved its public documents, so nothing "
             "here describes what it declares"
@@ -1376,15 +1399,23 @@ added on an unverified submission.</p>
 us about an endpoint</a></p></section>
 <section><span class="action-number">02</span><h2>Something here is wrong</h2>
 <p>This has happened. A live payer endpoint was recorded as dead because a middlebox on the
-probing network intercepted TLS and the error surfaced as one uninformative word. That is why
-every published grade reconciles probes from more than one vantage, and why reaching an endpoint
-from any of them settles that it is up.</p>
+probing network intercepted TLS and the error surfaced as one uninformative word. Probing now
+runs from more than one vantage, and reaching an endpoint from any of them settles that it is up.
+<strong>That did not solve the problem above, and we should not imply it did.</strong> It removed
+one shape of it &mdash; a fault local to a single host &mdash; and left the shape that matters to
+you untouched.</p>
 <p>What those vantages are, exactly: three GitHub-hosted runner images (Ubuntu, macOS, Windows).
-They are three hosts on one provider's network, not three independent networks. They catch a
-fault local to one host, which is the failure above; they cannot catch a source-address rule,
-bot filter, geo rule, or rate limit your edge applies to that provider's address space, because
-that hits all three at once. So when all three fail, the page says the endpoint was not reached
-from that network on that day. It does not say the endpoint is down.</p>
+They are three hosts on one provider's network, not three independent networks. They cannot catch
+a source-address rule, bot filter, geo rule, rate limit, or TLS interception applied to that
+provider's address space, because that hits all three at once and looks exactly like agreement.
+So when all three fail, the page says the endpoint was not reached from that network on that day.
+It does not say the endpoint is down, and it publishes no grade and no score &mdash; not a zero,
+which would be a measurement we did not make.</p>
+<p>This is not hypothetical, and it is not rare. On 12 September 2026, of the 14 endpoints here
+that no vantage reached, re-probing by hand from an ordinary residential network found
+<strong>4 that answered</strong> &mdash; two of them with an HTTP 2xx and a certificate that
+verified, which is exactly the criterion all three runners had just failed. If your endpoint is
+listed as not reached and you believe it is serving, you are very likely right.</p>
 <p>You do not need to prove anything before asking us to look again.</p>
 <p><a class="usa-button usa-button--outline" href="https://github.com/ChelseaKR/fhir-scorecard/issues/new?template=remove-or-dispute.yml">Dispute
 or remove an entry</a></p></section>

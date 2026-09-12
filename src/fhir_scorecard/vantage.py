@@ -65,6 +65,20 @@ class VantageProbe:
     # probe that reached the endpoint -- there is no failure to classify -- and never a
     # placeholder, so "reached" and "failed for a reason nobody named" stay apart.
     failure_kind: str | None = None
+    # Whether this vantage asked for ``/.well-known/smart-configuration``. ``smart`` being None
+    # says only that no document came back, and that is two opposite facts wearing one value: a
+    # vantage that requested it and was answered 404 has *observed* that it is not served, and a
+    # vantage that never asked has observed nothing. Measured on the live site 2026-09-12:
+    # eighteen of eighty-one endpoints published no letter at all because the merge could only
+    # read the second, weaker meaning -- including hapi-fhir-r4, whose /metadata answered 200
+    # from all three vantages and whose SMART document answered 404 from all three.
+    #
+    # Default False, which is the conservative reading and the only safe one for a file this
+    # project did not write: a probe file from an older revision, or from a vantage this project
+    # does not operate (#100), carries no such field, and nothing may be concluded from its
+    # silence. Every probe this repository writes sets it True, because
+    # ``cli._grade_endpoint`` requests both documents unconditionally.
+    smart_requested: bool = False
 
     @property
     def network(self) -> str:
@@ -92,6 +106,16 @@ class Consensus:
     # local vantage was blocked.
     capability: str | None = None
     smart: str | None = None
+    # Whether any vantage that *reached* the endpoint asked for the SMART discovery document.
+    # Read together with ``smart``: both set means a document came back, ``smart`` None with this
+    # True means every vantage that got the CapabilityStatement asked for the SMART document and
+    # none was served one -- which is an observation -- and both falsy means this run does not
+    # know whether it was ever requested, which is not.
+    #
+    # Computed over the reached vantages only, matching the branch in ``cli._grade_endpoint``
+    # that it exists to make reproducible: a vantage that could not complete a connection asked
+    # for nothing it can report on.
+    smart_requested: bool = False
     # How many vantages got an HTTP answer of any status, including the ones whose answer was a
     # refusal. Separate from ``agreeing``, which counts vantages that retrieved a document.
     answered: int = 0
@@ -160,6 +184,11 @@ def collapse_by_vantage(probes: list[VantageProbe]) -> list[VantageProbe]:
                     ),
                     smart=next((p.smart for p in reached if p.smart is not None), None),
                     status=next((p.status for p in reached if p.status is not None), None),
+                    # Carried, not defaulted. This branch rebuilds the dataclass field by field,
+                    # so a field it forgets reads back as its default -- and for this one the
+                    # default is the value that suppresses a grade. One sample of a vantage
+                    # having asked is enough for that vantage to have asked.
+                    smart_requested=any(p.smart_requested for p in reached),
                 )
             )
         else:
@@ -318,6 +347,10 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
         # incomplete" about a named payer. That is up to 35 of 100 interop points, wider than a
         # letter band, decided by which probe happened to be first.
         smart=next((p.smart for p in reached if p.smart is not None), None),
+        # One vantage that asked settles that it was asked, the same asymmetry this module rests
+        # on everywhere else. A peer that cannot say whether it asked does not unsettle a peer
+        # that did, and a run where nobody can say keeps the honest third state.
+        smart_requested=any(p.smart_requested for p in reached),
         answered=sum(1 for p in probes if p.status is not None or p.reachable),
         declaration_disagreement=disagreement,
     )
@@ -498,6 +531,13 @@ def load_probe_files(paths: list[Path]) -> dict[str, list[VantageProbe]]:
                     # do not carry it, and a vantage running an older revision is exactly the
                     # case this loader is built to tolerate.
                     status=(entry.get("status") if isinstance(entry.get("status"), int) else None),
+                    # ``is True``, not truthiness. This field's whole job is to say that a
+                    # request was actually made, so the only value that may assert it is a real
+                    # JSON ``true``: a string, a number, or the field's absence all read as "this
+                    # file does not say", which leaves the grade unpinned rather than pinning it
+                    # on a claim nobody made. Same rule ``probe_entry_failure`` applies to
+                    # ``reachable``, for the same reason.
+                    smart_requested=entry.get("smart_requested") is True,
                     # A probe that reached the endpoint has no failure to classify, so it keeps
                     # ``None`` whatever the file says: a foreign writer that shipped both
                     # ``"reachable": true`` and a failure kind would otherwise put a reachable

@@ -283,7 +283,10 @@ def test_record_pages_describe_themselves_distinctly(site: Path) -> None:
         re.search(r'<meta name="description" content="([^"]*)"', path.read_text()).group(1)
         for path in (site / "history").glob("*/index.html")
     }
-    assert len(descriptions) == 3
+    # One per record page, derived rather than written down: the fixture set grew when #137
+    # added the unreachable captures, and a literal here would have to be edited every time.
+    assert len(descriptions) == len(list((site / "history").glob("*/index.html")))
+    assert len(descriptions) >= 3
 
 
 def test_a_record_of_one_endpoint_never_reports_another(site: Path) -> None:

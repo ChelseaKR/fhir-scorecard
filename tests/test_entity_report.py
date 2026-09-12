@@ -174,8 +174,15 @@ def text_of(body: str) -> str:
     ``assert sentence not in body`` over the raw markup passes for those sentences whether or
     not the page published them - a check that cannot fail, aimed at the property this file
     exists to hold. Every assertion about a rendered sentence reads this.
+
+    The script strip is case-insensitive because CodeQL's ``py/bad-tag-filter`` was right about
+    it: ``<script.*?</script>`` does not match ``<SCRIPT>``, and this is not a sanitiser but it
+    is a *matcher*, which is worse to get wrong here. A page that emitted an upper-case tag
+    would leak its JSON-LD into "the words a reader sees", and the block carries the endpoint's
+    name and URL - so a test asserting that some sentence is absent from the prose could pass
+    or fail on structured data instead. Same defect class as the unescaping above.
     """
-    stripped = re.sub(r"<script.*?</script>", " ", body, flags=re.S)
+    stripped = re.sub(r"<script.*?</script>", " ", body, flags=re.S | re.I)
     return html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", stripped)))
 
 

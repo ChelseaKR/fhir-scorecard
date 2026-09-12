@@ -141,6 +141,13 @@ def recoverable(card: Scorecard) -> list[tuple[DimensionScore, Finding, int]]:
     publisher either; a report that ranked unobserved checks by the points they "cost" would be
     handing a named organization a list of things it has not been shown to have done wrong.
 
+    Measured 2026-09-12, and worth writing down because it says which of the two refusals is
+    doing the work: every ``observed=False`` finding this grader can currently produce also has
+    ``max_points == 0`` -- its real scale lives in ``withheld_points`` -- so the points check is
+    what fires today and the ``observed`` check is defence against a grader that changes. Both
+    are tested, the second against a finding built by hand, because a guard no fixture can reach
+    is a guard a negative control cannot tell apart from ``if True``.
+
     Ties are broken by the dimension's published order and then by code, so two runs of the
     same card render the same list.
     """

@@ -20,6 +20,7 @@ from __future__ import annotations
 import html
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -40,7 +41,13 @@ from fhir_scorecard.entity_report import (
     report_page,
 )
 from fhir_scorecard.fetch import FetchResult
-from fhir_scorecard.grading import NOT_OBSERVED, Scorecard, build_scorecard
+from fhir_scorecard.grading import (
+    NOT_OBSERVED,
+    DimensionScore,
+    Finding,
+    Scorecard,
+    build_scorecard,
+)
 from fhir_scorecard.site import _FINDING_DOCS, DEFAULT_ORIGIN, endpoint_page
 from fhir_scorecard.vantage import VantageProbe, reconcile
 from fhir_scorecard.weight import MAX_PAGE_BYTES
@@ -146,6 +153,18 @@ def reached_by_one_of_three() -> Scorecard:
     )
 
 
+def _unreadable_document_card() -> Scorecard:
+    """Answered, and what came back is not a CapabilityStatement: T0 and I0, no SMART read."""
+    return build_scorecard(
+        "payer",
+        "Example Health Plan Patient Access API",
+        _ok_metadata(),
+        parse_capability(b'{"resourceType": "OperationOutcome"}'),
+        parse_smart(json.dumps(good_smart()).encode()),
+        kind="payer",
+    )
+
+
 def text_of(body: str) -> str:
     """The words a reader sees: markup and structured data removed, entities resolved.
 
@@ -206,6 +225,66 @@ def test_an_endpoint_nothing_answered_is_offered_no_action_at_all() -> None:
     # did answer, so "absent" here is a property of this card and not of the matcher.
     assert ACTIONS["I1"] in text_of(render(_failing_card()))
     assert "Nothing is listed here, because no check in this report ran." in words
+
+
+def test_the_grader_gives_every_unobserved_finding_a_zero_scale() -> None:
+    """Measured, and recorded because it decides which of two guards is doing the work.
+
+    ``recoverable`` refuses a finding twice: once because it was not observed, once because it
+    carries no points. Today those are the same set - every ``observed=False`` finding the
+    grader can produce has ``max_points == 0``, with its real scale in ``withheld_points`` - so
+    the ``observed`` check is defence and the points check is what fires. That makes the
+    ``observed`` branch unreachable from any card the grader builds, which is exactly the shape
+    that turns a negative control green and reads as proof.
+
+    So the invariant is pinned here, and the branch itself is tested one test down against a
+    finding built by hand. If a future grader gives an unobserved check a non-zero
+    ``max_points``, this fails and the guard below becomes the live one.
+    """
+    shapes = [unreached(), reached_by_one_of_three(), _unreadable_document_card()]
+    unobserved = [
+        (dimension.key, finding)
+        for card in shapes
+        for dimension in card.dimensions
+        for finding in dimension.findings
+        if not finding.observed
+    ]
+    assert len(unobserved) >= 4, "no shape in this set reaches an unobserved finding"
+    for key, finding in unobserved:
+        assert finding.max_points == 0, f"{key}/{finding.code} now carries a measurable scale"
+
+
+def test_an_unobserved_finding_that_carried_points_would_still_produce_no_action() -> None:
+    """The guard the test above says nothing can currently reach.
+
+    Built by hand rather than graded, because the point is what happens if the grader changes.
+    A check nobody was able to make must not become an instruction to a named organization,
+    however many points it is nominally worth.
+    """
+    card = replace(
+        graded(),
+        dimensions=(
+            DimensionScore(
+                key="interop",
+                title="Interop readiness",
+                score=None,
+                findings=(
+                    Finding(
+                        code="I2",
+                        ok=False,
+                        points=0,
+                        max_points=35,
+                        message="no vantage retrieved .well-known/smart-configuration",
+                        citation="https://hl7.org/fhir/smart-app-launch/conformance.html",
+                        observed=False,
+                    ),
+                ),
+                withheld_points=35,
+            ),
+        ),
+    )
+    assert recoverable(card) == []
+    assert ACTIONS["I2"] not in text_of(render(card))
 
 
 def test_an_endpoint_nothing_answered_publishes_no_score_on_any_dimension() -> None:

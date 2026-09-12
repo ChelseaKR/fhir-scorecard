@@ -56,6 +56,22 @@ _COLUMNS = [
     ),
     ("expects_fhir", "FHIR release this endpoint is registered as intending to serve"),
     ("availability", "Rolling reachability across recorded runs, as published text"),
+    (
+        "last_answered",
+        "Most recent recorded date this endpoint answered, empty when no observation in the "
+        "recorded window is a success. The window is bounded, so empty means 'not in the "
+        "recorded window', never 'not ever'",
+    ),
+    (
+        "vantages_reached",
+        "How many reporting vantages reached the endpoint. Read with vantages_reporting: this "
+        "project publishes both numbers and never a verdict that hides their disagreement",
+    ),
+    (
+        "vantages_reporting",
+        "How many vantages reported on this endpoint at all. Zero means nobody looked, which is "
+        "a different fact from every vantage looking and none being answered",
+    ),
     ("observed_since", "First date this endpoint was observed"),
     ("verified_method", "How the entry was verified before entering the registry"),
     ("verified_date", "Date of that verification"),
@@ -108,6 +124,15 @@ def _row(card: Scorecard, endpoint: Endpoint | None) -> dict[str, object]:
         "interop_score": _dimension(card, "interop"),
         "expects_fhir": endpoint.expects if endpoint else "",
         "availability": card.availability,
+        # Empty, not a placeholder date and not "never": the record is a bounded window and the
+        # column description says so.
+        "last_answered": card.last_answered or "",
+        # Two numbers, always. A single "reachable" boolean is the endpoint-level claim and it is
+        # correct -- one vantage reaching settles that it is up -- but on its own it hides
+        # whether that was 3 of 3 or 1 of 3, and on a reachability scorecard that is the
+        # interesting part.
+        "vantages_reached": sum(1 for r in card.vantage_reports if r.reachable),
+        "vantages_reporting": len(card.vantage_reports),
         "observed_since": card.observed_since or "",
         "verified_method": endpoint.verified_method if endpoint else "",
         "verified_date": endpoint.verified_date if endpoint else "",
@@ -236,6 +261,10 @@ def write_dataset(
                             "code": f.code,
                             "ok": f.ok,
                             "observed": f.observed,
+                            # The third state (#135 follow-up). `observed: false` alone cannot
+                            # separate "every vantage asked and none was answered" from "nobody
+                            # asked", and only the first is information.
+                            "unanswered": f.unanswered,
                             "points": f.points,
                             "max_points": f.max_points,
                             "withheld_points": f.withheld_points,
@@ -246,6 +275,22 @@ def write_dataset(
                     ],
                 }
                 for d in card.dimensions
+            ],
+            # Published rows, one per reporting vantage, never resolved to a winner. See
+            # `vantage.VantageReport`: measured 2026-09-12, vantage disagreement runs in both
+            # directions, so there is no vantage this project could elect without relocating the
+            # misdiagnosis it exists to prevent.
+            "vantages": [
+                {
+                    "vantage": r.vantage,
+                    "network": r.network,
+                    "reachable": r.reachable,
+                    "status": r.status,
+                    "failure_kind": r.failure_kind,
+                    "elapsed_ms": r.elapsed_ms,
+                    "error": r.error,
+                }
+                for r in card.vantage_reports
             ],
             "drift_events": list(card.drift_events),
             # Kept out of drift_events so a consumer counting capability changes counts changes.

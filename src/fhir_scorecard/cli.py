@@ -181,7 +181,16 @@ def _grade_from_probes(
     documents in hand has nothing left to observe.
     """
     probes = other_probes.get(endpoint.endpoint_id, [])
-    consensus = reconcile(probes) if probes else None
+    # Unconditionally, including for the empty list. `reconcile([])` returns a consensus that
+    # describes *zero attempts* -- `vantages == 0`, `failure_kinds == ()` -- and that object is
+    # the only thing that can tell "no vantage reported on this endpoint" apart from "every
+    # vantage reported and none reached it". Passing `None` instead made the grader infer the
+    # difference from a synthesized error string, which read as a probe that had been made.
+    #
+    # It also fixes a smaller thing on the way past: with `None` here, `_failure_kinds` fell
+    # back to `("unclassified",)` and filed an endpoint nobody looked at into a failure
+    # population. `reconcile`'s own docstring says an empty tuple is what that case deserves.
+    consensus = reconcile(probes)
     reachable = consensus is not None and consensus.reachable
     # ``is not None``, not truthiness: a vantage that reached the endpoint and got back an
     # empty body retrieved a document, just an empty one. Gating on the encoded body's
@@ -239,6 +248,10 @@ def _grade_from_probes(
         drift_events=drift.recorded_events,
         drift_alternations=drift.alternations,
         availability=drift.availability.summary(),
+        last_answered=drift.availability.last_answered,
+        # The day this run observed what it observed, so the finding carries its own date rather
+        # than borrowing the build's (#139).
+        as_of=today,
     )
 
 
@@ -345,6 +358,10 @@ def _grade_endpoint(
         drift_events=drift.recorded_events,
         drift_alternations=drift.alternations,
         availability=drift.availability.summary(),
+        last_answered=drift.availability.last_answered,
+        # The day this run observed what it observed, so the finding carries its own date rather
+        # than borrowing the build's (#139).
+        as_of=today,
     )
 
 

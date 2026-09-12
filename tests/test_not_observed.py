@@ -148,19 +148,31 @@ def test_the_unreachable_page_says_what_happened_and_claims_nothing_else() -> No
     for claim in _CLAIMS_ABOUT_A_DOCUMENT:
         assert claim not in page.body
     # A meter at zero is the same claim drawn instead of written -- and that was as true of the
-    # reachability meter as of the other two. All three dimensions now get no bar and no number
-    # when no vantage reached the endpoint (#135).
-    for title in ("Reachability", "Capability transparency", "Interop readiness"):
-        assert f"<span>{title}</span><strong>not observed</strong>" in page.body
+    # reachability meter as of the other two. No dimension gets a bar or a number when no vantage
+    # reached the endpoint (#135).
     assert page.body.count("dimension-meter-unscored") == 6  # three dimensions, rendered twice
     assert "FHIR endpoint not observed" in page.title
+
+    # But the three are not the same fact, and the page says two different things about them.
+    # Reachability's subject is the *attempt*, and the attempt is the finding: this run asked and
+    # was answered by nobody, which is dated, sourced information about the endpoint. The content
+    # dimensions' subject is a *document*, and there is no document, so there is nothing to say
+    # about what it declares -- which is the distinction `grading`'s module docstring draws.
+    assert "<span>Reachability</span><strong>no answer</strong>" in page.body
+    for title in ("Capability transparency", "Interop readiness"):
+        assert f"<span>{title}</span><strong>not observed</strong>" in page.body
+
     # No glyph on this page may read as a verdict against the endpoint. "✗ Needs attention"
     # beside "latency unmeasured: endpoint unreachable" told a named organization to fix a
     # measurement that was never taken, and beside R1's sentence it contradicted the sentence
     # itself, which says the failure is "likely a vantage-local interception, not an endpoint
     # fault".
     assert "Needs attention" not in page.body
-    assert page.body.count('class="finding unobserved"') == 4  # R1, R2, and the two NR findings
+    assert page.body.count('class="finding unanswered"') == 2  # R1 and R2: asked, not answered
+    assert page.body.count('class="finding unobserved"') == 2  # the two NR findings
+    # And the reader is told which of the two states each mark is.
+    assert "No answer: " in page.body
+    assert "Not observed: " in page.body
 
 
 def test_reached_but_no_documents_says_that_and_not_that_it_was_unreachable() -> None:

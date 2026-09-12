@@ -92,6 +92,62 @@ class VantageProbe:
 
 
 @dataclass(frozen=True)
+class VantageReport:
+    """What one vantage saw, kept as its own row rather than folded into a verdict.
+
+    :func:`reconcile` exists to produce one endpoint-level fact from several vantages, and for
+    reachability that fact is sound: one vantage reaching an endpoint settles that it is up. What
+    it cannot do is carry *disagreement*, and on a scorecard about reachability the disagreement
+    is the most informative thing a run produces.
+
+    Measured 2026-09-12 across all 81 registry endpoints, three GitHub-hosted vantages against
+    one residential vantage: three disagreed, and **they did not disagree in one direction**.
+    ``ambetter-centene-provider-directory`` answered residentially and 403'd from all three
+    runners; ``capital-bluecross`` and ``chg-provider-directory`` did the reverse, the latter two
+    being the 2026-08-05 TLS-interception incident still live on that residential network. So
+    there is no vantage that is right, and electing one would relocate the original misdiagnosis
+    onto three different named companies rather than remove it.
+
+    These rows are what lets the site say "reachable from 2 of 3 vantages" instead of picking a
+    winner. They are published, never scored.
+    """
+
+    vantage: str
+    network: str
+    reachable: bool
+    #: The HTTP status this vantage received, when it received one at all. Present on a refusal
+    #: that completed an HTTP exchange, which is a materially different fact from a connection
+    #: that never got that far.
+    status: int | None = None
+    #: From the closed vocabulary in :data:`fhir_scorecard.fetch.FAILURE_KINDS`. ``None`` on a
+    #: vantage that reached the endpoint: there is no failure to classify.
+    failure_kind: str | None = None
+    #: Milliseconds, and ``None`` rather than ``0`` when nothing was measured. A latency nobody
+    #: recorded published as zero is the exact coercion ``probe_entry_failure`` exists to refuse,
+    #: and it would be the fastest possible reading of a probe that never completed.
+    elapsed_ms: int | None = None
+    #: The sentence this vantage reported, verbatim. ``None`` when it reached the endpoint.
+    error: str | None = None
+
+
+def _report_for(probe: VantageProbe) -> VantageReport:
+    """One published row from one collapsed probe."""
+    return VantageReport(
+        vantage=probe.vantage,
+        network=probe.network,
+        reachable=probe.reachable,
+        status=probe.status,
+        # A probe that reached has no failure to classify, and a placeholder here would file a
+        # working endpoint into a failure population.
+        failure_kind=None if probe.reachable else probe.failure_kind,
+        # Only from a vantage that reached: a failed probe's elapsed time measures how long this
+        # project waited, not how fast the endpoint is.
+        elapsed_ms=probe.elapsed_ms if probe.reachable else None,
+        error=None if probe.reachable else probe.error,
+    )
+
+
+@dataclass(frozen=True)
 class Consensus:
     reachable: bool
     elapsed_ms: int
@@ -125,6 +181,11 @@ class Consensus:
     # hosts on one network three networks, one level down. Empty whenever any vantage reached,
     # because then there is a measurement and the failures are a fact about those vantages.
     failure_kinds: tuple[str, ...] = ()
+    #: Every reporting vantage's own result, in vantage order, after duplicate labels are
+    #: collapsed. Always populated when any vantage reported, whether they agreed or not: the
+    #: agreement is as much a published fact as the disagreement, and a surface that only showed
+    #: the rows when they differed would make "3 of 3" unavailable to a reader.
+    reports: tuple[VantageReport, ...] = ()
     # Set when reachable vantages returned CapabilityStatements that are not byte-identical.
     # One hostname in front of two backends is the alternation story this project already tells
     # over time; seen across vantages in a single run it is the same fact, and discarding it
@@ -291,6 +352,7 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
             detail=detail,
             answered=len(answered),
             failure_kinds=kinds,
+            reports=tuple(_report_for(p) for p in probes),
         )
 
     # Median latency across the vantages that succeeded: one slow network path should not
@@ -353,6 +415,10 @@ def reconcile(raw_probes: list[VantageProbe]) -> Consensus:
         smart_requested=any(p.smart_requested for p in reached),
         answered=sum(1 for p in probes if p.status is not None or p.reachable),
         declaration_disagreement=disagreement,
+        # Over `probes`, not `reached`: a vantage that failed while others succeeded is exactly
+        # the row a reader most needs, and building this from the reached set would publish
+        # unanimity that this run did not observe.
+        reports=tuple(_report_for(p) for p in probes),
     )
 
 

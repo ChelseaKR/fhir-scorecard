@@ -20,6 +20,7 @@ from fhir_scorecard.cohort import Cohort, CohortMember
 from fhir_scorecard.grading import (
     NOT_OBSERVED,
     WEIGHTED_DIMENSIONS,
+    DimensionScore,
     Finding,
     Scorecard,
 )
@@ -324,18 +325,121 @@ def _signal_map(cards: Sequence[Scorecard]) -> str:
     return "".join(rows)
 
 
-def _dimension_meter(title: str, score: int | None) -> str:
-    """A dimension's score, or the absence of one.
+def _last_answered_words(card: Scorecard) -> str:
+    """When this endpoint last answered, said so a reader cannot mistake the window for eternity.
+
+    An endpoint answering nowhere today is a different story if it answered last week, and until
+    #139 nothing published the difference: the only dates on the page were the run\u2019s and the
+    curation record\u2019s. ``availability`` gives a rate, and a rate is not a date -- at 94% a
+    reader cannot tell whether the last success was yesterday or three weeks ago, which is
+    exactly the band where it decides whether the listing is worth acting on.
+
+    The record is a bounded rolling window, so the absence of a success in it is not a claim that
+    the endpoint has never answered, and the sentence says which.
+    """
+    if card.last_answered:
+        if card.reachable:
+            return f"{html.escape(card.last_answered)} (answered on this run)"
+        return html.escape(card.last_answered)
+    return "not in the recorded window"
+
+
+def _vantage_rows(card: Scorecard) -> str:
+    """Every reporting vantage's own result, as a table, never resolved to a winner.
+
+    The endpoint-level claim above this table is unchanged and stays correct: one vantage
+    reaching an endpoint settles that it is up, and one failing settles nothing. That asymmetry
+    is a property of the claims, not a preference for a vantage -- "it is reachable" needs one
+    witness, "it is unreachable" is a universal statement and needs every vantage this run had,
+    bounded to the networks they sit on.
+
+    What the table adds is the breadth of the agreement, which no single verdict can carry.
+    Measured 2026-09-12 over all 81 endpoints, three GitHub vantages against one residential
+    vantage: three disagreed, one in each direction plus a third, so no vantage here is the
+    reliable one. Publishing the rows is the honest alternative to electing one.
+    """
+    if not card.vantage_reports:
+        return ""
+    reached = sum(1 for r in card.vantage_reports if r.reachable)
+    total = len(card.vantage_reports)
+    networks = len({r.network for r in card.vantage_reports})
+    rows = ""
+    for report in sorted(card.vantage_reports, key=lambda r: r.vantage):
+        if report.reachable:
+            saw = (
+                f"answered in {report.elapsed_ms} ms"
+                if report.elapsed_ms is not None
+                else "answered"
+            )
+        else:
+            saw = report.error or "no answer, and no condition was reported"
+        detail = ""
+        if report.status is not None:
+            detail = f"HTTP {report.status}"
+        if report.failure_kind:
+            detail = f"{detail}, {report.failure_kind}" if detail else report.failure_kind
+        rows += (
+            "<tr>"
+            f'<th scope="row"><code>{html.escape(report.vantage)}</code></th>'
+            f"<td>{'reached' if report.reachable else 'not reached'}</td>"
+            f"<td>{html.escape(saw)}</td>"
+            f"<td>{html.escape(detail) or '&mdash;'}</td>"
+            "</tr>"
+        )
+    # Both numbers, and what they are numbers *of*. Several hosts on one provider's network share
+    # its address space and any rule a payer edge applies to it, so the vantage count on its own
+    # would overstate how independent the agreement is.
+    caption = (
+        f"reached from {reached} of {total} reporting "
+        f"{'vantage' if total == 1 else 'vantages'}, on "
+        f"{networks} {'network' if networks == 1 else 'networks'}"
+    )
+    return (
+        '<section class="evidence-card vantage-reports">'
+        '<p class="eyebrow">What each vantage saw</p>'
+        '<div class="usa-table-container--scrollable" tabindex="0" role="region" '
+        'aria-label="Per-vantage results">'
+        '<table class="usa-table usa-table--striped vantage-table">'
+        f"<caption>{html.escape(caption)}</caption>"
+        '<thead><tr><th scope="col">Vantage</th><th scope="col">Result</th>'
+        '<th scope="col">What it saw</th><th scope="col">Condition</th></tr></thead>'
+        f"<tbody>{rows}</tbody></table></div>"
+        '<p class="vantage-note">Vantages on one network are one network\u2019s view sampled '
+        "several times. A rule applied to that network\u2019s address space reaches every one of "
+        "them at once and reads exactly like agreement.</p></section>"
+    )
+
+
+def _dimension_unanswered(dimension: DimensionScore) -> bool:
+    """Whether this whole dimension is the "asked everywhere, answered nowhere" state.
+
+    Every finding, not any: a dimension with one unanswered check beside checks that did run is
+    a partial measurement, and calling the whole thing "no answer" would overstate it in the
+    other direction.
+    """
+    return bool(dimension.findings) and all(f.unanswered for f in dimension.findings)
+
+
+def _dimension_meter(title: str, score: int | None, *, unanswered: bool = False) -> str:
+    """A dimension's score, or the absence of one, or the fact that nothing answered.
 
     An unobserved dimension gets no bar and no number. Rendering it as 0 was the visual half of
     the same error: a bar at zero next to a named organization reads as a measurement.
+
+    ``unanswered`` gets no bar and no number either -- the score is exactly as absent -- and a
+    different word, because "not observed" over a dimension where three networks asked and none
+    was answered understates a real finding.
     """
     if score is None:
+        label = "no answer" if unanswered else "not observed"
+        described = (
+            "no vantage was answered on this run" if unanswered else "not observed on this run"
+        )
         return (
             '<div class="dimension-meter dimension-meter-unscored">'
-            f"<div><span>{html.escape(title)}</span><strong>not observed</strong></div>"
+            f"<div><span>{html.escape(title)}</span><strong>{label}</strong></div>"
             f'<span class="meter meter-unscored" '
-            f'aria-label="{html.escape(title)}: not observed on this run"></span></div>'
+            f'aria-label="{html.escape(title)}: {described}"></span></div>'
         )
     return (
         '<div class="dimension-meter">'
@@ -353,6 +457,11 @@ def _finding_mark(finding: Finding) -> tuple[str, str, str]:
     not a verdict either: "not applicable to a Provider Directory API" and "this document names
     CARIN in prose" are notes, and a ✓ or a ✗ would both misread them.
     """
+    if finding.unanswered:
+        # A fourth mark for the third state. "Not observed" is what a run says when nobody
+        # looked; this is what it says when it looked from every vantage it had and was answered
+        # by none of them. Both withhold the score and only one of them is silence.
+        return "unanswered", "⊘", "No answer"
     if not finding.observed:
         return "unobserved", "○", "Not observed"
     if finding.max_points == 0:
@@ -378,7 +487,7 @@ def _findings_html(card: Scorecard) -> str:
             )
         out.append(
             '<section class="finding-group">'
-            f"{_dimension_meter(dim.title, dim.score)}"
+            f"{_dimension_meter(dim.title, dim.score, unanswered=_dimension_unanswered(dim))}"
             f'<ul class="findings">{items}</ul></section>'
         )
     return "".join(out)
@@ -419,7 +528,10 @@ def endpoint_page(
         else ""
     )
     unobserved = card.grade == NOT_OBSERVED
-    dimensions = "".join(_dimension_meter(dim.title, dim.score) for dim in card.dimensions)
+    dimensions = "".join(
+        _dimension_meter(dim.title, dim.score, unanswered=_dimension_unanswered(dim))
+        for dim in card.dimensions
+    )
     record_link = (
         f'<p><a href="/history/{html.escape(card.endpoint_id)}/">'
         "Every observation on record for this endpoint</a>, with the dates it answered and the "
@@ -491,6 +603,7 @@ def endpoint_page(
   <dt>Base URL</dt><dd><code>{html.escape(base_url)}</code></dd>
   <dt>Category</dt><dd>{html.escape(kind_label)}</dd>
   <dt>Availability</dt><dd>{html.escape(card.availability or "not yet recorded")}</dd>
+  <dt>Last answered</dt><dd>{_last_answered_words(card)}</dd>
   {
         f"<dt>Vantage agreement</dt><dd>{html.escape(card.vantage_note)}</dd>"
         if card.vantage_note
@@ -498,6 +611,7 @@ def endpoint_page(
     }
 </dl>
 </section>
+{_vantage_rows(card)}
 <section class="evidence-card evidence-card-accent">
 <p class="eyebrow">Interpretation</p>
 <p>A grade describes two public discovery documents at one point in time. It does not inspect

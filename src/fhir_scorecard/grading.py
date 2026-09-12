@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 from fhir_scorecard.capability import CapabilityFacts, SmartFacts
 from fhir_scorecard.fetch import UNCLASSIFIED, FetchResult
-from fhir_scorecard.vantage import Consensus
+from fhir_scorecard.vantage import Consensus, VantageReport
 
 _FHIR_CAPS = "https://hl7.org/fhir/R4/capabilitystatement.html"
 _FHIR_HTTP = "https://hl7.org/fhir/R4/http.html"
@@ -74,6 +74,19 @@ class Finding:
     # False when the check was not run because nothing was retrieved. Such a finding is neither
     # a pass nor a failure and must never be rendered as one.
     observed: bool = True
+    # Set only on an ``observed=False`` finding whose *attempt is itself the evidence*: every
+    # vantage that reported asked, and none of them was answered.
+    #
+    # ``observed=False`` alone was carrying two opposite facts. "We looked from three networks on
+    # 2026-09-12 and none of them got an answer" is a dated, sourced statement about an endpoint,
+    # and it is the one a reader of a reachability scorecard came for. "Nobody looked" is the
+    # absence of a statement. Publishing both as "not observed" is the #135 defect with its harm
+    # turned down rather than removed -- it stopped overstating, and started understating.
+    #
+    # It never restores a score. The number was the false part: whether /metadata answers 2xx is
+    # not settled by a run whose vantages sit on one network, and ``withheld_points`` still
+    # carries the whole scale. What this field restores is the *sentence*.
+    unanswered: bool = False
     # What this check would have been worth had it run. Zero for every check that did run, and
     # for a check that genuinely does not apply. Non-zero only on an `observed=False` finding,
     # where it is the sole record of how much of the dimension's scale was never measured --
@@ -120,6 +133,17 @@ class Scorecard:
     # Rolling reachability across recorded runs. Informational until enough observations exist;
     # a percentage off two data points would be noise dressed as a metric.
     availability: str = ""
+    #: The most recent recorded date this endpoint answered, or ``None`` when the availability
+    #: record holds no successful observation. An endpoint answering nowhere today reads very
+    #: differently depending on whether it answered last week, and nothing published that (#139).
+    #:
+    #: ``None`` means "not in the recorded window", which is bounded, and never "not ever". The
+    #: surfaces that render it say which.
+    last_answered: str | None = None
+    #: Every reporting vantage's own result. The endpoint-level claim stays what it was -- one
+    #: vantage reaching settles that it is up -- and this is published beside it so a reader can
+    #: see how broad the agreement was, and see it when there was none.
+    vantage_reports: tuple[VantageReport, ...] = ()
     # Why this endpoint was not reached, from the closed vocabulary in
     # :data:`fhir_scorecard.fetch.FAILURE_KINDS` (#117). Empty whenever it *was* reached, and a
     # tuple rather than a value because vantages can disagree and this project publishes the
@@ -185,26 +209,63 @@ def _not_retrieved(key: str, title: str, what: str, citation: str) -> DimensionS
     )
 
 
+def _asked_and_unanswered(consensus: Consensus | None, metadata: FetchResult) -> bool:
+    """Whether every vantage that reported asked, and none of them was answered.
+
+    The distinction this draws is between a *finding* and an *absence*, and only the second one
+    is silence. A run that asked from three networks and got a TLS failure, a 403 and a timeout
+    has observed something specific about an endpoint and can name the date it observed it; a run
+    with no vantage reporting has not.
+
+    ``consensus.vantages`` is the test, not ``consensus is not None``: :func:`reconcile` returns a
+    consensus for an endpoint no vantage reported on, and that object describes zero attempts.
+    A single-vantage run has no consensus at all and its own attempt is the evidence, so the
+    fallback reads ``metadata`` -- one vantage asking is still asking.
+    """
+    if consensus is not None:
+        return consensus.vantages > 0 and not consensus.reachable
+    # No consensus: this run probed directly. `status` or an error means it got as far as trying;
+    # the "no fixture"/"no vantage reported" shapes carry neither.
+    return not metadata.ok and (metadata.status is not None or bool(metadata.error))
+
+
 def grade_reachability(
-    metadata: FetchResult, *, vantage: str = "unspecified", consensus: Consensus | None = None
+    metadata: FetchResult,
+    *,
+    vantage: str = "unspecified",
+    consensus: Consensus | None = None,
+    as_of: str = "",
 ) -> DimensionScore:
     """Grade reachability, preferring a multi-vantage consensus when one is available.
 
     One vantage reaching an endpoint settles that it is reachable; one vantage failing settles
     nothing. Single-vantage runs fall back to what this run saw, and say so.
+
+    Three outcomes, not two. Reached and graded; asked everywhere and answered nowhere, which is
+    published as a dated finding carrying no score; and not asked at all, which is published as
+    nothing. See :attr:`Finding.unanswered`.
     """
     findings: list[Finding] = []
     reachable = consensus.reachable if consensus is not None else metadata.ok
+    unanswered = not reachable and _asked_and_unanswered(consensus, metadata)
+    # Stated in the finding itself, because the finding is what a reader is shown and a date in
+    # a page footer is a date about the build. An endpoint that answers nowhere today is a
+    # different story from one that has answered nowhere for a month, and neither sentence means
+    # anything without the day it was true (#139).
+    # Only where there is an observation to date. An endpoint no vantage reported on was not
+    # observed on this date or any other, and stamping one on it would manufacture the very
+    # thing this state exists to withhold.
+    dated = f" (observed {as_of})" if as_of and unanswered else ""
     if consensus is not None:
         r1_message = (
             "/metadata answers with HTTP 2xx over HTTPS: " + consensus.detail
             if reachable
-            else "/metadata " + consensus.detail
+            else "/metadata " + consensus.detail + dated
         )
     elif reachable:
         r1_message = "/metadata answers with HTTP 2xx over HTTPS"
     else:
-        r1_message = f"/metadata unreachable: {metadata.error or f'HTTP {metadata.status}'}"
+        r1_message = f"/metadata unreachable: {metadata.error or f'HTTP {metadata.status}'}{dated}"
     findings.append(
         Finding(
             code="R1",
@@ -223,6 +284,7 @@ def grade_reachability(
             message=r1_message,
             citation=_FHIR_HTTP,
             observed=reachable,
+            unanswered=unanswered,
             # The full 60 when it could not be asked, so the dimension's scale stays recoverable
             # and a reader can see that *all* of it went unmeasured rather than inferring it from
             # an absent number.
@@ -272,9 +334,14 @@ def grade_reachability(
                 ok=False,
                 points=0,
                 max_points=0,
-                message="latency unmeasured: endpoint unreachable",
+                message=(
+                    "latency not measured: no vantage was answered" + dated
+                    if unanswered
+                    else "latency not measured: no vantage reported on this endpoint"
+                ),
                 citation=_FHIR_HTTP,
                 observed=False,
+                unanswered=unanswered,
                 withheld_points=40,
             )
         )
@@ -730,9 +797,11 @@ def build_scorecard(
     drift_events: tuple[str, ...] = (),
     drift_alternations: tuple[str, ...] = (),
     availability: str = "",
+    last_answered: str | None = None,
+    as_of: str = "",
 ) -> Scorecard:
     dimensions = (
-        grade_reachability(metadata, vantage=vantage, consensus=consensus),
+        grade_reachability(metadata, vantage=vantage, consensus=consensus, as_of=as_of),
         grade_transparency(facts, version_prefix=version_prefix),
         grade_interop(facts, smart, kind=kind),
     )
@@ -752,6 +821,8 @@ def build_scorecard(
         drift_events=drift_events,
         drift_alternations=drift_alternations,
         availability=availability,
+        last_answered=last_answered,
+        vantage_reports=consensus.reports if consensus is not None else (),
         # From the consensus when several vantages reported, so a disagreement survives; from
         # this run's own result when it is the only witness. Empty when the endpoint was
         # reached: there is no failure to name, and an empty tuple is not a population.

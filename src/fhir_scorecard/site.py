@@ -669,21 +669,38 @@ def cohort_page(cohort: Cohort, cards: dict[str, Scorecard], origin: str) -> Pag
     # such pair. The table below is right to keep a row per member - the row is about the plan,
     # and a plan that publishes through another entity's server is still that plan's answer to
     # the rule - but a count labelled "endpoints" has to be a count of endpoints.
+    #
+    # The label was the open question, and it is settled here rather than left to the reader:
+    # "endpoints listed" counts endpoints. Three things decide it. The word is "endpoints", on a
+    # page whose table is headed "Listed endpoints" and whose subject is endpoints. The number
+    # beside it, "answered on this run", is a count of probes, and one server answering once is
+    # one answer - so reading the first as listings and the second as endpoints would publish a
+    # ratio ("11 of 17") whose halves count different things, and the page's own description
+    # prints exactly that ratio. And a reader who wants the listings can have them under their
+    # own name: `listings_stat` publishes that number as its own labelled figure rather than
+    # reusing this one, on the cohorts where the two differ.
     rows = [cards[eid] for m in cohort.included for eid in m.endpoint_ids if eid in cards]
     listed = list({card.endpoint_id: card for card in rows}.values())
     included_endpoints = len(listed)
     listed_rows = len(rows)
     answered = sum(card.reachable for card in listed)
     shared = listed_rows - included_endpoints
+    # Printed only where it says something. On the eleven cohorts where every member has its own
+    # surface the two numbers are equal, and a second tile repeating the first is noise that
+    # teaches a reader to skip the row where it is load-bearing.
+    listings_stat = (
+        "" if not shared else f"<p><strong>{listed_rows}</strong><span>plan listings</span></p>\n"
+    )
     shared_note = (
         ""
         if not shared
         else (
-            f" The table below has {listed_rows} rows rather than {included_endpoints}, because "
-            f"{shared} of these listings {'is' if shared == 1 else 'are'} a second member "
-            "organization publishing through a surface already counted; each is listed under "
-            "its own name, and neither the endpoint count nor the answered count counts it "
-            "twice."
+            f" The table below carries {listed_rows} plan listings over those "
+            f"{included_endpoints} {'endpoint' if included_endpoints == 1 else 'endpoints'}, "
+            f"because {shared} of the listings "
+            f"{'names' if shared == 1 else 'name'} a surface another member organization has "
+            "already listed; each plan appears under its own name, and neither the endpoint "
+            "count nor the answered count counts a shared surface twice."
         )
     )
     notes = "".join(f"<p>{html.escape(note)}</p>" for note in cohort.notes)
@@ -714,7 +731,7 @@ we missed, please <a href="/claim/">tell us</a>.</p>
 <div class="cohort-stats" aria-label="Cohort coverage">
 <p><strong>{len(cohort.members)}</strong><span>organizations reviewed</span></p>
 <p><strong>{len(cohort.included)}</strong><span>published a base URL we could verify</span></p>
-<p><strong>{included_endpoints}</strong><span>endpoints listed</span></p>
+{listings_stat}<p><strong>{included_endpoints}</strong><span>endpoints listed</span></p>
 <p><strong>{answered}</strong><span>answered on this run</span></p>
 </div>
 <p>{len(cohort.included)} of {len(cohort.members)} member organizations publish a FHIR base URL

@@ -195,7 +195,8 @@ def test_one_endpoint_two_plans_publish_through_is_counted_once() -> None:
 
     The row per member stays: a plan that publishes through another entity's server is still
     that plan's answer to the rule, and a reader looking for their own plan has to find it. It
-    is the count labelled "endpoints" that has to be a count of endpoints.
+    is the count labelled "endpoints" that has to be a count of endpoints, and the listings get
+    a labelled number of their own rather than borrowing that one.
     """
     cohort = _cohort(
         CohortMember(
@@ -219,14 +220,21 @@ def test_one_endpoint_two_plans_publish_through_is_counted_once() -> None:
     # Both organizations still appear, each under its own name.
     assert page.body.count('<td><a href="/endpoint/shared/"') == 2
     assert "Alpha Plan HMO" in page.body
+    # The listings are worth publishing; they are not worth publishing under the word
+    # "endpoints". They get their own labelled number beside it.
+    assert "<strong>2</strong><span>plan listings</span>" in page.body
     # And the page says why the two numbers differ, rather than leaving a reader to count rows.
-    assert "The table below has 2 rows rather than 1" in page.body
-    assert "a second member organization publishing through a surface already counted" in page.body
+    assert (
+        "The table below carries 2 plan listings over those 1 endpoint, because 1 of the "
+        "listings names a surface another member organization has already listed"
+    ) in page.body
 
 
-def test_a_cohort_with_no_shared_surface_says_nothing_about_rows() -> None:
-    """The other direction. A note that appeared on every cohort would be noise, and a reader
-    who saw it everywhere would stop reading it where it is load-bearing."""
+def test_a_cohort_with_no_shared_surface_says_nothing_about_listings() -> None:
+    """The other direction. A second number and a note that appeared on every cohort would be
+    noise, and a reader who saw them everywhere would stop reading them where they are
+    load-bearing. Where every member has its own surface, listings and endpoints are the same
+    number and only one of them is printed."""
     cohort = _cohort(
         CohortMember(
             member_id="alpha-plan",
@@ -244,16 +252,34 @@ def test_a_cohort_with_no_shared_surface_says_nothing_about_rows() -> None:
     cards = {"alpha": _answering("alpha"), "beta": _answering("beta")}
     page = cohort_page(cohort, cards, "https://example.test")
     assert "<strong>2</strong><span>endpoints listed</span>" in page.body
-    assert "The table below has" not in page.body
+    assert "plan listings" not in page.body
+    assert "The table below carries" not in page.body
 
 
-def test_the_shipped_cohorts_are_the_reason_this_rule_exists() -> None:
-    """A regression test over the real curation files, so the finding cannot quietly expire.
+def test_every_shipped_cohort_publishes_the_counts_its_own_curation_implies() -> None:
+    """The published figures, derived from the shipped curation rather than pinned as literals.
 
-    If the duplicates are edited out of the roster one day this test says so rather than
-    silently becoming a statement about nothing - which is what a rule written only against a
-    synthetic fixture would become.
+    A test that asserted "Florida says 13" would be a second copy of the answer, kept in step
+    by hand: correct on the day it was written, and a statement about nothing the day a member
+    is added. This derives both numbers from ``data/cohorts/*.json`` with an expression the
+    renderer does not share - ``dict.fromkeys`` over the (member, endpoint) references, against
+    the renderer's de-duplication of *cards* - and asserts the page publishes exactly those, for
+    every cohort the project ships.
+
+    The floor underneath it is the part that keeps the test from going quiet. If the shared
+    surfaces were edited out of the roster, every cohort would have listings == endpoints, every
+    assertion above would still pass, and the rule would be under no test at all. So the sharing
+    is asserted to exist, and the cohorts that carry it are named in the failure message. As
+    measured on 2026-09-12 that is ``florida-marketplace`` (17 listings over 13 endpoints) and
+    ``michigan-marketplace`` (6 over 5) - recorded here as a reading, not as an assertion, so a
+    curation change moves the number without reddening a test that is not about it.
+
+    The shared endpoints are given answering cards on purpose: were they silent, a renderer that
+    counted listings again would still publish the right "answered on this run", and half the
+    regression would go unseen.
     """
+    from collections import Counter
+
     from fhir_scorecard.cohort import load_cohort_dir
     from fhir_scorecard.registry import load_registry
 
@@ -262,13 +288,63 @@ def test_the_shipped_cohorts_are_the_reason_this_rule_exists() -> None:
     cohorts = load_cohort_dir(
         root / "data" / "cohorts", frozenset(e.endpoint_id for e in endpoints)
     )
-    sharing = {
-        cohort.cohort_id: (len(refs), len(set(refs)))
+    assert cohorts, "no shipped cohorts were loaded, so this test checked nothing"
+
+    references = {
+        cohort.cohort_id: [eid for m in cohort.included for eid in m.endpoint_ids]
         for cohort in cohorts
-        for refs in [[eid for m in cohort.included for eid in m.endpoint_ids]]
-        if len(refs) != len(set(refs))
     }
-    assert sharing == {"florida-marketplace": (17, 13), "michigan-marketplace": (6, 5)}, sharing
+    shared_ids = {eid for refs in references.values() for eid, n in Counter(refs).items() if n > 1}
+    # Deterministic, and not all-answering: every other endpoint is silent, except the shared
+    # surfaces, which answer so that a double count would show up in both published numbers.
+    cards = {
+        e.endpoint_id: (
+            _answering(e.endpoint_id)
+            if e.endpoint_id in shared_ids or i % 2
+            else _silent(e.endpoint_id)
+        )
+        for i, e in enumerate(sorted(endpoints, key=lambda e: e.endpoint_id))
+    }
+
+    sharing: dict[str, tuple[int, int]] = {}
+    for cohort in cohorts:
+        refs = [eid for eid in references[cohort.cohort_id] if eid in cards]
+        distinct = list(dict.fromkeys(refs))
+        answered = sum(1 for eid in distinct if cards[eid].reachable)
+        page = cohort_page(cohort, cards, "https://example.test")
+
+        assert f"<strong>{len(distinct)}</strong><span>endpoints listed</span>" in page.body, (
+            f"{cohort.cohort_id}: the page does not publish {len(distinct)} endpoints listed"
+        )
+        assert f"<strong>{answered}</strong><span>answered on this run</span>" in page.body, (
+            f"{cohort.cohort_id}: the page does not publish {answered} answered"
+        )
+        assert (
+            f"{answered} of {len(distinct)} listed endpoints answered on the latest run"
+            in page.description
+        ), f"{cohort.cohort_id}: the description's ratio disagrees with the page"
+        # The table is still one row per member, whatever the endpoint count says.
+        rendered_rows = page.body.count('<td><a href="/endpoint/')
+        assert rendered_rows == len(refs), (
+            f"{cohort.cohort_id}: {len(refs)} listings curated, {rendered_rows} rows rendered"
+        )
+
+        if len(refs) == len(distinct):
+            assert "plan listings" not in page.body, (
+                f"{cohort.cohort_id}: listings equal endpoints, so the second number is noise"
+            )
+        else:
+            sharing[cohort.cohort_id] = (len(refs), len(distinct))
+            assert f"<strong>{len(refs)}</strong><span>plan listings</span>" in page.body, (
+                f"{cohort.cohort_id}: {len(refs)} listings over {len(distinct)} endpoints, "
+                "and the listings are not published under their own label"
+            )
+
+    assert sharing, (
+        "no shipped cohort lists one endpoint under two members any more, so every assertion "
+        "above compared a number with itself. Either restore a cohort that exercises the rule "
+        "or delete it from site.cohort_page - do not leave this test green over nothing."
+    )
 
 
 def test_published_api_reports_both_numbers(tmp_path: Path) -> None:

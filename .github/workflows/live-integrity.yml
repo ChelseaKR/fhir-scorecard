@@ -7,10 +7,10 @@
 # broken, or gone, and nothing in this repository could tell.
 #
 # This check is narrower than its siblings on purpose. Most of this site is a daily
-# rescore of 45 live third-party endpoints, every page footer carries a minute-
+# rescore of every live third-party endpoint in the registry, every page footer carries a minute-
 # resolution Generated stamp, and the availability and history pages derive from
 # data/history.json, which CI restores from the capability-history branch rather than
-# from main. Rebuilding that here would mean probing 45 third-party servers to produce
+# from main. Rebuilding that here would mean re-probing every registry endpoint to produce
 # numbers that legitimately differ from the published ones, which is a moving target
 # and would produce noise rather than signal.
 #

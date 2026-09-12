@@ -51,7 +51,8 @@ jobs:
         # `uv sync --locked`, not `pip install -e .`. The pip form resolved hatchling and its
         # transitive build dependencies from PyPI at build time - unpinned, unhashed, and never
         # seen by `make audit`, which scans the locked set. This job holds a write token and
-        # parses documents fetched from 45 third-party servers, and it is the job that produces
+        # parses documents fetched from every third-party server in the registry, and it is the job
+        # that produces
         # the citable dataset, so it installs exactly what the lockfile pins like every other
         # job that matters. `--no-dev` because nothing here runs the linters or the test suite.
         run: uv sync --locked --no-dev
@@ -91,7 +92,8 @@ jobs:
         # `uv sync --locked`, not `pip install -e .`. The pip form resolved hatchling and its
         # transitive build dependencies from PyPI at build time - unpinned, unhashed, and never
         # seen by `make audit`, which scans the locked set. This job holds a write token and
-        # parses documents fetched from 45 third-party servers, and it is the job that produces
+        # parses documents fetched from every third-party server in the registry, and it is the job
+        # that produces
         # the citable dataset, so it installs exactly what the lockfile pins like every other
         # job that matters. `--no-dev` because nothing here runs the linters or the test suite.
         run: uv sync --locked --no-dev
@@ -166,7 +168,7 @@ jobs:
         # criterion, four declare themselves this project's own) and the two transfer-size budgets
         # (src/fhir_scorecard/weight.py). The test suite runs the same three families against a
         # site built from fixtures; this runs them against the real one, which is the only build
-        # that carries organization pages, cohort pages, and forty-five endpoints. A site that
+        # that carries organization pages, cohort pages, and every endpoint in the registry. A site that
         # fails here is not published: the deploy job needs this one.
         run: >
           uv run python -m fhir_scorecard.cli audit-site site

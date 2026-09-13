@@ -1,0 +1,90 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the issuer's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the issuer publishes a base URL that returns 404' and 'the issuer publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "mississippi-marketplace",
+    "name": "Mississippi marketplace issuer cohort",
+    "description": "The Patient Access and Provider Directory APIs of every issuer selling an individual-market qualified health plan on HealthCare.gov in Mississippi for 2026, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Membership is CMS's own file, not a list assembled here. Filtered to Mississippi, the QHP Landscape PY2026 Individual Medical dataset carries 2,834 plan-county rows, 5 HIOS issuer IDs, and 5 issuer names. The roster was frozen before any URL was probed and is committed beside this file as mississippi-marketplace.roster.csv.",
+    "Every member either points at endpoints already carrying their verification in data/registry.json or carries an exclusion with a dated review record and the source that was read. An exclusion is a statement about what this project could find on the date it looked, never a statement about whether an issuer meets an obligation.",
+    "Several members point at endpoints already in the registry. Where a carrier publishes one national surface, the same entry is cited from more than one cohort rather than duplicated, because listing one address under several names would misstate how many endpoints exist."
+  ],
+  "sources": [
+    {
+      "label": "CMS / CCIIO: QHP Landscape PY2026 Individual Medical (individual_market_medical.zip, issued 2026-08-04, modified 2026-08-10)",
+      "url": "https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45",
+      "date": "2026-09-13"
+    }
+  ],
+  "members": [
+    {
+      "id": "ambetter-mississippi",
+      "name": "Ambetter Health (Centene)",
+      "roster_name": "Ambetter Health",
+      "programs": [
+        "ms-marketplace"
+      ],
+      "endpoints": [
+        "ambetter-centene-provider-directory"
+      ]
+    },
+    {
+      "id": "cigna-mississippi",
+      "name": "Cigna Healthcare",
+      "roster_name": "Cigna Healthcare",
+      "programs": [
+        "ms-marketplace"
+      ],
+      "endpoints": [
+        "cigna-patientaccess",
+        "cigna-provider-directory"
+      ]
+    },
+    {
+      "id": "molina-mississippi",
+      "name": "Molina Healthcare",
+      "roster_name": "Molina Healthcare",
+      "programs": [
+        "ms-marketplace"
+      ],
+      "excluded": {
+        "reason": "Molina's interoperability developer portal prints no base URL that can be read without registering for an account. The portal is the organization's own, it names the platform it runs on, and the addresses sit behind the registration step.",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "the portal was retrieved and read on this date from the davis-ca residential vantage. It lists Molina plans by state and names Cognizant TriZetto Software Group as the platform, and no Patient Access or Provider Directory base URL appears anywhere a visitor without an account can read. Same conclusion the Florida, Ohio and Texas reviews recorded on earlier dates, re-established here rather than carried over",
+          "date": "2026-09-13",
+          "source": "https://developer.interop.molinahealthcare.com/"
+        }
+      }
+    },
+    {
+      "id": "oscar-mississippi",
+      "name": "Oscar Health Plan, Inc.",
+      "roster_name": "Oscar Health Plan, Inc.",
+      "programs": [
+        "ms-marketplace"
+      ],
+      "excluded": {
+        "reason": "Oscar's interoperability developer page prints no base URL for either surface. It directs a developer to create an account with 1upHealth, the platform Oscar delegates Patient Access to, and documents no Provider Directory API anywhere on the page.",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "the page was retrieved and read in full on this date from the davis-ca residential vantage. It carries no base URL, and it names no legal entity, no state and no HIOS issuer id, so nothing on it scopes to one roster row rather than another. Recorded independently for each roster this wave reviewed rather than copied from the Iowa, Kansas, Michigan, Missouri, Oklahoma or Texas reviews, which reached the same page on earlier dates",
+          "date": "2026-09-13",
+          "source": "https://www.hioscar.com/cms_patient_access_developer_page"
+        }
+      }
+    },
+    {
+      "id": "unitedhealthcare-mississippi",
+      "name": "UnitedHealthcare",
+      "roster_name": "UnitedHealthcare",
+      "programs": [
+        "ms-marketplace"
+      ],
+      "endpoints": [
+        "unitedhealthcare-provider-directory"
+      ]
+    }
+  ]
+}

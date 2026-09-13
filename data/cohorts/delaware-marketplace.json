@@ -1,0 +1,62 @@
+{
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the issuer's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the issuer publishes a base URL that returns 404' and 'the issuer publishes nothing' are different findings that a single field would flatten.",
+  "cohort": {
+    "id": "delaware-marketplace",
+    "name": "Delaware marketplace issuer cohort",
+    "description": "The Patient Access and Provider Directory APIs of every issuer selling an individual-market qualified health plan on HealthCare.gov in Delaware for 2026, graded on the same public surfaces as every other endpoint here."
+  },
+  "notes": [
+    "Membership is CMS's own file, not a list assembled here. Filtered to Delaware, the QHP Landscape PY2026 Individual Medical dataset carries 120 plan-county rows, 3 HIOS issuer IDs, and 3 issuer names. The roster was frozen before any URL was probed and is committed beside this file as delaware-marketplace.roster.csv.",
+    "Every member either points at endpoints already carrying their verification in data/registry.json or carries an exclusion with a dated review record and the source that was read. An exclusion is a statement about what this project could find on the date it looked, never a statement about whether an issuer meets an obligation.",
+    "Several members point at endpoints already in the registry. Where a carrier publishes one national surface, the same entry is cited from more than one cohort rather than duplicated, because listing one address under several names would misstate how many endpoints exist."
+  ],
+  "sources": [
+    {
+      "label": "CMS / CCIIO: QHP Landscape PY2026 Individual Medical (individual_market_medical.zip, issued 2026-08-04, modified 2026-08-10)",
+      "url": "https://data.healthcare.gov/dataset/6fe7fb77-7291-4104-952f-7c7e2c5d0c45",
+      "date": "2026-09-13"
+    }
+  ],
+  "members": [
+    {
+      "id": "ambetter-delaware",
+      "name": "Ambetter Health of Delaware (Centene)",
+      "roster_name": "Ambetter Health of Delaware",
+      "programs": [
+        "de-marketplace"
+      ],
+      "endpoints": [
+        "ambetter-centene-provider-directory"
+      ]
+    },
+    {
+      "id": "amerihealth-caritas-next-delaware",
+      "name": "AmeriHealth Caritas Next, Delaware",
+      "roster_name": "AmeriHealth Caritas Next",
+      "programs": [
+        "de-marketplace"
+      ],
+      "endpoints": [
+        "amerihealth-caritas-next-de-patient-access",
+        "amerihealth-caritas-next-de-provider-directory"
+      ]
+    },
+    {
+      "id": "highmark-delaware",
+      "name": "Highmark Blue Cross Blue Shield Delaware",
+      "roster_name": "Highmark Blue Cross Blue Shield Delaware",
+      "programs": [
+        "de-marketplace"
+      ],
+      "excluded": {
+        "reason": "Highmark Blue Cross Blue Shield Delaware's APIs are published on the Highmark Health Interoperability Developer Portal, and no base URL for them appears in any document this project could retrieve. The portal's API catalog is browsable without an account and lists the FHIR Patient Access and Provider Directory APIs by name, but each entry's host and base path are rendered by the portal's own JavaScript and were not served to an automated client; Highmark's member-facing CMS and ONC interoperability page names the entity and prints no address either. The portal presents its six FHIR APIs under one 'Highmark Health Organization' heading rather than per legal entity, and Highmark's interoperability page lists Highmark BCBSD Inc. as one of the five entities the rule reaches.",
+        "basis": "portal_reviewed",
+        "reviewed": {
+          "method": "both documents were retrieved on this date from the davis-ca residential vantage and read: the portal's Getting Started page, which enumerates the APIs offered per organization, and its API Catalog listing, whose per-API detail pages return the labels 'Host:' and 'Base path:' with no values in the served HTML. Highmark's own interoperability page was retrieved and prints no endpoint. This is a statement about what an automated client could read on this date, not a claim that no address is published: a person with a browser is likely to see the base path the catalog renders, and that is the check that would move this member into the registry",
+          "date": "2026-09-13",
+          "source": "https://cmsapiportal.hmhs.com/highmark-getting-started"
+        }
+      }
+    }
+  ]
+}

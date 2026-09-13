@@ -520,3 +520,87 @@ Plan of Arizona*; whether those are the same legal entity is a judgement about c
 identity, not about what is published. And HCSC's five-state scope, recorded on 2026-08-19,
 could not be re-read on this date because the page became script-rendered; the Oklahoma mapping
 rests on that earlier reading plus the Oklahoma brand publishing nothing of its own.
+
+## Wave fourteen: eight more states, and the first measurement of who is behind them (2026-09-13)
+
+Eight rosters reviewed in one pass — Nebraska, Alabama, Alaska, Wyoming, West Virginia,
+Delaware, Indiana and Mississippi — chosen because between them they are 28 of the frame's
+then-71 unreviewed rows and because 12 of those 28 are carriers whose documentation earlier
+waves had already read. The review reaches **133 of 176 organizations across 20 of 30 states**,
+and the registry reaches **88 endpoints**.
+
+Every base URL below was probed once, serially, from the davis-ca residential vantage using this
+project's own fetcher and probe contract (`/metadata` only, no authentication).
+
+| Candidate | Base URL | Outcome |
+|---|---|---|
+| BCBS Nebraska Patient Access | api.bcbsnefhir.com/r4 | **Verified** → registry. 144 resource types, 37 supportedProfile canonicals; publisher `1upHealth`, software `1up FHIR Server` |
+| BCBS Alabama Patient Access (CARIN BB) | api-bcbsal-prd.safhir.io/v1/api/carin-bb | **Verified** → registry |
+| BCBS Alabama Provider Directory | api-bcbsal-prd.safhir.io/v1/api/provider-directory | **Verified** → registry |
+| Premera Patient Access | opala.tech/patient-access/premera/v1/fhir-r4 | **Verified** → registry, with the attribution caveat below |
+| Premera Provider Directory | opala.tech/provdir/premera/v1/fhir-r4 | **Verified** → registry, same caveat |
+| AmeriHealth Caritas Next, Delaware — Patient Access | api-ext.amerihealthcaritas.com/DEEX/patient-api | **Verified** → registry |
+| AmeriHealth Caritas Next, Delaware — Provider Directory | api-ext.amerihealthcaritas.com/DEEX/provider-api | **Verified** → registry |
+
+Nothing was guessed and nothing that failed was probed, because every address above came out of a
+document that printed it. The reason this wave has no rejection rows is not that the hit rate
+improved; it is that the failures happened one step earlier, in documents that print no address
+at all.
+
+**Three organizations publish developer documentation and no readable address.** Each is a cohort
+exclusion carrying its own dated review:
+
+* **Highmark**, reached from three roster rows — Blue Cross Blue Shield of Wyoming, Highmark Blue
+  Cross Blue Shield West Virginia and Highmark Blue Cross Blue Shield Delaware. The Highmark
+  Health Interoperability Developer Portal's API catalog is browsable without an account and
+  lists a FHIR Provider Directory API and several Patient Access APIs by name, with separate
+  registration codes for the Highmark Health Organization and the BCBS Wyoming Organization. Each
+  API's detail page serves the labels `Host:` and `Base path:` with no values: the portal renders
+  them client-side. Highmark's own member-facing interoperability page names five legal entities
+  and prints no address either. **This is the one row in the wave a person with a browser could
+  most likely move into the registry**, and it is worth three roster rows.
+* **HMSA (Hawaii)**, which is *not* in a cohort here because the Hawaii roster was left for a
+  later wave, recorded because the work was done: HMSA publishes Patient Access, Provider
+  Directory and Formulary API documentation at `io-devportal.hmsa-services.com:8446`, and the
+  OpenAPI documents served there carry paths (`/metadata`, `/Patient`, …) and **no `servers`
+  block**, so no base URL is stated. Access is issued by email.
+* **Moda Health**, whose interoperability page routes to an Edifecs-hosted developer portal at
+  `fdp.edifecsfedcloud.com` scoped to `moda.health`; the portal returned nothing but its own
+  heading to an automated client.
+
+Medica, Molina and Oscar were re-reviewed on this date rather than carried over, and each reached
+the same conclusion earlier waves recorded: Medica's document still answers HTTP 403 to an
+automated client, Molina's portal still prints no address readable without registering, and
+Oscar's page still prints none at all and still names no legal entity, state or HIOS id.
+
+**The one weak attribution, stated rather than smoothed.** Premera's two endpoints are published
+by its vendor, not by Premera: the CapabilityStatements name `Opala` as publisher, and the pages
+that print the addresses are Opala's. `docs/SAMPLING-FRAME.md` would settle this with the
+organization's own materials, and `premera.com/visitor/developers` serves a 5,529-byte JavaScript
+shell to an automated client, so that half of the rule was not met. What is established is that
+the vendor's page is titled for Premera, the addresses carry a per-tenant `/premera/` segment,
+and Premera's own Alaska provider page confirms a Patient Access API for "current Premera Alaska
+Individual plan members" — this frame's exact population. A browser check on premera.com is the
+outstanding work.
+
+**What this wave measured that earlier waves did not: who is behind the endpoints.** Opala's
+Provider Directory documentation prints two base URLs, one for Premera and one for Navitus, a
+pharmacy benefit manager that is not on this frame and was therefore not probed and not listed —
+the sampling-frame rule forbids adding an endpoint because probing found it. `safhir.io` now
+carries three graded endpoints across two unrelated organizations (Blue Cross and Blue Shield of
+Alabama, and Community Health Group San Diego, listed since August). Measured after this wave,
+over the committed registry and a restored copy of the observation record:
+
+* **Host axis:** 88 of 88 endpoints placed, 55 distinct registrable domains. The largest domain
+  spanning more than one graded organization is `amerihealthcaritas.com` with **8 endpoints
+  across 3 organizations**, and those three are state plans of one parent. The largest that spans
+  organizations with no common parent is **3 endpoints** — `healthsparq.com`, `epichosted.com`
+  and now `safhir.io`. Unchanged in kind from the 81-endpoint reading.
+* **Declared-platform axis:** 76 of 88 endpoints have a document anyone has read; the other 12 are
+  named rather than counted. The largest platform spanning several organizations is
+  `HAPI FHIR Server` at **9 endpoints across 7 organizations**, then `Epic` at 6 across 6, then
+  `1up FHIR Server`, which this wave moved from 5 across 4 to **6 across 5**.
+
+Neither axis reaches 15 endpoints under one third party, which is the figure the monetization
+question was said to turn on. The platform axis is the one that moved, and it is the one to
+recompute next wave.

@@ -8,7 +8,7 @@ get there, and the honest constraints on it.
 
 `gtfs-scorecard` earns organic search because **1,128 agencies means 1,128 indexable pages**,
 each answering a real query ("is my transit agency's GTFS feed any good"). `fhir-scorecard` has
-**81 endpoints** across **thirteen cohort pages**. Eighty-one pages is still not an SEO surface,
+**88 endpoints** across **twenty-one cohort pages**. Eighty-eight pages is still not an SEO surface,
 so the conclusion this section used to draw from a smaller number survives on the real one.
 
 Where the numbers in this document come from: they are measured from `data/registry.json`,
@@ -20,17 +20,17 @@ document once argued from 19 endpoints while the registry held 30.
 So the sequencing below is deliberate: build the page infrastructure early because it is cheap
 and shapes everything after it, but understand that **search traffic is gated on registry
 growth, and registry growth is gated on payers publishing base URLs**. That gate is now
-measured with fixed denominators instead of anecdotes: across the thirteen published cohorts -
-California's 27 organizations, and 105 marketplace roster organizations across twelve states - **75 of 132 roster
+measured with fixed denominators instead of anecdotes: across the twenty-one published cohorts -
+California's 27 organizations, and 133 marketplace roster organizations across twenty states - **94 of 160 roster
 organizations publish a base URL this project could verify from the organization's own
-documentation**, and every one of the other 57 carries a dated exclusion record saying exactly
+documentation**, and every one of the other 66 carries a dated exclusion record saying exactly
 what its review found. That is a curation problem and partly an industry problem, not a build problem, and no
 amount of markup fixes it.
 
 The frame is now bigger than the review. The federal-marketplace roster committed at
 `data/frames/qhp-landscape-py2026-individual-medical.csv` enumerates **176 state-issuer
-organizations across 30 states**, of which the twelve marketplace cohorts have
-reviewed 105; the other 71 are *not yet reviewed*, which is a statement about this project's
+organizations across 30 states**, of which the twenty marketplace cohorts have
+reviewed 133; the other 43 are *not yet reviewed*, which is a statement about this project's
 progress and never about what those issuers publish (`docs/SAMPLING-FRAME.md`). The denominator for a national
 payer-side coverage tracker exists; what does not scale mechanically is the per-issuer review.
 
@@ -44,7 +44,7 @@ Two ways the registry can realistically grow:
    is how `gtfs-scorecard` grows without the maintainer doing all the work, and it only becomes
    possible once the site is worth landing on.
 
-Eighty-one endpoints with a defensible method beats two hundred with a guessed registry. The
+Eighty-eight endpoints with a defensible method beats two hundred with a guessed registry. The
 project's credibility is the asset; the page count follows it, not the other way round.
 
 ---
@@ -179,8 +179,8 @@ read.*
       checkable* endpoint at all, with the "documented but unreachable" and "no public URL
       found" populations counted separately and never merged, and *not yet reviewed* kept apart
       from both. Over the national federal-marketplace roster under `data/frames/` (176
-      state-issuer organizations, 30 states): 61 verified, 6 documented but unreachable, 38
-      reviewed with no public URL found, 71 not yet reviewed. Frame rows are joined on
+      state-issuer organizations, 30 states): 80 verified, 6 documented but unreachable, 47
+      reviewed with no public URL found, 43 not yet reviewed. Frame rows are joined on
       `(state, issuer name)` from the committed cohort roster CSVs, and `publishing_rate`
       raises rather than divide by a set containing an unreviewed organization
 
@@ -400,7 +400,7 @@ decision about how it authenticates its artifact.
 
 ### Phase 15: the frame, reviewed a state at a time
 
-*Blocked on curation, which is a person's work by design.* 71 of the frame's 176
+*Blocked on curation, which is a person's work by design.* 43 of the frame's 176
 state-issuer organizations are not yet reviewed. `docs/SAMPLING-FRAME.md` and
 `CONTRIBUTING.md` both require that an entry rest on a document a person retrieved and read,
 with the publisher established from the organization's own materials; the same documents

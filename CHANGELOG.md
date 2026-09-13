@@ -204,6 +204,53 @@ Merged changes land here until the next tag.
 
 ### Fixed
 
+- **`live-integrity` read a merge as a publishing failure for six hours a day.** The
+  sentinel compares the live site with `main`. `grade-and-publish` runs at 14:17 UTC and
+  the sentinel at 20:07, so a change to a checked input merged in between is on `main` and
+  not yet on the site: a 5h50m window every day, 24% of the clock and the working part of
+  it, in which the two legitimately differ and the check called it a failure.
+
+  It had 16 recorded runs and exactly one red, 2026-09-07, and that red was this: #120
+  added the `failure_kinds` column at 16:24 UTC, after that day's 14:27 publish. The
+  09-08 publish resolved it and the 09-08 run was green. One of one failures was a false
+  alarm, which is how a sentinel teaches people to dismiss it — and the next red will look
+  identical. It recurred on 2026-09-12 with #140 changing `assets/site.css` at 19:39, and
+  went unrecorded only because a republish was dispatched by hand.
+
+  The comparison was never the problem. `tools/verify_live_site.py` recomputes the expected
+  bytes from the committed inputs on every run, so the digest has no false-positive mode of
+  its own; the reference *timestamp* was the bug, not the reference *bytes*. Nothing is
+  compared less, and "compare findings rather than a digest" was rejected for that reason:
+  it would cost the asset-level precision that makes this check worth having.
+
+  Two conditions are now told apart, using data both sides already held — the `generated_at`
+  the freshness bound already parses, and the committer date of the newest commit touching
+  a checked input:
+
+  | condition | verdict |
+  |---|---|
+  | the publish ran after the commit and the bytes still differ | red, exactly as before |
+  | no publish has run since the commit | pending publish: named, annotated, not a failure |
+
+  The freshness bound is deliberately outside that split. A site past `--max-age-hours`
+  fails whether or not a change is waiting for it, so a publish that had silently stopped
+  cannot be excused by the next merge — which is the one failure that bound exists to catch.
+  `tests/test_live_integrity_pending_publish.py` asserts that as its own case rather than
+  only asserting the new pass.
+
+  The dated paths are derived rather than listed from memory: they are the two files the
+  check reads from disk plus the source of every `fhir_scorecard` module it imports, and a
+  test fails if an import arrives without its file. `registry.py` joins the set that way —
+  it is what turns `data/registry.json` into the endpoint identities being compared.
+
+  `live-integrity.yml` now checks out full history, and that is load-bearing rather than
+  tidy. A shallow clone grafts its oldest fetched commit into a parentless root, so at the
+  default `fetch-depth: 1` every file in the tree reads as having been added at HEAD: the
+  inputs would date to the newest commit on `main` whatever it touched, and *any* difference
+  would be excused as a publish that had not run yet. The tool refuses a parentless answer
+  for exactly that reason and keeps the difference red, so a shallow checkout cannot blunt
+  the check — it only loses the distinction.
+
 - **A cohort endpoint two plans publish through was counted twice.**
   `site.cohort_page` counted `(member, endpoint)` rows and labelled the result
   "endpoints listed", so an endpoint two member organizations both point at was

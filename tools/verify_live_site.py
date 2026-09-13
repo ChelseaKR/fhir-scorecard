@@ -42,6 +42,31 @@ And one thing that is not a rebuild but is the whole point of a daily publish:
 the site has to be recent. `api/index.json`'s `generated_at` must parse, must
 not be in the future, and must be inside `--max-age-hours`.
 
+A difference is not on its own a fault, and this used to read it as one.
+`grade-and-publish` runs at 14:17 UTC and this check runs at 20:07, so a change
+to a checked input merged between them is in `main` and not yet on the site: for
+5h50m of every day -- 24% of the clock, and the working part of it -- the two
+legitimately disagree. That is 1 of the 1 failures this check had recorded by
+2026-09-12, and a check whose only red was spurious is a check people learn to
+dismiss. So the newest commit touching a checked input is dated, and two
+conditions are told apart:
+
+  * the live `generated_at` predates that commit -- no publish has carried the
+    change yet. Reported as a pending publish, named and annotated, and not a
+    failure, because nothing is wrong and the next publish resolves it.
+  * the publish ran after that commit and the bytes still differ -- the publish
+    ran and produced the wrong thing. That is what this check is for, and it
+    fails exactly as it always did.
+
+The freshness bound sits outside that distinction deliberately. A site past
+`--max-age-hours` fails whether or not a change is waiting to be published;
+otherwise a publish that had silently stopped would be excused by the next
+merge, which is the one failure the bound exists to catch. A checkout that
+cannot be asked when an input last changed is treated as unknown and keeps the
+difference a failure, which is why `live-integrity.yml` checks out full history:
+at `fetch-depth: 1` the grafted root reads as having added every file, and a
+date of "now" would excuse every difference there is.
+
 What is deliberately NOT checked, because it moves for reasons that are not
 drift: every grade, score, latency, badge, availability figure, `observed_since`,
 `answered_on_this_run`, the history and over-time pages, and every rendered HTML
@@ -54,8 +79,9 @@ refused outright rather than reported as a pass: an empty or short registry, an
 empty asset tree, any fetch that is not HTTP 200, and an origin that answers a
 guaranteed-missing path with anything but 404.
 
-Exit codes: 0 the live site still matches its committed inputs, 1 it does not,
-4 the check could not run.
+Exit codes: 0 the live site still matches its committed inputs, or does not yet
+because a publish is pending; 1 it does not and a publish has run since the
+change; 4 the check could not run.
 """
 
 from __future__ import annotations
@@ -69,9 +95,12 @@ import io
 import json
 import re
 import secrets
+import shutil
 import ssl
+import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -90,6 +119,38 @@ LIVE_URL = "https://fhir.chelseakr.com/"
 
 ASSETS = REPO / "src" / "fhir_scorecard" / "assets"
 REGISTRY = REPO / "data" / "registry.json"
+
+# The workflow whose schedule is the only thing that puts a merged change on the live site.
+# Its cron is read from here rather than restated, because a cron written in two places is a
+# cron that will disagree with itself, and the sentence it feeds is only worth printing if it
+# is true.
+PUBLISH_WORKFLOW = REPO / ".github" / "workflows" / "pages.yml"
+
+# Every committed path this check turns into an expected byte string, relative to the
+# repository root. A commit touching one of them changes what the live site is supposed to
+# serve, so the newest such commit is the date the deployment has to have caught up to:
+#
+#   src/fhir_scorecard/assets       compare_assets, byte for byte
+#   data/registry.json              the endpoint identities in api/index.json and dataset.csv
+#   src/fhir_scorecard/registry.py  load_registry, which is what turns that file into them
+#   src/fhir_scorecard/dataset.py   schema_doc, SCHEMA_VERSION and _COLUMNS
+#   src/fhir_scorecard/site.py      robots and social_card_url
+#
+# It is the two data paths this module reads plus the source of every `fhir_scorecard` module
+# it imports, which is a derivation rather than a list someone has to remember to extend:
+# tests/test_live_integrity_pending_publish.py fails if an import arrives without its file.
+CHECKED_INPUTS: tuple[str, ...] = (
+    "data/registry.json",
+    "src/fhir_scorecard/assets",
+    "src/fhir_scorecard/dataset.py",
+    "src/fhir_scorecard/registry.py",
+    "src/fhir_scorecard/site.py",
+)
+
+# Field separator for `git log --format`. A record is split on it rather than on whitespace so
+# a commit subject cannot be mistaken for another field.
+GIT_FIELD = "\x1f"
+GIT_TIMEOUT_SECONDS = 30.0
 
 # Floors. A check that compares nothing must fail, not pass.
 MINIMUM_ASSETS = 40
@@ -444,12 +505,297 @@ def check_freshness(generated: dt.datetime, maximum_hours: float) -> list[str]:
     return []
 
 
+@dataclass(frozen=True)
+class InputCommit:
+    """The newest commit that changed what this check expects the live site to serve."""
+
+    sha: str
+    committed: dt.datetime
+    subject: str
+
+    @property
+    def short_sha(self) -> str:
+        return self.sha[:12]
+
+
+def last_input_commit(
+    repo: Path = REPO, paths: Sequence[str] = CHECKED_INPUTS
+) -> InputCommit | None:
+    """Date the newest commit touching a checked input, or None if this checkout cannot say.
+
+    None is not "nothing has ever changed"; it is "this checkout does not know", and the caller
+    keeps a difference red when it hears that. Reporting a real breakage as a publish that has
+    not happened yet is the one wrong answer this must never give, so every uncertainty here
+    resolves to None rather than to a date.
+
+    `git log -1` is the right question even in a truncated history: it walks back from HEAD, so
+    the first commit it finds touching these paths is the newest one, and shallowness only
+    removes older commits. The exception is the boundary itself. A shallow clone grafts its
+    oldest fetched commit into a parentless root, and a commit with no parents reads as having
+    added every file in the tree -- so on `fetch-depth: 1` every path looks like it changed at
+    HEAD, dating the inputs to now and excusing any difference at all. That is the blunting
+    this whole function must not do, so a parentless answer from a shallow repository is
+    refused. `live-integrity.yml` checks out full history and never reaches that case.
+    """
+    git = shutil.which("git")
+    if git is None:
+        return None
+
+    def run(*arguments: str) -> str | None:
+        try:
+            done = subprocess.run(  # noqa: S603 - resolved binary, fixed argv, no shell
+                [git, "-C", str(repo), *arguments],
+                capture_output=True,
+                text=True,
+                timeout=GIT_TIMEOUT_SECONDS,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return done.stdout if done.returncode == 0 else None
+
+    shallow = run("rev-parse", "--is-shallow-repository")
+    if shallow is None:
+        return None
+    record = run("log", "-1", f"--format=%H{GIT_FIELD}%cI{GIT_FIELD}%P{GIT_FIELD}%s", "--", *paths)
+    if record is None:
+        return None
+    fields = record.strip("\n").split(GIT_FIELD)
+    if len(fields) != 4 or not fields[0]:
+        return None
+    sha, stamp, parents, subject = fields
+    if shallow.strip() != "false" and not parents.strip():
+        return None
+    try:
+        committed = dt.datetime.fromisoformat(stamp)
+    except ValueError:
+        return None
+    if committed.tzinfo is None:
+        return None
+    return InputCommit(sha=sha, committed=committed.astimezone(dt.UTC), subject=subject.strip())
+
+
+_DAILY_CRON = re.compile(r'cron:\s*"(\d{1,2}) (\d{1,2}) \* \* \*"')
+
+
+def next_scheduled_publish(
+    now: dt.datetime, workflow: Path = PUBLISH_WORKFLOW
+) -> dt.datetime | None:
+    """When grade-and-publish will next carry a merged change to the site.
+
+    Read out of the workflow rather than restated, for the reason on PUBLISH_WORKFLOW. None for
+    anything that is not one plain daily cron: that is the only shape this can answer for, and
+    a confident wrong time is worse than no time at all.
+    """
+    try:
+        text = workflow.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    found = _DAILY_CRON.findall(text)
+    if len(found) != 1:
+        return None
+    minute, hour = int(found[0][0]), int(found[0][1])
+    if not (0 <= minute < 60 and 0 <= hour < 24):
+        return None
+    moment = now.astimezone(dt.UTC).replace(hour=hour, minute=minute, second=0, microsecond=0)
+    return moment if moment > now else moment + dt.timedelta(days=1)
+
+
+@dataclass(frozen=True)
+class Observation:
+    """One complete look at the live site: what differs, how stale it is, and when it was made."""
+
+    differences: list[str]
+    staleness: list[str]
+    generated: dt.datetime
+    assets_compared: int
+    endpoints_compared: int
+
+
+def observe(origin: Origin, canonical_origin: str, maximum_age_hours: float) -> Observation:
+    """Every comparison this check makes, in one pass over the live origin.
+
+    Staleness is returned apart from the differences rather than mixed into them. They read the
+    same to a person and they are not the same thing: a difference can be a publish that has
+    not run yet, and a site past its age limit never can be.
+    """
+    endpoints = [e for e in load_registry(REGISTRY) if e.enabled]
+    if len(endpoints) < MINIMUM_ENDPOINTS:
+        raise LiveSiteError(
+            f"the registry holds {len(endpoints)} enabled endpoint(s), below the floor "
+            f"of {MINIMUM_ENDPOINTS}. A check that compares nothing must fail, not pass."
+        )
+    assets = committed_assets()
+    nonce = secrets.token_hex(16)
+    prove_the_origin_discriminates(origin, nonce)
+
+    differences = compare_assets(origin, nonce, assets)
+    differences += compare_pure_documents(origin, nonce, canonical_origin)
+    index_differences, generated = compare_api_index(origin, nonce, endpoints, canonical_origin)
+    differences += index_differences
+    differences += compare_dataset_csv(origin, nonce, endpoints)
+    differences += check_share_card(origin, nonce, canonical_origin)
+    return Observation(
+        differences=differences,
+        staleness=check_freshness(generated, maximum_age_hours),
+        generated=generated,
+        assets_compared=len(assets),
+        endpoints_compared=len(endpoints),
+    )
+
+
+def pending_publish(observation: Observation, commit: InputCommit | None) -> InputCommit | None:
+    """Is the only complaint that no publish has run since a checked input changed?
+
+    Two conditions were conflated here until 2026-09-13, and only one of them is a fault:
+
+      (a) the live site does not match what `main` says it should -- a publish that failed, an
+          upload that dropped an asset, Pages serving something stale. This is the check.
+      (b) the live site does not match `main` *yet* -- a publish that has not happened. The
+          site is republished once a day and this runs six hours before the next one, so a
+          change merged in between produces exactly this, self-resolving and evidence of
+          nothing.
+
+    The publish stamp and the commit date tell them apart, and both sides already exist: the
+    stamp is read for the freshness bound and the date is one `git log` away. A site generated
+    before the commit cannot contain it. A site generated after it and still serving something
+    else is (a), and stays red.
+
+    Staleness is excluded on purpose. A site past `--max-age-hours` fails whether or not a
+    change is waiting for it; excusing that would let a publish that had silently stopped be
+    covered by the next merge, which is the failure the bound exists to catch.
+    """
+    if observation.staleness or not observation.differences:
+        return None
+    if commit is None or observation.generated >= commit.committed:
+        return None
+    return commit
+
+
+def report_pending(pending: InputCommit, observation: Observation, url: str) -> None:
+    """Say that the site is behind main, loudly enough to be seen without failing the run.
+
+    An annotation as well as stdout: this outcome is a green check, and a green check with
+    nothing attached to it is indistinguishable from a site that was already up to date.
+    """
+    following = next_scheduled_publish(dt.datetime.now(dt.UTC))
+    when = f"{following:%Y-%m-%d %H:%M} UTC" if following else "the next grade-and-publish run"
+    print(
+        f"::notice title=pending publish::{url} is {len(observation.differences)} difference(s) "
+        f"behind main; {pending.short_sha} has not been published yet, next publish {when}"
+    )
+    print(
+        f"{url} does not match this checkout yet, and that is not a fault.\n"
+        f"  live site generated {observation.generated:%Y-%m-%d %H:%M} UTC\n"
+        f"  newest commit touching a checked input: {pending.short_sha} at "
+        f"{pending.committed:%Y-%m-%d %H:%M} UTC, {pending.subject}\n"
+        f"  next scheduled publish: {when}"
+    )
+    for difference in observation.differences:
+        print(f"  {difference}")
+    print(
+        "\nA publish that has not run yet is not a deployment that disagrees with main. The "
+        "site is still recent, so nothing here says the publish stopped working; dispatch "
+        "grade-and-publish to close the gap sooner than the schedule would."
+    )
+
+
+def report_differences(observation: Observation, url: str) -> None:
+    print(
+        f"The live site at {url} no longer matches what this checkout publishes.", file=sys.stderr
+    )
+    for difference in [*observation.differences, *observation.staleness]:
+        print(f"  {difference}", file=sys.stderr)
+    print(
+        "\nRe-run grade-and-publish, or find out why the deployment stopped agreeing "
+        "with the registry and the committed assets.",
+        file=sys.stderr,
+    )
+
+
+def report_success(observation: Observation, url: str) -> None:
+    print(
+        f"{url} still matches what this checkout publishes: "
+        f"{observation.assets_compared} assets byte for byte, robots.txt and "
+        f"dataset.schema.json byte for byte, and {observation.endpoints_compared} registry "
+        f"endpoints named identically in api/index.json and dataset.csv, and a home page whose "
+        f"share card addresses the card it serves. "
+        f"Published {observation.generated:%Y-%m-%d %H:%M} UTC."
+    )
+
+
 def refuse_unbounded_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     """Bounds on the knobs, so a typo cannot quietly turn the check into nothing."""
     if not 1 <= args.attempts <= 10:
         parser.error("--attempts must be between 1 and 10")
     if not 0 <= args.retry_seconds <= 120:
         parser.error("--retry-seconds must be between 0 and 120")
+
+
+@dataclass(frozen=True)
+class Looked:
+    """What the retry loop came away with."""
+
+    observation: Observation | None
+    pending: InputCommit | None
+    error: LiveSiteError | None
+    url: str
+
+
+def settled(
+    observation: Observation | None, pending: InputCommit | None, error: LiveSiteError | None
+) -> bool:
+    """Has this look reached an answer that looking again cannot change?
+
+    The retries exist for a seconds-scale race: `deploy-pages` returns before every edge has
+    the new bytes. A pending publish is an hours-scale one -- the next publish is up to a day
+    away -- so retrying it is a minute of sleep and three times the requests to the origin to
+    be told the same thing. It is an answer, so the loop stops on it.
+    """
+    if error is not None or observation is None:
+        return False
+    if pending is not None:
+        return True
+    return not observation.differences and not observation.staleness
+
+
+def announce_retry(
+    attempt: int,
+    args: argparse.Namespace,
+    observation: Observation | None,
+    error: LiveSiteError | None,
+) -> None:
+    count = len(observation.differences) + len(observation.staleness) if observation else 0
+    reason = str(error) if error is not None else f"{count} difference(s)"
+    print(
+        f"attempt {attempt}/{args.attempts}: {reason}; waiting "
+        f"{args.retry_seconds:.0f}s in case a deploy is still settling",
+        file=sys.stderr,
+    )
+
+
+def look_until_settled(args: argparse.Namespace, commit: InputCommit | None) -> Looked:
+    last_error: LiveSiteError | None = None
+    observation: Observation | None = None
+    pending: InputCommit | None = None
+    url = args.url
+    for attempt in range(1, args.attempts + 1):
+        last_error = None
+        pending = None
+        try:
+            origin = Origin(args.url, timeout_seconds=args.timeout_seconds)
+            url = origin.url
+            observation = observe(origin, args.url.rstrip("/"), args.max_age_hours)
+            pending = pending_publish(observation, commit)
+        except LiveSiteError as exc:
+            last_error = exc
+            observation = None
+        if settled(observation, pending, last_error):
+            break
+        if attempt < args.attempts:
+            announce_retry(attempt, args, observation, last_error)
+            time.sleep(args.retry_seconds)
+    return Looked(observation=observation, pending=pending, error=last_error, url=url)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -477,70 +823,35 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     refuse_unbounded_options(parser, args)
 
-    last_error: LiveSiteError | None = None
-    differences: list[str] = []
-    for attempt in range(1, args.attempts + 1):
-        last_error = None
-        try:
-            origin = Origin(args.url, timeout_seconds=args.timeout_seconds)
-            canonical_origin = args.url.rstrip("/")
-            endpoints = [e for e in load_registry(REGISTRY) if e.enabled]
-            if len(endpoints) < MINIMUM_ENDPOINTS:
-                raise LiveSiteError(
-                    f"the registry holds {len(endpoints)} enabled endpoint(s), below the floor "
-                    f"of {MINIMUM_ENDPOINTS}. A check that compares nothing must fail, not pass."
-                )
-            assets = committed_assets()
-            nonce = secrets.token_hex(16)
-            prove_the_origin_discriminates(origin, nonce)
+    # Asked once, before any network read, and of `main` as this job checked it out. It is the
+    # reference the publish stamp is measured against, not a property of the live site.
+    commit = last_input_commit()
+    looked = look_until_settled(args, commit)
+    observation = looked.observation
 
-            differences = compare_assets(origin, nonce, assets)
-            differences += compare_pure_documents(origin, nonce, canonical_origin)
-            index_differences, generated = compare_api_index(
-                origin, nonce, endpoints, canonical_origin
-            )
-            differences += index_differences
-            differences += compare_dataset_csv(origin, nonce, endpoints)
-            differences += check_share_card(origin, nonce, canonical_origin)
-            differences += check_freshness(generated, args.max_age_hours)
-        except LiveSiteError as exc:
-            last_error = exc
-            differences = []
-        if last_error is None and not differences:
-            break
-        if attempt < args.attempts:
-            reason = last_error if last_error else f"{len(differences)} difference(s)"
-            print(
-                f"attempt {attempt}/{args.attempts}: {reason}; waiting "
-                f"{args.retry_seconds:.0f}s in case a deploy is still settling",
-                file=sys.stderr,
-            )
-            time.sleep(args.retry_seconds)
-    if last_error is not None:
-        print(f"live integrity check could not run: {last_error}", file=sys.stderr)
+    if looked.error is not None:
+        print(f"live integrity check could not run: {looked.error}", file=sys.stderr)
+        return EXIT_CANNOT_RUN
+    if observation is None:
+        print("live integrity check could not run: nothing was observed", file=sys.stderr)
         return EXIT_CANNOT_RUN
 
-    if differences:
-        print(
-            f"The live site at {origin.url} no longer matches what this checkout publishes.",
-            file=sys.stderr,
-        )
-        for difference in differences:
-            print(f"  {difference}", file=sys.stderr)
-        print(
-            "\nRe-run grade-and-publish, or find out why the deployment stopped agreeing "
-            "with the registry and the committed assets.",
-            file=sys.stderr,
-        )
+    if looked.pending is not None:
+        report_pending(looked.pending, observation, looked.url)
+        return 0
+
+    if observation.differences or observation.staleness:
+        if commit is None:
+            print(
+                "::warning title=undatable checkout::this checkout cannot be asked when a "
+                "checked input last changed, which a shallow clone never can, so a difference "
+                "that is only a publish that has not run yet is being reported as a failure",
+                file=sys.stderr,
+            )
+        report_differences(observation, looked.url)
         return EXIT_DIFFERS
 
-    print(
-        f"{origin.url} still matches what this checkout publishes: {len(assets)} assets "
-        f"byte for byte, robots.txt and dataset.schema.json byte for byte, and "
-        f"{len(endpoints)} registry endpoints named identically in api/index.json and "
-        f"dataset.csv, and a home page whose share card addresses the card it serves. "
-        f"Published {generated:%Y-%m-%d %H:%M} UTC."
-    )
+    report_success(observation, looked.url)
     return 0
 
 

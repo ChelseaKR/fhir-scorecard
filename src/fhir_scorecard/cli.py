@@ -54,7 +54,7 @@ from fhir_scorecard.fetch import (
     normalise_failure_kind,
 )
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
-from fhir_scorecard.grading import Scorecard, build_scorecard
+from fhir_scorecard.grading import Scorecard, build_scorecard, failure_kinds_of
 from fhir_scorecard.intake import ClaimError, assess, claim_from_form
 from fhir_scorecard.intake import build_proposal as build_claim_proposal
 from fhir_scorecard.intake import format_comment as format_claim_comment
@@ -231,7 +231,17 @@ def _grade_from_probes(
     # one the grade on the same endpoint's page was computed from.
     declared[endpoint.endpoint_id] = facts
     smart_declared[endpoint.endpoint_id] = smart_facts
-    drift = observe(history, endpoint.endpoint_id, facts, today, reachable=reachable)
+    drift = observe(
+        history,
+        endpoint.endpoint_id,
+        facts,
+        today,
+        reachable=reachable,
+        # The same reconciliation the published card carries, computed once here and
+        # handed to both, so the availability record and the card can never disagree
+        # about what stopped this endpoint being reached (#117).
+        failure_kinds=failure_kinds_of(metadata, consensus),
+    )
     # Name the vantages that did report, so a single-vantage merge does not attribute the
     # measurement to a run that never made one.
     reported = ", ".join(sorted({p.vantage for p in probes})) or "no vantage reported"
@@ -344,7 +354,14 @@ def _grade_endpoint(
     # Kept where the graded facts exist, for the reason `_grade_from_probes` gives.
     declared[endpoint.endpoint_id] = facts
     smart_declared[endpoint.endpoint_id] = smart_facts
-    drift = observe(history, endpoint.endpoint_id, facts, today, reachable=was_up)
+    drift = observe(
+        history,
+        endpoint.endpoint_id,
+        facts,
+        today,
+        reachable=was_up,
+        failure_kinds=failure_kinds_of(metadata, consensus),
+    )
     return build_scorecard(
         endpoint.endpoint_id,
         endpoint.name,
@@ -1579,12 +1596,18 @@ def _coverage_page(
     cohorts: tuple[Cohort, ...],
     endpoints: list[Endpoint],
     origin: str,
+    scorecards: list[Scorecard],
 ) -> Page | None:
     """The coverage tracker, or None when this build has no frame to track coverage against.
 
     Absent rather than empty on purpose. A coverage page whose denominator is missing would
     report zero organizations in every population, which reads as a measured result and is not
     one. An offline fixture build has no frame; the published build does.
+
+    ``scorecards`` supply the condition each unanswered surface was observed in (#117). Only the
+    cards that were *not* reached carry one, and a card that was reached carries an empty tuple,
+    so what reaches ``classify`` is exactly "the conditions this run recorded" with no gap
+    between an endpoint that answered and an endpoint nothing was recorded for.
     """
     if cohorts_dir is None or not cohorts:
         return None
@@ -1592,7 +1615,11 @@ def _coverage_page(
     if not frame_csv.is_file():
         return None
     orgs = classify(
-        read_frame(frame_csv), cohorts, endpoints, read_reviewed_rows_by_cohort(cohorts_dir)
+        read_frame(frame_csv),
+        cohorts,
+        endpoints,
+        read_reviewed_rows_by_cohort(cohorts_dir),
+        {card.endpoint_id: card.failure_kinds for card in scorecards if card.failure_kinds},
     )
     return coverage_page(orgs, origin) if orgs else None
 
@@ -1758,7 +1785,7 @@ def _write_site(
     """
     origin = origin.rstrip("/")
     by_id = {e.endpoint_id: e for e in endpoints}
-    coverage = _coverage_page(cohorts_dir, cohorts, endpoints, origin)
+    coverage = _coverage_page(cohorts_dir, cohorts, endpoints, origin, scorecards)
     pages = [
         home_page(scorecards, origin, cohorts, coverage_link=coverage is not None),
         how_we_grade_page(origin),

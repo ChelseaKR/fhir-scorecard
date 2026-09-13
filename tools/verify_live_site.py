@@ -29,7 +29,14 @@ What IS a pure function of committed inputs is checked exactly:
     `data/registry.json` by this checkout;
   * the identity half of `dataset.csv`: its header is `dataset._COLUMNS`, it has
     one row per enabled registry entry, and the eight registry-derived columns in
-    each row are what the registry says.
+    each row are what the registry says;
+  * and, since 2026-09-13, every published *grade* in that CSV, against
+    `fhir_scorecard.published.audit_rows` - the same rules `audit-site` applies to
+    a build, plus agreement with the letter `api/index.json` publishes for the same
+    endpoint. These are internal-consistency rules, not a rebuild: no score is
+    recomputed and none could be. They belong here because the CSV is the artifact
+    a reader downloads and cites, and until now its identity columns were checked
+    here every night while its grade column was checked by nothing, anywhere.
   * the home page's share card: `og:image` and `twitter:image` are
     `site.social_card_url(origin)`, and `og:title`, `og:description` and
     `og:image:alt` are present and non-empty. These carry no grade, no latency and
@@ -43,9 +50,19 @@ the site has to be recent. `api/index.json`'s `generated_at` must parse, must
 not be in the future, and must be inside `--max-age-hours`.
 
 What is deliberately NOT checked, because it moves for reasons that are not
-drift: every grade, score, latency, badge, availability figure, `observed_since`,
-`answered_on_this_run`, the history and over-time pages, and every rendered HTML
-page (each carries the generated timestamp).
+drift: the *value* of any grade, score, latency, badge or availability figure,
+`observed_since`, `answered_on_this_run`, the history and over-time pages, and
+every rendered HTML page beyond the home page's share card.
+
+That last one is a ratio worth stating plainly rather than leaving to be
+discovered: this reads one of the several hundred pages the site publishes, and
+that is the design, not a gap. Every other page carries a minute-resolution
+`Generated` stamp and a daily rescore of live third-party endpoints, so there is
+no byte a checkout could compare them to; a check that fetched them could only
+assert they are served, which `audit-site` already establishes about the build
+and `prove_the_origin_discriminates` cannot upgrade into a statement about their
+content. The gap that was real was the grade column above, and it is closed by
+reading the data rather than by fetching more HTML.
 
     python3 tools/verify_live_site.py
 
@@ -72,6 +89,7 @@ import secrets
 import ssl
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -81,6 +99,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from fhir_scorecard import dataset as dataset_module  # noqa: E402
+from fhir_scorecard import published as published_module  # noqa: E402
 from fhir_scorecard import site as site_module  # noqa: E402
 from fhir_scorecard.registry import Endpoint, load_registry  # noqa: E402
 
@@ -349,8 +368,9 @@ def compare_api_index(
     nonce: str,
     endpoints: list[Endpoint],
     canonical_origin: str,
-) -> tuple[list[str], dt.datetime]:
-    """The identity half of the API index, and the timestamp the freshness check reads."""
+) -> tuple[list[str], dt.datetime, dict[str, published_module.PublishedGrade]]:
+    """The identity half of the API index, the timestamp the freshness check reads, and the
+    letter it publishes per endpoint, which ``dataset_csv_differences`` compares the CSV to."""
     live = fetch_exact(origin, "api/index.json", nonce)
     if isinstance(live, str):
         raise LiveSiteError(live)
@@ -374,31 +394,81 @@ def compare_api_index(
             f"api/index.json: lists {len(listed)} endpoints, the registry has {len(endpoints)}"
         )
     differences += _index_entry_differences(endpoints, listed, canonical_origin)
-    return differences, _generated_at(index)
+    grades = {
+        entry["endpoint_id"]: published_module.PublishedGrade(str(entry.get("grade")))
+        for entry in listed
+        if isinstance(entry, dict) and isinstance(entry.get("endpoint_id"), str)
+    }
+    return differences, _generated_at(index), grades
 
 
-def compare_dataset_csv(origin: Origin, nonce: str, endpoints: list[Endpoint]) -> list[str]:
-    """The registry-derived columns of the published CSV, which no probe can move."""
-    live = fetch_exact(origin, "dataset.csv", nonce)
-    if isinstance(live, str):
-        raise LiveSiteError(live)
-    rows = list(csv.reader(io.StringIO(live.decode("utf-8"))))
+def dataset_csv_differences(
+    text: str,
+    endpoints: list[Endpoint],
+    index_grades: dict[str, published_module.PublishedGrade],
+) -> list[str]:
+    """Every way a published CSV disagrees with this checkout, with itself, or with the index.
+
+    Pure, so that the deployment check has tests: it is handed the bytes the origin served
+    rather than fetching them. Three families, and the second and third are new since
+    2026-09-12.
+
+    * **Identity.** The header is ``dataset._COLUMNS``, there is one row per enabled registry
+      entry, and the eight registry-derived columns say what the registry says. Nothing here
+      involves a probe, so a difference is drift.
+    * **Grades.** :func:`fhir_scorecard.published.audit_rows`, the same rules ``audit-site``
+      applies to a build. They are internal-consistency rules rather than a rebuild - no grade is
+      recomputed and none could be - which is what makes them runnable against a live site whose
+      numbers legitimately differ from any checkout's.
+    * **Agreement.** ``api/index.json`` publishes each endpoint's letter too, and a deployment
+      that served a fresh CSV beside a stale index is exactly the partial-publish this check
+      exists for. Nothing compared them until now.
+    """
+    rows = list(csv.reader(io.StringIO(text)))
     if not rows:
         raise LiveSiteError("dataset.csv is empty")
     differences: list[str] = []
     expected_header = [name for name, _description in dataset_module._COLUMNS]
     if rows[0] != expected_header:
-        differences.append(
-            f"dataset.csv: header is {rows[0]}, this checkout's columns are {expected_header}"
-        )
-        return differences
+        return [f"dataset.csv: header is {rows[0]}, this checkout's columns are {expected_header}"]
     body = rows[1:]
     if len(body) != len(endpoints):
         differences.append(
             f"dataset.csv: {len(body)} row(s), the registry has {len(endpoints)} endpoint(s)"
         )
     index = expected_header.index
-    by_id = {row[index("endpoint_id")]: row for row in body if row}
+    for number, row in enumerate(body, start=2):
+        if len(row) != len(expected_header):
+            differences.append(
+                f"dataset.csv: line {number} has {len(row)} field(s), the header has "
+                f"{len(expected_header)}"
+            )
+    well_formed = [row for row in body if len(row) == len(expected_header)]
+    by_id = {row[index("endpoint_id")]: row for row in well_formed}
+    differences += _registry_derived_differences(by_id, index, endpoints)
+
+    # The grade rules, over every row the deployment serves. Before this the published grade
+    # column was read by nothing, here or anywhere else, while the identity columns beside it
+    # were checked here every night.
+    records = [dict(zip(expected_header, row, strict=True)) for row in well_formed]
+    differences += [str(finding) for finding in published_module.audit_rows(records)]
+    differences += [
+        str(finding)
+        for finding in published_module.surface_differences(
+            {
+                "dataset.csv": published_module.rows_as_published(records),
+                "api/index.json": index_grades,
+            }
+        )
+    ]
+    return differences
+
+
+def _registry_derived_differences(
+    by_id: dict[str, list[str]], index: Callable[[str], int], endpoints: list[Endpoint]
+) -> list[str]:
+    """The eight columns that come from data/registry.json rather than from a probe."""
+    differences: list[str] = []
     for endpoint in endpoints:
         row = by_id.get(endpoint.endpoint_id)
         if row is None:
@@ -424,6 +494,19 @@ def compare_dataset_csv(origin: Origin, nonce: str, endpoints: list[Endpoint]) -
     for extra in sorted(set(by_id) - {e.endpoint_id for e in endpoints}):
         differences.append(f"dataset.csv: has a row for {extra!r}, which the registry does not")
     return differences
+
+
+def compare_dataset_csv(
+    origin: Origin,
+    nonce: str,
+    endpoints: list[Endpoint],
+    index_grades: dict[str, published_module.PublishedGrade],
+) -> list[str]:
+    """Fetch the published CSV and hand it to :func:`dataset_csv_differences`."""
+    live = fetch_exact(origin, "dataset.csv", nonce)
+    if isinstance(live, str):
+        raise LiveSiteError(live)
+    return dataset_csv_differences(live.decode("utf-8"), endpoints, index_grades)
 
 
 def check_freshness(generated: dt.datetime, maximum_hours: float) -> list[str]:
@@ -496,11 +579,11 @@ def main(argv: list[str] | None = None) -> int:
 
             differences = compare_assets(origin, nonce, assets)
             differences += compare_pure_documents(origin, nonce, canonical_origin)
-            index_differences, generated = compare_api_index(
+            index_differences, generated, index_grades = compare_api_index(
                 origin, nonce, endpoints, canonical_origin
             )
             differences += index_differences
-            differences += compare_dataset_csv(origin, nonce, endpoints)
+            differences += compare_dataset_csv(origin, nonce, endpoints, index_grades)
             differences += check_share_card(origin, nonce, canonical_origin)
             differences += check_freshness(generated, args.max_age_hours)
         except LiveSiteError as exc:
@@ -538,7 +621,8 @@ def main(argv: list[str] | None = None) -> int:
         f"{origin.url} still matches what this checkout publishes: {len(assets)} assets "
         f"byte for byte, robots.txt and dataset.schema.json byte for byte, and "
         f"{len(endpoints)} registry endpoints named identically in api/index.json and "
-        f"dataset.csv, and a home page whose share card addresses the card it serves. "
+        f"dataset.csv, every published row satisfying the grade contract and agreeing with "
+        f"the index, and a home page whose share card addresses the card it serves. "
         f"Published {generated:%Y-%m-%d %H:%M} UTC."
     )
     return 0

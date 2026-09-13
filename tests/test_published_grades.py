@@ -41,6 +41,7 @@ from fhir_scorecard.published import (
     PublishedGrade,
     audit_published_grades,
     audit_rows,
+    grade_badges,
     read_endpoint_page,
     rows_as_published,
     surface_differences,
@@ -430,6 +431,42 @@ def test_a_page_rendering_fewer_meters_than_the_data_carries_is_caught(site: Pat
 def test_an_endpoint_with_data_and_no_page_is_caught(site: Path) -> None:
     _page(site, REACHED).unlink()
     assert [f.code for f in audit_published_grades(site)] == ["GRADE_PAGE_DISAGREES_WITH_THE_DATA"]
+
+
+def _report(site: Path, endpoint_id: str) -> Path:
+    return site / "endpoint" / endpoint_id / "report" / "index.html"
+
+
+def test_the_report_page_publishes_the_same_grade_as_the_data(site: Path) -> None:
+    """The positive control for the report rule. The report renders a badge and no hero block,
+    so ``read_endpoint_page`` sees nothing on it and only ``grade_badges`` does - which is
+    precisely how a page can carry a published grade that no gate reads."""
+    assert read_endpoint_page(_report(site, REACHED).read_text(encoding="utf-8"))[0] is None
+    assert grade_badges(_report(site, REACHED).read_text(encoding="utf-8")) == ["B"]
+    assert grade_badges(_report(site, UNREACHED).read_text(encoding="utf-8")) == [
+        NOT_OBSERVED_LITERAL
+    ]
+
+
+def test_a_report_showing_a_grade_the_data_does_not_publish_is_caught(site: Path) -> None:
+    _replace_once(_report(site, REACHED), ">B</span>", ">A</span>")
+    findings = audit_published_grades(site)
+    assert [f.code for f in findings] == ["GRADE_PAGE_DISAGREES_WITH_THE_DATA"]
+    assert "report" in findings[0].where
+
+
+def test_a_report_that_renders_no_grade_is_caught(site: Path) -> None:
+    _replace_once(_report(site, REACHED), 'class="grade grade-b"', 'class="badge-b"')
+    findings = audit_published_grades(site)
+    assert [f.code for f in findings] == ["GRADE_PAGE_DISAGREES_WITH_THE_DATA"]
+    assert "renders no grade at all" in findings[0].detail
+
+
+def test_an_endpoint_with_data_and_no_report_page_is_caught(site: Path) -> None:
+    _report(site, REACHED).unlink()
+    findings = audit_published_grades(site)
+    assert [f.code for f in findings] == ["GRADE_PAGE_DISAGREES_WITH_THE_DATA"]
+    assert "has no report page" in findings[0].detail
 
 
 def test_the_reader_only_reads_the_score_overview_meters(site: Path) -> None:

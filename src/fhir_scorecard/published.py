@@ -113,8 +113,9 @@ GRADE_CODES: dict[str, str] = {
         "them publishes is absent from another"
     ),
     "GRADE_PAGE_DISAGREES_WITH_THE_DATA": (
-        "a rendered endpoint page shows a grade or a dimension score that is not what the "
-        "published data for that endpoint says"
+        "a rendered page - the endpoint page or its single-endpoint report - shows a grade or a "
+        "dimension score that is not what the published data for that endpoint says, or does "
+        "not exist to show one"
     ),
     "GRADE_NOTHING_EXAMINED": (
         "the published data needed to check any of the above was absent, empty or unreadable, "
@@ -425,11 +426,15 @@ class _EndpointPageReader(HTMLParser):
         super().__init__(convert_charrefs=True)
         #: Text of the hero badge, or ``None`` when the page renders no hero grade.
         self.badge: str | None = None
+        #: Text of every grade badge on the page, in document order. The endpoint page's hero
+        #: badge is one of these; the single-endpoint report renders a badge and no hero.
+        self.badges: list[str] = []
         #: ``(title, value, unscored)`` per dimension meter, in document order.
         self.meters: list[tuple[str, str, bool]] = []
         self._open: list[tuple[str, frozenset[str], str]] = []
         self._sink: list[str] | None = None
         self._badge: list[str] = []
+        self._badge_is_hero = False
         self._title: list[str] = []
         self._value: list[str] = []
         self._unscored = False
@@ -447,7 +452,7 @@ class _EndpointPageReader(HTMLParser):
             and self._inside("score-overview")
         ):
             return "meter"
-        if tag == "span" and "grade" in classes and self._inside("hero-grade"):
+        if tag == "span" and "grade" in classes:
             return "badge"
         if tag == "span" and not classes and self._in_meter and not self._seen_title:
             return "title"
@@ -466,6 +471,7 @@ class _EndpointPageReader(HTMLParser):
             self._title, self._value, self._seen_title = [], [], False
         elif role == "badge":
             self._badge = []
+            self._badge_is_hero = self._inside("hero-grade")
             self._sink = self._badge
         elif role == "title":
             self._seen_title = True
@@ -487,7 +493,10 @@ class _EndpointPageReader(HTMLParser):
         if role in {"badge", "title", "value"}:
             self._sink = None
         if role == "badge":
-            self.badge = "".join(self._badge).strip()
+            text = "".join(self._badge).strip()
+            self.badges.append(text)
+            if self._badge_is_hero:
+                self.badge = text
         elif role == "meter":
             self.meters.append(
                 ("".join(self._title).strip(), "".join(self._value).strip(), self._unscored)
@@ -505,6 +514,19 @@ def read_endpoint_page(html: str) -> tuple[str | None, list[tuple[str, str, bool
     reader.feed(html)
     reader.close()
     return reader.badge, reader.meters
+
+
+def grade_badges(html: str) -> list[str]:
+    """Every grade badge a page renders, in document order.
+
+    The single-endpoint report (#143) publishes an organization's grade with a badge and no
+    hero block, so the page a publisher is most likely to be sent is one
+    :func:`read_endpoint_page` reads nothing from.
+    """
+    reader = _EndpointPageReader()
+    reader.feed(html)
+    reader.close()
+    return reader.badges
 
 
 def _read_json(path: Path) -> object:
@@ -628,6 +650,46 @@ def _page_findings(root: Path, eid: str, card: PublishedGrade) -> list[SiteFindi
     return findings
 
 
+def _report_findings(root: Path, eid: str, card: PublishedGrade) -> list[SiteFinding]:
+    """The single-endpoint report (#143), which is the page a publisher is most likely to be
+    sent and which renders its grade with a badge and no hero block.
+
+    ``entity_report.pages_for`` builds one for every card in the build, including the cards
+    nothing answered, so an absent report is a finding here rather than a case to skip: a rule
+    that shrugged at a missing page would stop examining anything the day the build stopped
+    writing them.
+    """
+    where = page_file(f"endpoint/{eid}/report")
+    try:
+        html = (root / "endpoint" / eid / "report" / "index.html").read_text(encoding="utf-8")
+    except OSError:
+        return [
+            SiteFinding(
+                "GRADE_PAGE_DISAGREES_WITH_THE_DATA",
+                where,
+                f"{eid} is published as grade {card.grade!r} and has no report page",
+            )
+        ]
+    badges = grade_badges(html)
+    if not badges:
+        return [
+            SiteFinding(
+                "GRADE_PAGE_DISAGREES_WITH_THE_DATA",
+                where,
+                f"the report renders no grade at all and the published data says {card.grade!r}",
+            )
+        ]
+    return [
+        SiteFinding(
+            "GRADE_PAGE_DISAGREES_WITH_THE_DATA",
+            where,
+            f"the report shows {shown!r} and the published data says {card.grade!r}",
+        )
+        for shown in badges
+        if shown != card.grade
+    ]
+
+
 def audit_published_grades(root: Path) -> list[SiteFinding]:
     """Every way the grades a build published break the contract, in a stable order.
 
@@ -669,4 +731,5 @@ def audit_published_grades(root: Path) -> list[SiteFinding]:
     )
     for eid in sorted(cards):
         findings += _page_findings(root, eid, cards[eid])
+        findings += _report_findings(root, eid, cards[eid])
     return sorted(findings, key=lambda f: (f.where, f.code, f.detail))

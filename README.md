@@ -7,7 +7,8 @@
 rescored daily, each grade with the findings and spec citations behind it, plus the machine-readable
 [dataset](https://fhir.chelseakr.com/dataset.csv) and [API](https://fhir.chelseakr.com/api/).
 Published by `.github/workflows/pages.yml`; `tools/verify_live_site.py` fails if what is
-served stops matching what this checkout builds.
+served stops matching what this checkout builds — unless no publish has run since the change,
+which it reports as pending rather than as a fault.
 
 CMS interoperability rules require regulated payers to stand up FHIR R4 APIs (Patient Access,
 Provider Directory, and, under CMS-0057-F, more to come). Whether those endpoints are *actually

@@ -869,9 +869,9 @@ def cohort_page(
     # Counted per endpoint, not per (member, endpoint) row, and the difference is not
     # hypothetical: `florida-marketplace` lists Cigna Healthcare and Cigna Healthcare of Florida
     # as two member organizations pointing at one published surface, and Florida Blue and
-    # Florida Blue HMO likewise, so the page said "17 endpoints listed" over thirteen endpoints
-    # and counted four of them twice in "answered on this run". `michigan-marketplace` has one
-    # such pair. The table below is right to keep a row per member - the row is about the plan,
+    # Florida Blue HMO likewise, so on 2026-09-10 the page said "17 endpoints listed" over
+    # thirteen endpoints and counted four of them twice in "answered on this run" -- still
+    # served on 2026-09-12. `michigan-marketplace` has one such pair. The table below is right to keep a row per member - the row is about the plan,
     # and a plan that publishes through another entity's server is still that plan's answer to
     # the rule - but a count labelled "endpoints" has to be a count of endpoints.
     #

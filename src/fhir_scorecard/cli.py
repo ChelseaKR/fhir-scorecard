@@ -1080,6 +1080,35 @@ def _build_parser() -> argparse.ArgumentParser:
         "addition never counts, and neither does a measurement that stopped being available, "
         "because treating a lost measurement as a fall would score an absence",
     )
+
+    concentration = sub.add_parser(
+        "concentration",
+        help="how many graded endpoints sit under one registrable domain, and under one "
+        "declared platform. Reads committed data, requests nothing, writes nothing unless "
+        "--json-out is passed",
+    )
+    concentration.add_argument(
+        "--registry", type=Path, default=Path("data/registry.json"), help="the graded registry"
+    )
+    concentration.add_argument(
+        "--history",
+        type=Path,
+        default=Path("data/history.json"),
+        help="the observation record the declared-platform axis is read from. The committed "
+        "copy is a seed; the record is the capability-history branch, so point this at a "
+        "restored copy for the live answer",
+    )
+    concentration.add_argument(
+        "--threshold",
+        type=int,
+        default=None,
+        help="report whether any platform or domain spanning more than one organization "
+        "reaches this many endpoints. No default: the number that matters is a judgment about "
+        "what would change a decision, not a property of this data",
+    )
+    concentration.add_argument(
+        "--json-out", type=Path, default=None, help="write both axes here as JSON"
+    )
     return parser
 
 
@@ -1159,6 +1188,7 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
         "snapshot": _cmd_snapshot,
         "verify-snapshot": _cmd_verify_snapshot,
         "diff": _cmd_diff,
+        "concentration": _cmd_concentration,
     }
     handler = handlers.get(args.command)
     return handler(args) if handler is not None else None
@@ -1198,6 +1228,57 @@ def _cmd_diff(args: argparse.Namespace) -> int:
     sys.stdout.write(render_json(report) if args.format == "json" else render_text(report))
     if args.fail_on_regression and report.regressions:
         return 1
+    return 0
+
+
+def _cmd_concentration(args: argparse.Namespace) -> int:
+    """Print how concentrated the graded population is, on both axes.
+
+    Exit 0 whatever it finds, including when a threshold is crossed. A crossing is a fact that
+    reopens a question somebody has to answer; it is not a build failure, and wiring it to exit 1
+    would turn a measurement into a policy this module deliberately refuses to hold (see
+    ``concentration.crosses``).
+
+    A missing history file is not an error either. It means the declared-platform axis has no
+    input, which is reported as every endpoint unmeasured and named as such - the same three-state
+    discipline the rest of this project runs on. Publishing zero platforms would be the bug.
+    """
+    from fhir_scorecard.concentration import (
+        by_host,
+        by_platform,
+        fingerprints_from_history,
+        render,
+    )
+
+    try:
+        endpoints = [e for e in load_registry(args.registry) if e.enabled]
+    except (OSError, ValueError) as exc:
+        print(f"registry error: {exc}", file=sys.stderr)
+        return 2
+    history: dict[str, Any] = {}
+    if args.history is not None and args.history.is_file():
+        try:
+            history = json.loads(args.history.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"history error: {exc}", file=sys.stderr)
+            return 2
+    else:
+        print(
+            f"note: {args.history} is not a file, so no document has been read for any "
+            "endpoint and the declared-platform axis reports all of them as unmeasured",
+            file=sys.stderr,
+        )
+    host = by_host(endpoints)
+    platform = by_platform(endpoints, fingerprints_from_history(history))
+    print(render(host, args.threshold))
+    print()
+    print(render(platform, args.threshold))
+    if args.json_out is not None:
+        args.json_out.parent.mkdir(parents=True, exist_ok=True)
+        args.json_out.write_text(
+            json.dumps({"host": host.as_dict(), "platform": platform.as_dict()}, indent=2) + "\n",
+            encoding="utf-8",
+        )
     return 0
 
 

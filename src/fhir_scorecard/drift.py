@@ -27,11 +27,13 @@ import ast
 import hashlib
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from fhir_scorecard.capability import CapabilityFacts
+from fhir_scorecard.fetch import FAILURE_KINDS
 
 _MAX_EVENTS = 20
 # Declarations remembered per endpoint, for deciding whether the one in hand is a return. Bounded
@@ -489,13 +491,53 @@ def readable_observations(raw: object) -> list[dict[str, Any]]:
     ]
 
 
-def _record_observation(entry: dict[str, Any], today: str, reachable: bool) -> Availability:
+def observation_kinds(item: Mapping[str, Any]) -> tuple[str, ...]:
+    """The failure kinds one recorded observation carries, or nothing when it carries none.
+
+    Read strictly, and the strictness is the point (#117). An observation records what a run
+    saw; ``unclassified`` is itself a recorded fact --- "a failure this run could not classify"
+    --- so coercing an absent, malformed or unrecognised ``kinds`` value into it would write a
+    record of an observation nobody made. Anything this function cannot read as a list of
+    members of :data:`fhir_scorecard.fetch.FAILURE_KINDS` is therefore no kinds at all, which
+    downstream reads as "no condition recorded", and never as a condition.
+
+    This is the opposite direction from :func:`fhir_scorecard.fetch.normalise_failure_kind`, and
+    deliberately so: that function reads a kind arriving from a foreign *probe*, where something
+    did fail and the label is untrusted. Here nothing may be assumed to have failed at all.
+    """
+    raw = item.get("kinds")
+    if not isinstance(raw, list) or not raw:
+        return ()
+    if not all(isinstance(k, str) and k in FAILURE_KINDS for k in raw):
+        return ()
+    return tuple(raw)
+
+
+def _record_observation(
+    entry: dict[str, Any],
+    today: str,
+    reachable: bool,
+    failure_kinds: tuple[str, ...] = (),
+) -> Availability:
     """Append today's reachability, replacing any earlier entry for the same date so a re-run
-    does not double-count a day."""
+    does not double-count a day.
+
+    ``failure_kinds`` is the reconciled condition set for a day the endpoint did not answer, and
+    it is written beside the boolean rather than in place of it (#117). Without it the record
+    holds only "did not answer", so an endpoint that moved from a broken hostname to a
+    credential gate --- a real event, and the one a reader most wants --- is invisible in
+    ``/history/`` and ``/over-time/`` forever after.
+
+    Nothing is written on a day the endpoint answered: there is no condition, and an empty list
+    would be a recorded observation of none.
+    """
     observations = [
         o for o in readable_observations(entry.get("observations")) if o["date"] != today
     ]
-    observations.append({"date": today, "up": reachable})
+    today_entry: dict[str, Any] = {"date": today, "up": reachable}
+    if not reachable and failure_kinds:
+        today_entry["kinds"] = list(failure_kinds)
+    observations.append(today_entry)
     observations = observations[-_MAX_OBSERVATIONS:]
     entry["observations"] = observations
     return Availability(
@@ -519,11 +561,16 @@ def observe(
     today: str,
     *,
     reachable: bool | None = None,
+    failure_kinds: tuple[str, ...] = (),
 ) -> DriftResult:
     """Record today's observation, mutating ``history``; returns what changed since last run.
 
     Only parsed CapabilityStatements are observed: an outage must not read as the server's
     declared capability having changed.
+
+    ``failure_kinds`` carries the reconciled condition of a day the endpoint did not answer, so
+    the record can later tell a broken entry apart from a gated one over time (#117). It is
+    recorded, never graded, and it is ignored on a day the endpoint answered.
     """
     entry_raw = history.get(endpoint_id)
     entry: dict[str, Any] = entry_raw if isinstance(entry_raw, dict) else {}
@@ -534,7 +581,7 @@ def observe(
     # answers with garbage is a different fact from one that does not answer, and availability
     # should reflect what actually happened rather than only the days parsing succeeded.
     is_up = facts.parsed and facts.resource_type_ok if reachable is None else reachable
-    availability = _record_observation(entry, today, is_up)
+    availability = _record_observation(entry, today, is_up, failure_kinds)
     history[endpoint_id] = entry
 
     if not facts.parsed or not facts.resource_type_ok:

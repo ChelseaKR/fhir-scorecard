@@ -14,6 +14,32 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **Why an endpoint did not answer is counted, not only stated (#117).** The endpoint page,
+  `dataset.csv` and `api/endpoint/<id>.json` already published the condition each unreached
+  endpoint ended in: 15 of the 15 endpoints no vantage reached on the 2026-09-13 publish. No
+  surface *counted* it. `/coverage/` published its documented-unreachable population as one
+  figure (6 organizations) and every cohort page published one "answered on this run" number, so
+  an endpoint that answered HTTP 401 and an endpoint whose certificate does not verify were the
+  same finding about a named organization.
+
+  `/coverage/` now breaks that population down by the condition each listed surface was observed
+  in on the publishing run. Recomputed against the 2026-09-13 publish, the 6 organizations list 7
+  surfaces: 1 answered and declined the request, 4 answered with something that was not the
+  document, 2 produced no answer. Cohort pages carry the same split within each category, which
+  reaches 14 of the 15; the fifteenth belongs to no cohort and no frame row, and its condition
+  stays on its own page. Conditions are counted over surfaces, never added to each other, and
+  `coverage.subtotal` refuses any total spanning "declined" and "no document".
+
+  **No reading is chosen.** Every heading describes what was observed and never why. Whether
+  requiring credentials is a finding about the organization stays open, because
+  `data/CANDIDATES.md` and `docs/SAMPLING-FRAME.md` §4 still disagree about a 401.
+
+  **The record keeps the condition.** A `history.json` observation for a day an endpoint did not
+  answer now carries its reconciled failure kinds; `/history/<id>/` and its JSON publish the kinds
+  and the condition as separate fields; `/over-time/` reports an endpoint moving from one
+  condition to another. Observations recorded before this carry no condition, say so, and can
+  neither start nor end a move. No grade moves.
+
 - **A free single-endpoint report, at `/endpoint/<id>/report/`.** The endpoint page answers
   "what is this endpoint's grade". This answers the question the organization responsible for
   the endpoint asks about itself: what did you observe, what did you *not* observe, and what

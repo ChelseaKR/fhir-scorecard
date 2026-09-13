@@ -21,6 +21,26 @@ health insurer — on 14 live endpoints, and the one test in the suite that read
 could not see it (#135, #137). `tests/test_failure_kinds.py::test_the_offline_fixtures_cover_both_populations`
 fails if either population disappears.
 
+## Replayed as three vantages
+
+The captures above are read two ways, because the site is built two ways.
+
+`--offline --fixtures` grades through `cli._grade_endpoint`: **one** vantage, probing directly.
+That is the path `tests/test_failure_kinds.py` pins. The published site is built with
+`--from-probes`, which grades through `cli._grade_from_probes` and reconciles the artifacts three
+probing runs left behind — and until 2026-09-13 no published card was pinned through that
+function at all, which is where both of that week's grade defects lived (#138, #140).
+
+`tests/test_published_states.py` replays these same captures as three vantages' probe artifacts
+and pins what that path publishes. It exists because three states are **unrepresentable** by any
+arrangement of the files in this directory: a single-vantage run has no consensus object, so it
+cannot express vantages disagreeing about whether an endpoint answered, vantages disagreeing about
+why it did not, or an endpoint **no vantage reported on at all**. That is the same kind of gap
+`refusal.json` closed for the unreachable path — a state the fixture format could not encode, so
+no test could see it, so the defect shipped. The vantage assignment lives in that test file rather
+than in committed probe files, so a refreshed capture cannot drift away from a second copy of
+itself inside a probe.
+
 They are a **snapshot with a date on it, not a live observation.** Nothing built from them
 describes any endpoint today, and an offline run never touches `data/history.json` (see
 `--offline` in `cli.py`, which resolves the history path under `.cache/` unless you name one

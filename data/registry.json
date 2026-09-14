@@ -1063,6 +1063,97 @@
         "observed": "no CapabilityStatement retrieved on 2026-09-04. The published address is a Da Vinci Plan-Net BulkPublish path rather than a conventional FHIR REST base, so this may be a shape the conformance check cannot read rather than an endpoint that is down; it is recorded as not retrievable from here, which is the narrower and supportable claim"
       },
       "enabled": true
+    },
+    {
+      "id": "bcbsne-patient-access",
+      "name": "Blue Cross and Blue Shield of Nebraska Patient Access API",
+      "kind": "payer",
+      "base_url": "https://api.bcbsnefhir.com/r4",
+      "verification": {
+        "method": "base URL taken from the metadata URL Blue Cross and Blue Shield of Nebraska prints verbatim on its own Interoperability Resources page, https://api.bcbsnefhir.com/r4/metadata, which the page tells developers to visit to learn the API's syntax and parameters. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, 144 resource types, 37 supportedProfile canonicals including the CARIN Blue Button Coverage and ExplanationOfBenefit profiles. The document names the platform operator, not the payer - publisher '1upHealth', software '1up FHIR Server' - so attribution rests on BCBSNE publishing that exact address in its own materials, on a bcbsnefhir.com host, which is the second basis docs/SAMPLING-FRAME.md allows for a vendor-named document. The page scopes the API to BCBSNE's Medicare Advantage and Qualified Health Plan lines and prints no Provider Directory base URL, so no provider-directory entry is claimed for this issuer",
+        "date": "2026-09-13",
+        "basis": "live_capability",
+        "source": "https://www.nebraskablue.com/shop-plans/individual-and-family-plans/Interoperability-Resources"
+      },
+      "enabled": true
+    },
+    {
+      "id": "bcbs-alabama-patient-access",
+      "name": "Blue Cross and Blue Shield of Alabama Patient Access API",
+      "kind": "payer",
+      "base_url": "https://api-bcbsal-prd.safhir.io/v1/api/carin-bb",
+      "verification": {
+        "method": "host and path printed in Blue Cross and Blue Shield of Alabama's own 'FHIR Documentation' PDF, published at bcbsal.org, under the heading 'Base URLs': 'The base url for each endpoint can be found on the website: https://api-bcbsal-prd.safhir.io/v1/api/', with the CARIN BB surface named on the next line as https://api-bcbsal-prd.safhir.io/v1/api/carin-bb/openapi.json. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, 6 resource types, 11 CARIN Blue Button supportedProfile canonicals. The document's publisher element reads 'HL7 Financial Management Working Group', which is the implementation guide's publisher and not the payer's, so attribution rests on BCBSAL printing the host in its own document",
+        "date": "2026-09-13",
+        "basis": "live_capability",
+        "source": "https://www.bcbsal.org/web/documents/d/portal/fhir-documentation-1-"
+      },
+      "enabled": true
+    },
+    {
+      "id": "bcbs-alabama-provider-directory",
+      "name": "Blue Cross and Blue Shield of Alabama Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api-bcbsal-prd.safhir.io/v1/api/provider-directory",
+      "verification": {
+        "method": "printed verbatim in the same BCBSAL document under its own 'Base URL' heading: 'The base URL for each provider directory endpoint is: https://api-bcbsal-prd.safhir.io/v1/api/provider-directory/', in the section describing what the document calls the BCBSAL Public Provider Directory API. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, the 8 Da Vinci PDEX Plan-Net resource types, 9 Plan-Net supportedProfile canonicals. Same publisher caveat as the Patient Access entry: the publisher element names the implementation guide's working group, and attribution rests on the payer's own document printing the host",
+        "date": "2026-09-13",
+        "basis": "live_capability",
+        "source": "https://www.bcbsal.org/web/documents/d/portal/fhir-documentation-1-"
+      },
+      "enabled": true
+    },
+    {
+      "id": "premera-patient-access",
+      "name": "Premera Blue Cross Patient Access API",
+      "kind": "payer",
+      "base_url": "https://opala.tech/patient-access/premera/v1/fhir-r4",
+      "verification": {
+        "method": "base URL printed as the 'Patient Access API Capability Statement' on the Premera developer toolkit page docs.opala.com publishes for Premera. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, 33 resource types, 78 supportedProfile canonicals, implementation.url matching the requested base exactly. THE ATTRIBUTION IS THE WEAK ONE IN THIS WAVE AND IS STATED RATHER THAN SMOOTHED: the document names the vendor - publisher 'Opala', software 'Opala' - and the half of docs/SAMPLING-FRAME.md's rule that would settle it, the organization publishing this exact address in its own materials, could not be established, because premera.com/visitor/developers serves a 5,529-byte JavaScript shell to an automated client and its rendered content was not read. What is established is that the vendor's page is titled for Premera and the address carries a per-tenant '/premera/' path segment, and that Premera's own Alaska provider page confirms a Patient Access API for 'current Premera Alaska Individual plan members', which is this frame's population. A person with a browser should confirm the address on premera.com before this entry is relied on",
+        "date": "2026-09-13",
+        "basis": "live_capability",
+        "source": "https://docs.opala.com/developer-toolkit-premera/"
+      },
+      "enabled": true
+    },
+    {
+      "id": "premera-provider-directory",
+      "name": "Premera Blue Cross Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://opala.tech/provdir/premera/v1/fhir-r4",
+      "verification": {
+        "method": "base URL printed on Opala's Provider Directory API documentation page as the Health Plan Provider Directory base URL, labelled Premera, beside a second one labelled Navitus that is a pharmacy benefit manager and not on this project's frame. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, the 8 Plan-Net resource types, 9 Plan-Net supportedProfile canonicals, implementation.url matching the requested base and implementation.description reading 'Firely Server'. Same attribution caveat as the Patient Access entry, recorded there in full: publisher 'Opala' is the vendor, and Premera's own developers page could not be read by an automated client",
+        "date": "2026-09-13",
+        "basis": "live_capability",
+        "source": "https://docs.opala.com/provider-directory-api/"
+      },
+      "enabled": true
+    },
+    {
+      "id": "amerihealth-caritas-next-de-patient-access",
+      "name": "AmeriHealth Caritas Next (Delaware) Patient Access API",
+      "kind": "payer",
+      "base_url": "https://api-ext.amerihealthcaritas.com/DEEX/patient-api",
+      "verification": {
+        "method": "the DEEX row of the Swagger API Details table on AmeriHealth Caritas's corporate developer portal, labelled 'AmeriHealth Caritas Next, Delaware', which prints https://api-ext.amerihealthcaritas.com/DEEX/patient-api/metadata. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, software 'AmeriHealth Caritas' 1.0.0, 22 resource types, implementation.url matching the requested base exactly. Listed as its own entry rather than mapped to the Florida, Louisiana or North Carolina entries for the reason the 2026-09-04 wave recorded when it made the same call for LAEX and NCEX: the publisher's table carries a separate plan id per state and each serves a distinct document. The table also carries DEDS and DEDSC rows, which are Delaware dual-eligible plans and not individual-market QHP issuers, so they are out of this frame",
+        "date": "2026-09-13",
+        "basis": "live_capability",
+        "source": "https://developer.amerihealthcaritas.com/dvp/v1/apidocumentation"
+      },
+      "enabled": true
+    },
+    {
+      "id": "amerihealth-caritas-next-de-provider-directory",
+      "name": "AmeriHealth Caritas Next (Delaware) Provider Directory API",
+      "kind": "payer_provider_directory",
+      "base_url": "https://api-ext.amerihealthcaritas.com/DEEX/provider-api",
+      "verification": {
+        "method": "the same DEEX row of the same table, which prints https://api-ext.amerihealthcaritas.com/DEEX/provider-api/metadata beside the patient one. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, software 'AmeriHealth Caritas' 1.0.0, 6 resource types, implementation.url matching the requested base exactly. This surface declares no supportedProfile canonicals, which is what the grade reports and not a curation judgement",
+        "date": "2026-09-13",
+        "basis": "live_capability",
+        "source": "https://developer.amerihealthcaritas.com/dvp/v1/apidocumentation"
+      },
+      "enabled": true
     }
   ]
 }

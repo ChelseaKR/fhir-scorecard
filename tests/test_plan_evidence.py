@@ -58,6 +58,14 @@ ROSTERED_COHORTS = {
     "kansas-marketplace": "KS",
     "louisiana-marketplace": "LA",
     "north-carolina-marketplace": "NC",
+    "nebraska-marketplace": "NE",
+    "alabama-marketplace": "AL",
+    "alaska-marketplace": "AK",
+    "wyoming-marketplace": "WY",
+    "west-virginia-marketplace": "WV",
+    "delaware-marketplace": "DE",
+    "indiana-marketplace": "IN",
+    "mississippi-marketplace": "MS",
 }
 
 #: Spelled-out numbers the prose uses, so a sentence written in words stays tied to the
@@ -73,6 +81,8 @@ WORDS = {
     12: "twelve",
     13: "thirteen",
     15: "fifteen",
+    20: "twenty",
+    21: "twenty-one",
     23: "twenty-three",
     27: "twenty-seven",
     40: "forty",
@@ -81,9 +91,12 @@ WORDS = {
     57: "fifty-seven",
     63: "sixty-three",
     69: "sixty-nine",
+    76: "seventy-six",
     80: "eighty",
     81: "eighty-one",
+    88: "eighty-eight",
     132: "one hundred and thirty-two",
+    160: "one hundred and sixty",
 }
 
 
@@ -324,10 +337,10 @@ def test_the_coverage_populations_are_the_ones_the_docs_print() -> None:
         )
     )
 
-    assert tally[VERIFIED] == 61
+    assert tally[VERIFIED] == 80
     assert tally[DOCUMENTED_UNREACHABLE] == 6
-    assert tally[NO_PUBLIC_URL_FOUND] == 38
-    assert tally[NOT_YET_REVIEWED] == 71
+    assert tally[NO_PUBLIC_URL_FOUND] == 47
+    assert tally[NOT_YET_REVIEWED] == 43
 
     # README states them as a parenthesised run; ROADMAP as a named list. Both must carry the
     # computed numbers, not merely a total that two of them could be traded within.

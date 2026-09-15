@@ -85,6 +85,9 @@ from fhir_scorecard.reverify import format_report as format_reverify_report
 from fhir_scorecard.site import (
     DEFAULT_ORIGIN,
     Page,
+    bundle_page,
+    bundle_setup_page,
+    bundle_trust_page,
     claim_page,
     cohort_page,
     endpoint_page,
@@ -888,6 +891,43 @@ def _build_parser() -> argparse.ArgumentParser:
         "--root", type=Path, default=Path("."), help="repository root with corpus/"
     )
     narrate.add_argument("--json", action="store_true", help="emit the full record")
+    bundle = sub.add_parser(
+        "bundle",
+        help="render a compliance report bundle: one branded, self-contained HTML report per "
+        "requested endpoint, zipped with a manifest. Reads the published dataset; makes no "
+        "request and computes no new finding",
+    )
+    bundle.add_argument(
+        "--request",
+        type=Path,
+        required=True,
+        help="a JSON file with bundle_id, program_name, accent, logo, endpoint_ids, "
+        "deliver_to, cadence (the shape infra/compliance-bundle's setup route writes)",
+    )
+    bundle.add_argument(
+        "--registry", type=Path, default=Path("data/registry.json"), help="endpoint registry"
+    )
+    bundle.add_argument(
+        "--scorecards",
+        type=Path,
+        default=Path("site/scorecards.json"),
+        help="the published dataset to render reports from",
+    )
+    bundle.add_argument(
+        "--max-endpoints",
+        type=int,
+        default=None,
+        help="cap the request to this many endpoints (the cap of the plan actually paid for); "
+        "default is the widest plan's cap",
+    )
+    bundle.add_argument("--out", type=Path, required=True, help="output .zip path")
+    bundle.add_argument(
+        "--plan-out",
+        type=Path,
+        default=None,
+        help="also write the build plan (included/refused ids) here, for a caller that must "
+        "report a count before the archive finishes",
+    )
     recheck = sub.add_parser(
         "recheck",
         help="re-probe previously rejected candidates; reports only, never edits the registry",
@@ -1205,9 +1245,61 @@ def _run_standalone(args: argparse.Namespace) -> int | None:
         "verify-snapshot": _cmd_verify_snapshot,
         "diff": _cmd_diff,
         "concentration": _cmd_concentration,
+        "bundle": _cmd_bundle,
     }
     handler = handlers.get(args.command)
     return handler(args) if handler is not None else None
+
+
+def _cmd_bundle(args: argparse.Namespace) -> int:
+    """Build one compliance report bundle from a validated request file.
+
+    Deliberately registry-free of the ``grade`` path's setup: this reads the registry itself
+    (every entry, not just the enabled ones -- classify() needs to see a disabled entry to
+    report it rather than treating it as unknown) and the already-published dataset, and never
+    probes a network. Fulfilment (infra/compliance-bundle) and hand dispatch
+    (.github/workflows/compliance-bundle.yml) both go through this one command, so there is one
+    implementation of "what is a valid bundle" rather than one per caller.
+    """
+    from fhir_scorecard.bundle import BundleError, build_bundle, parse_request
+
+    try:
+        raw = json.loads(args.request.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"request error: {exc}", file=sys.stderr)
+        return 2
+    if not isinstance(raw, dict):
+        print("request error: the request file must hold a JSON object", file=sys.stderr)
+        return 2
+    try:
+        max_endpoints = args.max_endpoints if args.max_endpoints is not None else 70
+        request = parse_request(raw, max_endpoints=max_endpoints)
+    except BundleError as exc:
+        print(f"request error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        manifest = build_bundle(
+            request,
+            args.out,
+            registry_path=args.registry,
+            scorecards_path=args.scorecards,
+        )
+    except BundleError as exc:
+        print(f"bundle error: {exc}", file=sys.stderr)
+        return 2
+    except (OSError, ValueError) as exc:
+        print(
+            f"bundle error: could not read {args.registry} or {args.scorecards}: {exc}",
+            file=sys.stderr,
+        )
+        return 2
+    if args.plan_out is not None:
+        args.plan_out.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    print(
+        f"{manifest['included']} of {manifest['requested']} requested endpoints included; "
+        f"wrote {args.out}"
+    )
+    return 0
 
 
 def _cmd_mcp(args: argparse.Namespace) -> int:
@@ -1762,6 +1854,21 @@ def _advertise_feeds(pages: list[Page], written: tuple[str, ...]) -> list[Page]:
     ]
 
 
+#: Read once per site build. A missing or unreadable file is never a build failure: it is the
+#: state every fixture directory and every checkout that has not touched the compliance bundle
+#: is in, and ``bundle_page`` already renders "Not yet available" for a plan with no products,
+#: which is the honest thing to say about a repository that has not priced anything yet.
+_BUNDLE_PLAN_PATH = Path("data/bundle/plan.json")
+
+
+def _load_bundle_plan() -> dict[str, Any]:
+    try:
+        data = json.loads(_BUNDLE_PLAN_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"paymentsAvailable": False, "products": {}, "max_endpoints": 0}
+    return data if isinstance(data, dict) else {"paymentsAvailable": False, "products": {}}
+
+
 def _write_site(
     scorecards: list[Scorecard],
     endpoints: list[Endpoint],
@@ -1790,6 +1897,9 @@ def _write_site(
         home_page(scorecards, origin, cohorts, coverage_link=coverage is not None),
         how_we_grade_page(origin),
         claim_page(origin),
+        bundle_page(origin, _load_bundle_plan()),
+        bundle_setup_page(origin),
+        bundle_trust_page(origin),
     ]
     archive = records(history or {}, scorecards)
     pages.append(index_page(archive, origin, mode_of(history or {})))

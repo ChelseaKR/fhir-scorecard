@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "paymentsAvailable": false,
+  "currency": "USD",
+  "provisioning_business_days": 2,
+  "max_endpoints": 70,
+  "products": {
+    "bundle_15": {
+      "label": "One archive, up to 15 endpoints",
+      "price": 299,
+      "interval": null,
+      "checkout_url": null
+    },
+    "bundle_70": {
+      "label": "One archive, up to 70 endpoints",
+      "price": 699,
+      "interval": null,
+      "checkout_url": null
+    },
+    "refresh_qtr": {
+      "label": "Quarterly refresh",
+      "price": 99,
+      "interval": "quarter",
+      "checkout_url": null
+    },
+    "refresh_yr": {
+      "label": "Quarterly refresh, billed yearly",
+      "price": 349,
+      "interval": "year",
+      "checkout_url": null
+    }
+  }
+}

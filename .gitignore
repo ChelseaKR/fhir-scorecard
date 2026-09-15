@@ -8,3 +8,11 @@ site/
 
 # Agent worktrees are scratch checkouts, never repository content.
 .claude/
+
+# Terraform: local plan/init state and the packaged Lambda zip never belong in git. The lock
+# file (.terraform.lock.hcl) is the exception and stays tracked.
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/*.zip
+infra/**/build/

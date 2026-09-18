@@ -86,7 +86,7 @@ and a diff between yesterday's artifact and today's is a change in the endpoints
 **An endpoint this run did not reach is reported as not measured, never as a failure.** Its
 testcases are `skipped` naming the vantage, its SARIF results are `note` with a severity of
 `not observed`, and the run's summary counts it separately from the endpoints that were graded,
-so a run that reached nothing cannot summarise as a clean one. The exit code still answers only
+so a run that reached nothing cannot summarize as a clean one. The exit code still answers only
 the thresholds you set, exactly as the single-endpoint check does: an unreachable endpoint is a
 fact about the network path between your runner and it as much as about the endpoint, and a
 build that goes red for that is blaming the endpoint for the runner. To make an unreached
@@ -198,7 +198,7 @@ facts a machine can read:
   must not be able to read as a fresh one.
 
 Re-checking used to be entirely manual. `fhir-scorecard reverify` does the retrieval and leaves
-the judgement where it belongs:
+the judgment where it belongs:
 
 ```console
 # Re-check every entry nobody has looked at in 90 days. Writes a proposal, edits nothing.
@@ -390,7 +390,7 @@ function of `(endpoint_id, kind, date, digest)` rather than of the address the s
 from, so a rebuild republishes nothing and a hosting change republishes nothing. Every feed
 states how many events it carries out of how many the record holds and over what window: the
 site feed is capped at the newest 100 and says so, because a truncated dataset published as a
-complete one is the defect this project is organised against. An endpoint with no recorded
+complete one is the defect this project is organized against. An endpoint with no recorded
 event gets a feed with zero entries and a sentence saying which of the two reasons applies,
 not a 404. Two things a feed will not say: it reports no grade, because the record retains
 none; and an availability entry names no vantage, because an observation in the record is a
@@ -519,7 +519,7 @@ timeline records with, so the timeline and the verb cannot disagree.
 
 `--fail-on-regression` exits 1 when the later side no longer has something the earlier side had:
 a resource, an interaction, a declared profile, or a check that used to pass. It is opt-in
-because it is an operator's policy rather than this tool's judgement, and it is deliberately
+because it is an operator's policy rather than this tool's judgment, and it is deliberately
 narrow. An addition never trips it. Neither does a dimension that stopped publishing a score,
 which is reported as not comparable rather than as a fall, because treating a lost measurement as
 a fall would score an absence. Nor does a document this run could not read.

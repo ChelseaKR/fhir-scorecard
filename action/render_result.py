@@ -9,7 +9,7 @@ Two things it must not do, both of which are the reason it is a script and not t
 shell. It must not print ``F`` for an endpoint nobody reached, because ``not observed`` and
 ``F`` are different values in this project and squashing them back together in the summary
 would undo the split. And it must not describe a failing gate as non-compliance, a ranking, or
-a quality judgement: it reports the letter measured, the threshold the caller chose, and the
+a quality judgment: it reports the letter measured, the threshold the caller chose, and the
 disclaimer the artifact carries.
 """
 

@@ -93,7 +93,7 @@ FOOTER_CONTROL = (
 )
 
 #: The status line after each state change, announced by its ``role="status"`` live region.
-#: ``/privacy/`` describes the same behaviour.
+#: ``/privacy/`` describes the same behavior.
 OPT_OUT_MESSAGES = {
     "__MSG_OPTED_OUT__": (
         "Opted out. From the next page you open, this site will not load Google Analytics "

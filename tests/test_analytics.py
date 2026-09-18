@@ -2,7 +2,7 @@
 the footer opt-out, and configured exactly as ADR 0006 says everywhere else.
 
 Two kinds of test. The build tests read the site the documented offline command writes, with
-and without a measurement ID, and check what the pages and the data files carry. The behaviour
+and without a measurement ID, and check what the pages and the data files carry. The behavior
 tests run the loader itself in Node against a stubbed ``window``, ``navigator``, ``document``
 and ``localStorage``, because a string search over a script cannot show what the script does.
 Locally they skip when Node is missing; in CI (``CI`` set) a missing Node is a failure, so the
@@ -269,8 +269,8 @@ def _node() -> str:
     node = shutil.which("node")
     if node is None:
         if os.environ.get("CI"):
-            pytest.fail("Node is required in CI to run the GA4 loader's behaviour tests")
-        pytest.skip("Node is not installed; the loader's behaviour tests need it")
+            pytest.fail("Node is required in CI to run the GA4 loader's behavior tests")
+        pytest.skip("Node is not installed; the loader's behavior tests need it")
     return node
 
 

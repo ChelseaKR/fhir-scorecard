@@ -291,7 +291,7 @@ Merged changes land here until the next tag.
   the check — it only loses the distinction.
 
 - **A cohort endpoint two plans publish through was counted twice.**
-  `site.cohort_page` counted `(member, endpoint)` rows and labelled the result
+  `site.cohort_page` counted `(member, endpoint)` rows and labeled the result
   "endpoints listed", so an endpoint two member organizations both point at was
   counted twice, in that number and in "answered on this run" beside it. Measured
   against the live site and the live `dataset.csv` on 2026-09-10:
@@ -308,7 +308,7 @@ Merged changes land here until the next tag.
   Two legal entities answering the rule through one server is a fact about the
   roster, not an error in it.
 
-  "Endpoints listed" counts endpoints, and the listings now have a labelled number
+  "Endpoints listed" counts endpoints, and the listings now have a labeled number
   of their own — `plan listings`, printed on the two cohorts where it differs from
   the endpoint count, beside the sentence saying why. The word in the label is
   "endpoints", the table under it is headed "Listed endpoints", and the number
@@ -431,7 +431,7 @@ so a repeated key cannot reach `main` again.
 
   `unclassified` is a real member and is published as itself. A 415, a 429 or a 400 is
   an answer this project has no label for and gets that one, not the nearest-looking
-  label; so does an unrecognised kind arriving in a probe file written by a vantage
+  label; so does an unrecognized kind arriving in a probe file written by a vantage
   this project does not operate.
 
   `Consensus.failure_kinds` reconciles them under the rule the rest of the module
@@ -475,7 +475,7 @@ so a repeated key cannot reach `main` again.
 
   `--junit` writes a testsuite per kind and a testcase per endpoint and dimension;
   `--sarif` writes SARIF 2.1.0 with one result per finding, each carrying the
-  specification passage it cites and a rule catalogue derived from the run rather
+  specification passage it cites and a rule catalog derived from the run rather
   than hand-kept. Neither carries a timestamp, so two runs over the same documents
   produce the same bytes.
 
@@ -645,7 +645,7 @@ so a repeated key cannot reach `main` again.
   and `answered_percent` in the JSON is `null` rather than `0`, so a consumer cannot read
   "not enough observations" as a real zero. The index names the below-floor population instead
   of dropping it, because an endpoint missing from a table reads as an endpoint nobody watched.
-  A record written by a fixture run is labelled as such on the page.
+  A record written by a fixture run is labeled as such on the page.
 
 - **Accessibility and transfer-size budgets as merge gates (ROADMAP phase 7, ADR 0004).**
   `fhir_scorecard.accessibility` runs twelve mechanical rules over every built page. Eight
@@ -707,7 +707,7 @@ so a repeated key cannot reach `main` again.
   hand-written file, or a writer in a language that stringifies its JSON booleans,
   produces -- counted as reached.
 
-  **Neither has fired yet, and both were about to become live.** `write_probes` serialises
+  **Neither has fired yet, and both were about to become live.** `write_probes` serializes
   a dataclass, so every probe file this project has written carries a real boolean and a
   real integer, and every current grade is unaffected. The path that activates them is #100
   and #86: a vantage this project does not operate, posting a probe file for the publishing
@@ -722,7 +722,7 @@ so a repeated key cannot reach `main` again.
   vanished silently is indistinguishable from one that was never sent.
 
   Every refusing branch is exercised directly rather than only through a broken file, and
-  the parametrised table includes `elapsed_ms: true`, which is an `int` in Python and would
+  the parametrized table includes `elapsed_ms: true`, which is an `int` in Python and would
   have passed a bare `isinstance(value, int)` as 1 ms. Two pre-existing refusals in the same
   loader -- a file whose top level is not an object, an entry that is not an object -- had
   no test and now have one.
@@ -1086,7 +1086,7 @@ so a repeated key cannot reach `main` again.
   never-leave-the-two-paths promise as tests that can fail. Two of them run the real fetcher
   against a loopback HTTP server that records which requests actually arrived, because an
   assertion about a request that was *not* made is worth little unless something was listening.
-  One test pins the stock-opener behaviour that was replaced, so the delta stays documented.
+  One test pins the stock-opener behavior that was replaced, so the delta stays documented.
 - `tests/test_shipped_code_is_gated.py`: reads the Makefile, `pyproject.toml` and the pre-commit
   config and fails if any Python file in the archive a consumer downloads falls outside them.
 

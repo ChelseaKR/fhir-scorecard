@@ -9,7 +9,7 @@ the review method, the date and the source. Companion to
 **What this is not.** This is not a defect report against Anthem Blue Cross or Elevance Health,
 and no issue or ticket was filed with either. The endpoint works. It is not a compliance
 determination: nothing in CMS-9115-F requires a CapabilityStatement to identify which of an
-operator's brands a given response describes, and the behaviour described below violates no
+operator's brands a given response describes, and the behavior described below violates no
 rule this project reads. It is a finding about what an outside observer can establish, which
 is a smaller question and the only one this project answers.
 
@@ -84,7 +84,7 @@ project:
 ## Limits
 
 - Three requests, on one day, from one network. Three is enough to establish that the
-  value varies and is nowhere near enough to characterise how. The rotation may be round-robin
+  value varies and is nowhere near enough to characterize how. The rotation may be round-robin
   across backends, may be load-dependent, may have changed since.
 - No conclusion is drawn about what any of the three responses describes. Whether one of them
   is the correct document for Anthem Blue Cross, and if so which, is not observable from

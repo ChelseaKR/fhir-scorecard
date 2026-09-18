@@ -77,7 +77,7 @@ class CohortMember:
     #: The name the roster's publisher prints for this organization, where the cohort is drawn
     #: from a committed roster file. It is the join key back to that roster, and it is kept
     #: verbatim: a cohort whose members were matched to a frame on this project's own
-    #: normalisation of a name would have a denominator only this project could reproduce.
+    #: normalization of a name would have a denominator only this project could reproduce.
     #: Empty where the cohort's roster is not a committed CSV, as California's is not.
     roster_name: str = ""
 

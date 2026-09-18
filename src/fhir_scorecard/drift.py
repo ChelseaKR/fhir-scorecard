@@ -496,12 +496,12 @@ def observation_kinds(item: Mapping[str, Any]) -> tuple[str, ...]:
 
     Read strictly, and the strictness is the point (#117). An observation records what a run
     saw; ``unclassified`` is itself a recorded fact --- "a failure this run could not classify"
-    --- so coercing an absent, malformed or unrecognised ``kinds`` value into it would write a
+    --- so coercing an absent, malformed or unrecognized ``kinds`` value into it would write a
     record of an observation nobody made. Anything this function cannot read as a list of
     members of :data:`fhir_scorecard.fetch.FAILURE_KINDS` is therefore no kinds at all, which
     downstream reads as "no condition recorded", and never as a condition.
 
-    This is the opposite direction from :func:`fhir_scorecard.fetch.normalise_failure_kind`, and
+    This is the opposite direction from :func:`fhir_scorecard.fetch.normalize_failure_kind`, and
     deliberately so: that function reads a kind arriving from a foreign *probe*, where something
     did fail and the label is untrusted. Here nothing may be assumed to have failed at all.
     """

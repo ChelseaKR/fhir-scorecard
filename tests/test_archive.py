@@ -191,7 +191,7 @@ def test_the_mode_is_read_from_the_history_itself(history: dict, expected: str) 
     assert mode_of(history) == expected
 
 
-def test_a_fixture_written_record_is_labelled_and_a_live_one_is_not() -> None:
+def test_a_fixture_written_record_is_labeled_and_a_live_one_is_not() -> None:
     built = records(_history("acme", days=3, answered=3), [_card("acme")])
     assert "must not be read as availability" in _text(
         index_page(built, DEFAULT_ORIGIN, "offline").body
@@ -347,7 +347,7 @@ def test_every_recorded_change_appears_in_the_order_it_was_recorded() -> None:
 
 
 def test_the_timeline_carries_nothing_the_history_does_not() -> None:
-    """The load-bearing negative for a timeline: it may summarise, never supply. Every date and
+    """The load-bearing negative for a timeline: it may summarize, never supply. Every date and
     every change string on the page has to be findable in the source entry."""
     history = _with_events("acme", THREE_RELEASES, ONE_RETURN)
     (record,) = records(history, [_card("acme")])

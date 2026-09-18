@@ -238,7 +238,7 @@ class _StrictLoader(yaml.SafeLoader):
 
     PyYAML resolves duplicates the way a dict literal does. GitHub Actions does not: it
     rejects the workflow outright, which is what made a duplicated key a release blocker
-    rather than a style nit. This loader is the strict half of that behaviour, so the test
+    rather than a style nit. This loader is the strict half of that behavior, so the test
     below fails on the file GitHub would refuse.
     """
 
@@ -265,8 +265,8 @@ def _load_strict(text: str) -> Any:
     """Parse ``text`` with the duplicate-rejecting loader.
 
     The single entry point for the strict parse, so the one suppression below is the only one.
-    ``S506`` fires on any ``yaml.load`` whose loader it does not recognise as safe, and it
-    recognises the name ``SafeLoader`` rather than the class hierarchy. ``_StrictLoader``
+    ``S506`` fires on any ``yaml.load`` whose loader it does not recognize as safe, and it
+    recognizes the name ``SafeLoader`` rather than the class hierarchy. ``_StrictLoader``
     derives from ``SafeLoader`` and adds a constructor that raises; it resolves no tags
     ``SafeLoader`` would not, so it cannot instantiate an arbitrary object. The assertion is
     what keeps that argument true - re-parent the loader and this fails rather than silently
@@ -413,7 +413,7 @@ def test_a_push_to_main_cannot_cancel_the_commit_before_it() -> None:
     first commit reaches `main` with no verdict — not a red one, none at all. Measured across
     this portfolio, that silently voided a third of one repo's main-branch CI.
 
-    A cancelled run is also not a failure, so nothing is red and no one is told. The key has
+    A canceled run is also not a failure, so nothing is red and no one is told. The key has
     to distinguish commits.
     """
     offenders: list[str] = []

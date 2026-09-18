@@ -509,7 +509,7 @@ def test_a_cohort_member_may_point_at_an_endpoint_that_did_not_answer() -> None:
 
 def test_roster_name_is_optional_and_kept_verbatim(tmp_path: Path) -> None:
     """The join key back to a committed roster CSV. Kept exactly as the roster's publisher
-    prints it, because a cohort matched to a frame on this project's own normalisation of a
+    prints it, because a cohort matched to a frame on this project's own normalization of a
     name would have a denominator only this project could reproduce."""
     payload = _cohort_payload()
     payload["members"][0]["roster_name"] = "  Ambetter from Superior HealthPlan  "

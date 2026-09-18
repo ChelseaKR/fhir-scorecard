@@ -312,7 +312,7 @@ a fact about the surface rather than a gap in this curation.
 
 ### A methodological note, in both directions
 
-This vantage's TLS behaviour is host-dependent and was checked rather than assumed, because a TLS
+This vantage's TLS behavior is host-dependent and was checked rather than assumed, because a TLS
 error is a question and not an answer. `capital-bluecross` and `bcbs.com` fail certificate
 verification here and succeed with verification disabled: that is this network, and nothing about
 those endpoints was recorded from it. `api.imperialhealthplan.com` fails the handshake *with
@@ -322,7 +322,7 @@ verification disabled too*, which is the server declining, and is recorded again
 Also recorded against ourselves: `https://flex.optum.com/fhirpublic`, which UnitedHealthcare's page
 labels "Base request URL", answers 403, and `https://flex.optum.com/fhirpublic2025` answers 502.
 The metadata URL the same page prints, one path segment deeper, is the one that works. Had this
-wave taken the string labelled "base" and reported the 403, it would have published a false
+wave taken the string labeled "base" and reported the 403, it would have published a false
 statement about a live and conformant endpoint.
 
 ### A published finding changed under us
@@ -516,7 +516,7 @@ they disagree.
 
 Two curator decisions are left open rather than made here. Arizona's roster name, *Imperial
 Insurance Companies, Inc.*, does not appear on Imperial's portal, which names *Imperial Health
-Plan of Arizona*; whether those are the same legal entity is a judgement about corporate
+Plan of Arizona*; whether those are the same legal entity is a judgment about corporate
 identity, not about what is published. And HCSC's five-state scope, recorded on 2026-08-19,
 could not be re-read on this date because the page became script-rendered; the Oklahoma mapping
 rests on that earlier reading plus the Oklahoma brand publishing nothing of its own.

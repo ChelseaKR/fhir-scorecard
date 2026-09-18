@@ -127,7 +127,7 @@ it blocks both a merge and a publish. **No formal assistive-technology review ha
 been performed.** That is still open, and the gate does not stand in for it: it decides only what
 a static reader can decide from markup, and
 [ADR 0004](adr/0004-accessibility-and-weight-gates-without-a-browser.md) lists what it cannot see
-- colour contrast as rendered, focus order, visible focus, computed ARIA roles, reflow, and
+- color contrast as rendered, focus order, visible focus, computed ARIA roles, reflow, and
 whether an accessible name is any good. A page can satisfy every rule and be unusable with a
 screen reader. Tracked in `ROADMAP.md`.
 

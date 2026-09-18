@@ -7,7 +7,7 @@ that this cannot.
 
 The honest boundary, stated here as well as in the ADR because a green gate is read as a
 claim: **this checks the subset of WCAG 2.2 Level A that can be decided from the markup a
-static generator emits, and nothing else.** It does not measure colour contrast as rendered,
+static generator emits, and nothing else.** It does not measure color contrast as rendered,
 focus order, visible focus, computed ARIA roles, reflow, or anything that needs layout or a
 user agent. It does not replace the assistive-technology review, which remains open in
 `docs/RESPONSIBLE-TECH-AUDITS.md` section E. A page can satisfy every rule below and still be
@@ -77,7 +77,7 @@ A11Y_CODES: dict[str, str] = {
     "A11Y_DUPLICATE_ID": (
         "an id used more than once. SC 4.1.1 Parsing was removed in WCAG 2.2, so this is not "
         "that criterion but this project's own rule: it is here because every id reference "
-        "below resolves to the first match, which makes a duplicate a silent mis-labelling "
+        "below resolves to the first match, which makes a duplicate a silent mis-labeling "
         "(supports SC 1.3.1 and 4.1.2)"
     ),
     "A11Y_REFERENCE_TO_MISSING_ID": (
@@ -153,7 +153,7 @@ class _A11yParser(HTMLParser):
         self.images_without_alt: list[str] = []
         self.unnamed: list[tuple[str, str]] = []
         self.controls: list[tuple[str, dict[str, str]]] = []
-        self.labelled_ids: set[str] = set()
+        self.labeled_ids: set[str] = set()
         self.id_references: list[tuple[str, str]] = []
         self.fragments: list[str] = []
         self._in_title = False
@@ -194,7 +194,7 @@ class _A11yParser(HTMLParser):
         elif tag in {"input", "select", "textarea"}:
             self.controls.append((tag, got))
         elif tag == "label" and got.get("for", "").strip():
-            self.labelled_ids.add(got["for"].strip())
+            self.labeled_ids.add(got["for"].strip())
         heading = _HEADING.fullmatch(tag)
         if heading:
             self.headings.append(int(heading.group(1)))
@@ -246,7 +246,7 @@ class _A11yParser(HTMLParser):
         )
 
 
-def _control_is_named(tag: str, got: dict[str, str], labelled_ids: set[str]) -> bool:
+def _control_is_named(tag: str, got: dict[str, str], labeled_ids: set[str]) -> bool:
     """Whether a form control has an accessible name from any source HTML can supply.
 
     Decided after the whole page is read, not at the tag, because the most common source is a
@@ -256,7 +256,7 @@ def _control_is_named(tag: str, got: dict[str, str], labelled_ids: set[str]) -> 
         return True
     if got.get("title", "").strip():
         return True
-    if got.get("id", "").strip() in labelled_ids:
+    if got.get("id", "").strip() in labeled_ids:
         return True
     # A hidden input has no user-facing presence to name, and a submit or button input carries
     # its name in the value attribute rather than in text.
@@ -297,7 +297,7 @@ def _page_findings(page: str, parser: _A11yParser) -> list[SiteFinding]:
             f"<{tag}> {got.get('id') or got.get('name') or '(unidentified)'}",
         )
         for tag, got in parser.controls
-        if not _control_is_named(tag, got, parser.labelled_ids)
+        if not _control_is_named(tag, got, parser.labeled_ids)
     ]
     seen = set()
     for identifier in parser.ids:

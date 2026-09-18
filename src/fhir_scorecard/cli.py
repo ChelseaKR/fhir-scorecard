@@ -222,8 +222,9 @@ def _grade_from_probes(
         # served one. That is the same observation `_grade_endpoint` makes when it probes
         # directly, and it grades identically: `parsed` False, `observed` True, I2 scored 0 of
         # 35. Reading it as an absence instead withheld those 35 points, and `grading.letter`
-        # then could not pin a band, so eighteen of the eighty-one live endpoints published no
-        # letter on 2026-09-12 while all three vantages held their CapabilityStatements.
+        # then could not pin a band. Measured 2026-09-12, when the registry held 81: that left
+        # eighteen of the eighty-one live endpoints publishing no letter while all three
+        # vantages held their CapabilityStatements.
         smart_facts = SMART_NOT_SERVED
     else:
         # Nobody asked, or nobody's file says whether they did. Unknown, and it stays unknown.

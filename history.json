@@ -581,6 +581,60 @@
       }
     ]
   },
+  "amerihealth-caritas-next-de-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 22,
+      "resources_with_interactions": 22,
+      "software_name": "AmeriHealth Caritas",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-09-18",
+    "last_seen": "2026-09-18",
+    "observations": [
+      {
+        "date": "2026-09-18",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "50246b48e28560aa",
+        "first_seen": "2026-09-18"
+      }
+    ]
+  },
+  "amerihealth-caritas-next-de-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 0,
+      "profile_digest": "e3b0c44298fc1c14",
+      "resource_count": 6,
+      "resources_with_interactions": 6,
+      "software_name": "AmeriHealth Caritas",
+      "software_version": "1.0.0"
+    },
+    "first_seen": "2026-09-18",
+    "last_seen": "2026-09-18",
+    "observations": [
+      {
+        "date": "2026-09-18",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "64b21519c9b1ff51",
+        "first_seen": "2026-09-18"
+      }
+    ]
+  },
   "amerihealth-caritas-next-la-patient-access": {
     "events": [],
     "fingerprint": {
@@ -1642,6 +1696,60 @@
       }
     ]
   },
+  "bcbs-alabama-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 11,
+      "profile_digest": "b7d928206ce7598e",
+      "resource_count": 6,
+      "resources_with_interactions": 6,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-09-18",
+    "last_seen": "2026-09-18",
+    "observations": [
+      {
+        "date": "2026-09-18",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "3baa0b059b1f14d9",
+        "first_seen": "2026-09-18"
+      }
+    ]
+  },
+  "bcbs-alabama-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 9,
+      "profile_digest": "6091e98daefd2a6a",
+      "resource_count": 8,
+      "resources_with_interactions": 8,
+      "software_name": null,
+      "software_version": null
+    },
+    "first_seen": "2026-09-18",
+    "last_seen": "2026-09-18",
+    "observations": [
+      {
+        "date": "2026-09-18",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "e3e234086cbb3a6a",
+        "first_seen": "2026-09-18"
+      }
+    ]
+  },
   "bcbs-arizona-patient-access": {
     "first_seen": "2026-09-04",
     "observations": [
@@ -2332,6 +2440,33 @@
       {
         "digest": "e622c747446e1725",
         "first_seen": "2026-09-04"
+      }
+    ]
+  },
+  "bcbsne-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 37,
+      "profile_digest": "ddeec79541ef2a78",
+      "resource_count": 144,
+      "resources_with_interactions": 144,
+      "software_name": "1up FHIR Server",
+      "software_version": "4.0.1 3.11.1 v1.0.0-rc+202609141200 4c9554d"
+    },
+    "first_seen": "2026-09-18",
+    "last_seen": "2026-09-18",
+    "observations": [
+      {
+        "date": "2026-09-18",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "5e2788c36ff4e141",
+        "first_seen": "2026-09-18"
       }
     ]
   },
@@ -8275,12 +8410,6 @@
     "events": [
       {
         "changes": [
-          "software_version: '5.1.32-ccbab32' -> '5.1.34-48893b9'"
-        ],
-        "date": "2026-08-27"
-      },
-      {
-        "changes": [
           "software_version: '5.1.34-48893b9' -> '5.1.36-cd2d4e5'"
         ],
         "date": "2026-08-28"
@@ -8392,6 +8521,12 @@
           "software_version: '5.1.39-6ffc6eb' -> '5.1.39-830c511'"
         ],
         "date": "2026-09-18"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.39-830c511' -> '5.1.39-6e99ae7'"
+        ],
+        "date": "2026-09-18"
       }
     ],
     "fingerprint": {
@@ -8402,7 +8537,7 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "medplum",
-      "software_version": "5.1.39-830c511"
+      "software_version": "5.1.39-6e99ae7"
     },
     "first_seen": "2026-08-05",
     "last_seen": "2026-09-18",
@@ -8582,10 +8717,6 @@
     ],
     "states": [
       {
-        "digest": "aae1dcdc22cd0b63",
-        "first_seen": "2026-08-20"
-      },
-      {
         "digest": "f4ab4d69c1914e26",
         "first_seen": "2026-08-20"
       },
@@ -8675,6 +8806,10 @@
       },
       {
         "digest": "7aa0d7932dea7b21",
+        "first_seen": "2026-09-18"
+      },
+      {
+        "digest": "a5b2aa8af37907f3",
         "first_seen": "2026-09-18"
       }
     ]
@@ -9308,6 +9443,60 @@
       {
         "digest": "d037f6d2a3c5ae67",
         "first_seen": "2026-09-11"
+      }
+    ]
+  },
+  "premera-patient-access": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": true,
+      "fhir_version": "4.0.1",
+      "profile_count": 78,
+      "profile_digest": "a099a941c9d94644",
+      "resource_count": 33,
+      "resources_with_interactions": 33,
+      "software_name": "Opala",
+      "software_version": "v1"
+    },
+    "first_seen": "2026-09-18",
+    "last_seen": "2026-09-18",
+    "observations": [
+      {
+        "date": "2026-09-18",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "8440aaab9057ff3a",
+        "first_seen": "2026-09-18"
+      }
+    ]
+  },
+  "premera-provider-directory": {
+    "events": [],
+    "fingerprint": {
+      "declares_oauth_security": false,
+      "fhir_version": "4.0.1",
+      "profile_count": 9,
+      "profile_digest": "6091e98daefd2a6a",
+      "resource_count": 8,
+      "resources_with_interactions": 8,
+      "software_name": "Opala",
+      "software_version": "v1"
+    },
+    "first_seen": "2026-09-18",
+    "last_seen": "2026-09-18",
+    "observations": [
+      {
+        "date": "2026-09-18",
+        "up": true
+      }
+    ],
+    "states": [
+      {
+        "digest": "29b90ad27875f825",
+        "first_seen": "2026-09-18"
       }
     ]
   },

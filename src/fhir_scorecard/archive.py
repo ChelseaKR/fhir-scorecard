@@ -41,9 +41,11 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
+from fhir_scorecard.conditions import CONDITION_HEADINGS, condition_of
 from fhir_scorecard.drift import (
     META_KEY,
     MIN_OBSERVATIONS_TO_REPORT,
+    observation_kinds,
     readable_observations,
     undated,
 )
@@ -58,6 +60,16 @@ ARCHIVE_PATH = "history"
 class Observation:
     date: str
     up: bool
+    #: The reconciled failure kinds recorded for a day the endpoint did not answer, or empty
+    #: (#117). Empty means *no condition was recorded* -- either the endpoint answered, or the
+    #: observation predates the field -- and never "a condition nobody could classify", which
+    #: is what ``unclassified`` means and is a different, recorded, fact.
+    kinds: tuple[str, ...] = ()
+
+    @property
+    def condition(self) -> str:
+        """Which condition this observation was in, from :mod:`fhir_scorecard.conditions`."""
+        return condition_of(self.kinds)
 
 
 @dataclass(frozen=True)
@@ -164,7 +176,7 @@ def records(history: dict[str, Any], cards: list[Scorecard]) -> list[Record]:
         # disagreement would be silent: the availability sentence on a card and the rate on
         # /over-time/ are computed from the same file by different code.
         observations = tuple(
-            Observation(date=item["date"], up=item["up"])
+            Observation(date=item["date"], up=item["up"], kinds=observation_kinds(item))
             for item in readable_observations(entry.get("observations"))
         )
         built.append(
@@ -259,7 +271,19 @@ def history_json(record: Record, generated_at: str) -> str:
             "answered_percent": record.rate_percent,
             "minimum_observations_to_report": MIN_OBSERVATIONS_TO_REPORT,
             "observations": [
-                {"date": observation.date, "answered": observation.up}
+                {
+                    "date": observation.date,
+                    "answered": observation.up,
+                    # The kinds as recorded, and the condition they group into, published as two
+                    # separate fields (#117). The kinds are the observation; the condition is
+                    # this project's reading of it, and a consumer must be able to disagree with
+                    # the reading without losing the observation. An empty list with a
+                    # "not_observed_on_this_run" condition is the honest shape for a day no
+                    # condition was recorded, and is never "unclassified", which is a condition a
+                    # run did record.
+                    "failure_kinds": list(observation.kinds),
+                    "condition": observation.condition,
+                }
                 for observation in record.observations
             ],
             "declaration_changes": [
@@ -286,11 +310,26 @@ def history_json(record: Record, generated_at: str) -> str:
 
 
 def _observation_rows(record: Record) -> str:
+    """One row per recorded day, with the condition of the days that did not answer (#117).
+
+    An observation recorded before the condition was kept has no condition, and says so in those
+    words. Rendering it as anything else -- a dash, or the nearest label -- would put a reading
+    of this project's own history where a measurement belongs.
+    """
     return "".join(
         f"<tr><td>{html.escape(observation.date)}</td>"
-        f"<td>{'answered' if observation.up else 'did not answer'}</td></tr>"
+        f"<td>{'answered' if observation.up else 'did not answer'}</td>"
+        f"<td>{html.escape(_condition_cell(observation))}</td></tr>"
         for observation in reversed(record.observations)
     )
+
+
+def _condition_cell(observation: Observation) -> str:
+    if observation.up:
+        return "not applicable: the endpoint answered"
+    if not observation.kinds:
+        return "no condition was recorded for this observation"
+    return CONDITION_HEADINGS[observation.condition]
 
 
 def _record_body(record: Record) -> str:
@@ -306,7 +345,8 @@ def _record_body(record: Record) -> str:
         f'<p class="lede">{html.escape(record.summary())}.</p>'
         '<table class="usa-table usa-table--striped">'
         "<caption>Every recorded observation, most recent first</caption>"
-        '<thead><tr><th scope="col">Date</th><th scope="col">Result</th></tr></thead>'
+        '<thead><tr><th scope="col">Date</th><th scope="col">Result</th>'
+        '<th scope="col">Condition</th></tr></thead>'
         f"<tbody>{_observation_rows(record)}</tbody></table>"
     )
 

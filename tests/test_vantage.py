@@ -593,7 +593,7 @@ def test_every_refusal_is_reachable_from_a_test(
 def test_the_probe_files_this_project_writes_are_all_readable(tmp_path: Path) -> None:
     """The guard must not refuse this project's own output.
 
-    ``write_probes`` serialises the dataclass, so this is the round trip that proves the
+    ``write_probes`` serializes the dataclass, so this is the round trip that proves the
     tightened reader and the writer still agree.
     """
     path = tmp_path / "ours.json"

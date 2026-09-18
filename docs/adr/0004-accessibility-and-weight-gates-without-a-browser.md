@@ -71,16 +71,16 @@ All three families always run together; there is no flag to skip one.
 
 A browser would catch, and this does not:
 
-- **Colour contrast as rendered.** Deciding it needs the cascade, the computed colours of an
+- **Color contrast as rendered.** Deciding it needs the cascade, the computed colors of an
   element and its actual backdrop, and the rendered font size. The site is styled by the
   vendored U.S. Web Design System, whose palette is designed against WCAG contrast ratios, but
   that is an inherited property this repository does not measure.
 - **Focus order and visible focus.** Both depend on layout and on the user agent.
 - **Computed ARIA roles.** These rules read the markup as written. A role that changes an
-  element's accessible name computation is not modelled.
+  element's accessible name computation is not modeled.
 - **Reflow at 320 CSS pixels, text spacing, and motion** (SC 1.4.10, 1.4.12, 2.3.3). All need
   rendering.
-- **Whether a name is any good.** `A11Y_LINK_WITHOUT_TEXT` passes a link labelled "click
+- **Whether a name is any good.** `A11Y_LINK_WITHOUT_TEXT` passes a link labeled "click
   here". SC 2.4.4 asks whether the purpose is clear, which is a judgment.
 
 Above all, **this is not the assistive-technology review**. That review stays open in
@@ -112,7 +112,7 @@ This was already the argument two paragraphs above, made about `A11Y_HEADING_LEV
 `A11Y_NO_MAIN_LANDMARK` and applied to demote both. It applies identically here and was not
 applied, so the split shipped as eight and four when the rules it describes are seven and five.
 
-Nothing about the gate's behaviour changes: the rule fires on exactly the same pages, and it is
+Nothing about the gate's behavior changes: the rule fires on exactly the same pages, and it is
 still worth keeping for exactly the reason the other own-rules are kept, since every page here
 is generated from one template set that always emits exactly one h1. What changes is the
 sentence a reader of the finding sees, and the counts in this ADR, the README, the ROADMAP and

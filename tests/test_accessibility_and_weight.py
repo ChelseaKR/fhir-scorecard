@@ -155,7 +155,7 @@ def test_an_empty_alt_is_accepted_because_a_decorative_image_has_no_name(page: P
     assert 'alt=""' in (page / "index.html").read_text(encoding="utf-8")
 
 
-def test_an_unlabelled_control_is_caught(page: Path) -> None:
+def test_an_unlabeled_control_is_caught(page: Path) -> None:
     assert _codes(_mutate(page, '<label for="q">Search</label>', "")) == [
         "A11Y_CONTROL_WITHOUT_NAME"
     ]

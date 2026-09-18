@@ -51,10 +51,10 @@ from fhir_scorecard.fetch import (
     UNCLASSIFIED,
     FetchResult,
     fetch_json,
-    normalise_failure_kind,
+    normalize_failure_kind,
 )
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
-from fhir_scorecard.grading import Scorecard, build_scorecard
+from fhir_scorecard.grading import Scorecard, build_scorecard, failure_kinds_of
 from fhir_scorecard.intake import ClaimError, assess, claim_from_form
 from fhir_scorecard.intake import build_proposal as build_claim_proposal
 from fhir_scorecard.intake import format_comment as format_claim_comment
@@ -95,6 +95,7 @@ from fhir_scorecard.site import (
     org_display_name,
     org_page,
     org_slug,
+    privacy_page,
     robots,
     sitemap,
     status_badge,
@@ -124,7 +125,7 @@ def _offline_refusal(path: Path, url: str) -> FetchResult:
     """Replay a captured refusal. Anything unreadable is itself a retrieval failure.
 
     Nothing here coerces: a ``failure_kind`` outside the published vocabulary reads as
-    ``unclassified`` through the same normaliser a foreign probe file goes through, rather than
+    ``unclassified`` through the same normalizer a foreign probe file goes through, rather than
     being trusted because it came off disk.
     """
     try:
@@ -147,7 +148,7 @@ def _offline_refusal(path: Path, url: str) -> FetchResult:
         elapsed_ms=0,
         body=b"",
         error=str(raw.get("error") or "refusal fixture names no condition"),
-        failure_kind=normalise_failure_kind(raw.get("failure_kind")),
+        failure_kind=normalize_failure_kind(raw.get("failure_kind")),
     )
 
 
@@ -232,7 +233,17 @@ def _grade_from_probes(
     # one the grade on the same endpoint's page was computed from.
     declared[endpoint.endpoint_id] = facts
     smart_declared[endpoint.endpoint_id] = smart_facts
-    drift = observe(history, endpoint.endpoint_id, facts, today, reachable=reachable)
+    drift = observe(
+        history,
+        endpoint.endpoint_id,
+        facts,
+        today,
+        reachable=reachable,
+        # The same reconciliation the published card carries, computed once here and
+        # handed to both, so the availability record and the card can never disagree
+        # about what stopped this endpoint being reached (#117).
+        failure_kinds=failure_kinds_of(metadata, consensus),
+    )
     # Name the vantages that did report, so a single-vantage merge does not attribute the
     # measurement to a run that never made one.
     reported = ", ".join(sorted({p.vantage for p in probes})) or "no vantage reported"
@@ -345,7 +356,14 @@ def _grade_endpoint(
     # Kept where the graded facts exist, for the reason `_grade_from_probes` gives.
     declared[endpoint.endpoint_id] = facts
     smart_declared[endpoint.endpoint_id] = smart_facts
-    drift = observe(history, endpoint.endpoint_id, facts, today, reachable=was_up)
+    drift = observe(
+        history,
+        endpoint.endpoint_id,
+        facts,
+        today,
+        reachable=was_up,
+        failure_kinds=failure_kinds_of(metadata, consensus),
+    )
     return build_scorecard(
         endpoint.endpoint_id,
         endpoint.name,
@@ -1208,7 +1226,7 @@ def _cmd_diff(args: argparse.Namespace) -> int:
     Exit 2 is a usage error, meaning a file that is not there. Everything else is exit 0: a diff
     is an observation, and finding changes is what it is for. ``--fail-on-regression`` is the one
     exception, and it is opt-in because it is the operator's policy rather than this tool's
-    judgement.
+    judgment.
 
     A pair that could not be compared exits 0 and prints why. It deliberately does **not** trip
     ``--fail-on-regression``: "I could not read this document" is not "you removed something",
@@ -1588,12 +1606,18 @@ def _coverage_page(
     cohorts: tuple[Cohort, ...],
     endpoints: list[Endpoint],
     origin: str,
+    scorecards: list[Scorecard],
 ) -> Page | None:
     """The coverage tracker, or None when this build has no frame to track coverage against.
 
     Absent rather than empty on purpose. A coverage page whose denominator is missing would
     report zero organizations in every population, which reads as a measured result and is not
     one. An offline fixture build has no frame; the published build does.
+
+    ``scorecards`` supply the condition each unanswered surface was observed in (#117). Only the
+    cards that were *not* reached carry one, and a card that was reached carries an empty tuple,
+    so what reaches ``classify`` is exactly "the conditions this run recorded" with no gap
+    between an endpoint that answered and an endpoint nothing was recorded for.
     """
     if cohorts_dir is None or not cohorts:
         return None
@@ -1601,7 +1625,11 @@ def _coverage_page(
     if not frame_csv.is_file():
         return None
     orgs = classify(
-        read_frame(frame_csv), cohorts, endpoints, read_reviewed_rows_by_cohort(cohorts_dir)
+        read_frame(frame_csv),
+        cohorts,
+        endpoints,
+        read_reviewed_rows_by_cohort(cohorts_dir),
+        {card.endpoint_id: card.failure_kinds for card in scorecards if card.failure_kinds},
     )
     return coverage_page(orgs, origin) if orgs else None
 
@@ -1767,11 +1795,12 @@ def _write_site(
     """
     origin = origin.rstrip("/")
     by_id = {e.endpoint_id: e for e in endpoints}
-    coverage = _coverage_page(cohorts_dir, cohorts, endpoints, origin)
+    coverage = _coverage_page(cohorts_dir, cohorts, endpoints, origin, scorecards)
     pages = [
         home_page(scorecards, origin, cohorts, coverage_link=coverage is not None),
         how_we_grade_page(origin),
         claim_page(origin),
+        privacy_page(origin),
     ]
     archive = records(history or {}, scorecards)
     pages.append(index_page(archive, origin, mode_of(history or {})))

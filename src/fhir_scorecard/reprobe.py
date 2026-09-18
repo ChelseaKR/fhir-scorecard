@@ -4,7 +4,7 @@ Rejections are data, not dead ends. Payers stand up endpoints, migrate hosts, an
 rules; a candidate log that is never revisited quietly becomes wrong. This module re-checks
 recorded rejections and reports which ones now answer, without touching the registry: promotion
 into the registry stays a human decision, because verification means confirming the publisher is
-who the entry claims, and that is a judgement a fetch cannot make.
+who the entry claims, and that is a judgment a fetch cannot make.
 """
 
 from __future__ import annotations

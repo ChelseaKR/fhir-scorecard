@@ -124,7 +124,7 @@ def test_i0_names_why_the_document_could_not_be_read(label: str) -> None:
 
 @pytest.mark.parametrize("label", sorted(UNREADABLE_BODIES))
 def test_transparency_and_interop_agree_that_nothing_was_readable(label: str) -> None:
-    """T0 and I0 are the same judgement about the same document, in two dimensions."""
+    """T0 and I0 are the same judgment about the same document, in two dimensions."""
     body, _ = UNREADABLE_BODIES[label]
     facts = parse_capability(body)
     t_codes = [f.code for f in grade_transparency(facts).findings]

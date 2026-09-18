@@ -99,7 +99,7 @@ def test_unreachable_endpoint_publishes_no_findings_about_the_document() -> None
     assert card.reachable is False
 
 
-def test_a_reachable_failure_is_not_labelled_unreachable() -> None:
+def test_a_reachable_failure_is_not_labeled_unreachable() -> None:
     """`data/rejected.json` records exactly this body for Elevance Health TotalView: a 200 that
     is HTML, not a CapabilityStatement. The endpoint's network is fine; its document is not."""
     answered = FetchResult(

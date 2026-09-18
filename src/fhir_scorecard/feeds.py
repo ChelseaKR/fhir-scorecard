@@ -57,7 +57,7 @@ FEED_FILENAME = "feed.xml"
 #: they are the record of one subject and a reader who subscribed to one payer asked for all of
 #: it. The site feed is every subject at once, so it is capped - and it states the cap and the
 #: window it covers, because a truncated dataset published as a complete one is the defect this
-#: project is organised against.
+#: project is organized against.
 SITE_FEED_MAX_ENTRIES = 100
 
 #: The tagging entity of every entry id, per RFC 4151. Fixed, and deliberately not read from the

@@ -355,7 +355,7 @@ def test_the_command_exits_zero_on_the_real_build(site: Path) -> None:
     assert main(["audit-site", str(site)]) == 0
 
 
-def test_the_command_honours_a_different_origin(site: Path) -> None:
+def test_the_command_honors_a_different_origin(site: Path) -> None:
     assert main(["audit-site", str(site), "--origin", "https://elsewhere.test"]) == 1
 
 

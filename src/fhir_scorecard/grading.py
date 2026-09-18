@@ -826,11 +826,11 @@ def build_scorecard(
         # From the consensus when several vantages reported, so a disagreement survives; from
         # this run's own result when it is the only witness. Empty when the endpoint was
         # reached: there is no failure to name, and an empty tuple is not a population.
-        failure_kinds=_failure_kinds(metadata, consensus),
+        failure_kinds=failure_kinds_of(metadata, consensus),
     )
 
 
-def _failure_kinds(metadata: FetchResult, consensus: Consensus | None) -> tuple[str, ...]:
+def failure_kinds_of(metadata: FetchResult, consensus: Consensus | None) -> tuple[str, ...]:
     """What stopped this endpoint being reached, or nothing when it was reached.
 
     Gated on the *reconciled* reachability, not on ``metadata.ok``. An endpoint this vantage

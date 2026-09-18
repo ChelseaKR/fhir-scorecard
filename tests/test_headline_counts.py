@@ -145,7 +145,7 @@ def _cohort(*members: CohortMember) -> Cohort:
 
 def test_cohort_page_separates_the_curated_count_from_the_measured_one() -> None:
     """Two members were verified as publishing a base URL, which is a dated curation record.
-    One of them answered today. Both numbers appear, labelled as what they are."""
+    One of them answered today. Both numbers appear, labeled as what they are."""
     cohort = _cohort(
         CohortMember(
             member_id="alpha-plan",
@@ -184,7 +184,7 @@ def test_cohort_endpoint_count_never_exceeds_the_endpoints_it_can_show() -> None
 
 
 def test_one_endpoint_two_plans_publish_through_is_counted_once() -> None:
-    """Measured in the shipped curation, not hypothesised.
+    """Measured in the shipped curation, not hypothesized.
 
     ``data/cohorts/florida-marketplace.json`` lists Cigna Healthcare and Cigna Healthcare of
     Florida as two member organizations pointing at ``cigna-patientaccess`` and
@@ -195,8 +195,8 @@ def test_one_endpoint_two_plans_publish_through_is_counted_once() -> None:
 
     The row per member stays: a plan that publishes through another entity's server is still
     that plan's answer to the rule, and a reader looking for their own plan has to find it. It
-    is the count labelled "endpoints" that has to be a count of endpoints, and the listings get
-    a labelled number of their own rather than borrowing that one.
+    is the count labeled "endpoints" that has to be a count of endpoints, and the listings get
+    a labeled number of their own rather than borrowing that one.
     """
     cohort = _cohort(
         CohortMember(
@@ -221,7 +221,7 @@ def test_one_endpoint_two_plans_publish_through_is_counted_once() -> None:
     assert page.body.count('<td><a href="/endpoint/shared/"') == 2
     assert "Alpha Plan HMO" in page.body
     # The listings are worth publishing; they are not worth publishing under the word
-    # "endpoints". They get their own labelled number beside it.
+    # "endpoints". They get their own labeled number beside it.
     assert "<strong>2</strong><span>plan listings</span>" in page.body
     # And the page says why the two numbers differ, rather than leaving a reader to count rows.
     assert (

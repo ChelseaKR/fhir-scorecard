@@ -231,7 +231,7 @@ def test_a_month_with_no_returns_renders_no_returns_heading() -> None:
 # --- every figure is recomputable ---
 
 
-def test_the_summary_counts_match_the_sections_they_summarise() -> None:
+def test_the_summary_counts_match_the_sections_they_summarize() -> None:
     built = _two_month_records()
     body = _text(page(built, DEFAULT_ORIGIN).body)
     total_changes = sum(len(section.changes) for section in sections(built))
@@ -294,7 +294,7 @@ def test_the_committed_history_really_does_not_retain_a_grade() -> None:
 
 
 def test_the_grade_guard_looks_inside_the_fingerprint_and_not_only_at_the_top() -> None:
-    """The guard above is the page's only defence, so its reach is asserted rather than assumed.
+    """The guard above is the page's only defense, so its reach is asserted rather than assumed.
     Planting a grade at each depth must be caught at each depth."""
     assert _every_key({"x": {"grade": "A"}}) == {"x", "grade"}
     assert _every_key({"x": {"fingerprint": {"grade": "A"}}}) == {"x", "fingerprint", "grade"}

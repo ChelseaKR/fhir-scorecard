@@ -14,6 +14,20 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **Google Analytics 4 on the HTML pages, and a `/privacy/` page that says what it records
+  (ADR 0006).** Per the owner's 2026-09-17 decision to run GA4 on every public site in the
+  portfolio. `src/fhir_scorecard/analytics.py` holds the measurement ID (`G-5XE50LHZDJ`) and an
+  inline loader that `site._shell` puts in every page's `<head>`. It loads nothing off
+  `fhir.chelseakr.com`, so no local, test or CI build contacts Google, and nothing under Global
+  Privacy Control, Do Not Track, or the new footer "Opt out of analytics" control, which is
+  remembered in `localStorage` under `fhir-scorecard:analytics-opt-out`. Google signals and ad
+  personalization are off, the three advertising consent settings are denied everywhere, and
+  `analytics_storage` is denied by default in the EEA, the UK and Switzerland (cookieless pings
+  there) and granted elsewhere. The data files, feeds, API tree and badges carry no script.
+  This reverses the site's earlier "no analytics, no tracking" position; README,
+  `docs/RESPONSIBLE-TECH-AUDITS.md` §C and the entity-report entry below were changed to match.
+  `tests/test_analytics.py` runs the loader in Node and holds each guard with a negative control.
+
 - **Why an endpoint did not answer is counted, not only stated (#117).** The endpoint page,
   `dataset.csv` and `api/endpoint/<id>.json` already published the condition each unreached
   endpoint ended in: 15 of the 15 endpoints no vantage reached on the 2026-09-13 publish. No
@@ -45,7 +59,7 @@ Merged changes land here until the next tag.
   the endpoint asks about itself: what did you observe, what did you *not* observe, and what
   would we have to change? One report per graded endpoint, linked from the endpoint page it
   describes, in the sitemap, indexable, built to print, and free - no paywall, no email gate,
-  no sign-up, no analytics, no cookie.
+  no sign-up. (It carries the site-wide Google Analytics loader added above, like every page.)
 
   **It carries the three states rather than flattening them.** Every check is published as one
   of: it ran, it was asked from every reporting vantage and answered by none, or it was never
@@ -65,11 +79,10 @@ Merged changes land here until the next tag.
   An endpoint reached from 1 of 3 is a different fact from one reached from 3 of 3, and hosts
   on one provider's network are one network's view sampled several times.
 
-  **What this deliberately does not add:** any way to count how many reports are read. The site
-  is static GitHub Pages output and this repository adds no analytics or tracking, so there is
-  no privacy-respecting way to measure views, and a counter that tracked readers would cost
-  more than the answer is worth. The demand signal is an inbound request, and `/claim/` is
-  already that channel; the report links to it.
+  **What this deliberately does not add:** a counter of its own for how many reports are read.
+  When this shipped the site had no analytics at all; the site-wide GA4 page views added above
+  now cover the report like any other page, and the report adds no event of its own. The demand
+  signal is still an inbound request, and `/claim/` is that channel; the report links to it.
 
 - **The interval arithmetic a published share needs, wired to nothing (#103).** The cohort,
   coverage and availability pages publish shares as counts over fixed denominators. They carry
@@ -278,7 +291,7 @@ Merged changes land here until the next tag.
   the check — it only loses the distinction.
 
 - **A cohort endpoint two plans publish through was counted twice.**
-  `site.cohort_page` counted `(member, endpoint)` rows and labelled the result
+  `site.cohort_page` counted `(member, endpoint)` rows and labeled the result
   "endpoints listed", so an endpoint two member organizations both point at was
   counted twice, in that number and in "answered on this run" beside it. Measured
   against the live site and the live `dataset.csv` on 2026-09-10:
@@ -295,7 +308,7 @@ Merged changes land here until the next tag.
   Two legal entities answering the rule through one server is a fact about the
   roster, not an error in it.
 
-  "Endpoints listed" counts endpoints, and the listings now have a labelled number
+  "Endpoints listed" counts endpoints, and the listings now have a labeled number
   of their own — `plan listings`, printed on the two cohorts where it differs from
   the endpoint count, beside the sentence saying why. The word in the label is
   "endpoints", the table under it is headed "Listed endpoints", and the number
@@ -418,7 +431,7 @@ so a repeated key cannot reach `main` again.
 
   `unclassified` is a real member and is published as itself. A 415, a 429 or a 400 is
   an answer this project has no label for and gets that one, not the nearest-looking
-  label; so does an unrecognised kind arriving in a probe file written by a vantage
+  label; so does an unrecognized kind arriving in a probe file written by a vantage
   this project does not operate.
 
   `Consensus.failure_kinds` reconciles them under the rule the rest of the module
@@ -462,7 +475,7 @@ so a repeated key cannot reach `main` again.
 
   `--junit` writes a testsuite per kind and a testcase per endpoint and dimension;
   `--sarif` writes SARIF 2.1.0 with one result per finding, each carrying the
-  specification passage it cites and a rule catalogue derived from the run rather
+  specification passage it cites and a rule catalog derived from the run rather
   than hand-kept. Neither carries a timestamp, so two runs over the same documents
   produce the same bytes.
 
@@ -632,7 +645,7 @@ so a repeated key cannot reach `main` again.
   and `answered_percent` in the JSON is `null` rather than `0`, so a consumer cannot read
   "not enough observations" as a real zero. The index names the below-floor population instead
   of dropping it, because an endpoint missing from a table reads as an endpoint nobody watched.
-  A record written by a fixture run is labelled as such on the page.
+  A record written by a fixture run is labeled as such on the page.
 
 - **Accessibility and transfer-size budgets as merge gates (ROADMAP phase 7, ADR 0004).**
   `fhir_scorecard.accessibility` runs twelve mechanical rules over every built page. Eight
@@ -694,7 +707,7 @@ so a repeated key cannot reach `main` again.
   hand-written file, or a writer in a language that stringifies its JSON booleans,
   produces -- counted as reached.
 
-  **Neither has fired yet, and both were about to become live.** `write_probes` serialises
+  **Neither has fired yet, and both were about to become live.** `write_probes` serializes
   a dataclass, so every probe file this project has written carries a real boolean and a
   real integer, and every current grade is unaffected. The path that activates them is #100
   and #86: a vantage this project does not operate, posting a probe file for the publishing
@@ -709,7 +722,7 @@ so a repeated key cannot reach `main` again.
   vanished silently is indistinguishable from one that was never sent.
 
   Every refusing branch is exercised directly rather than only through a broken file, and
-  the parametrised table includes `elapsed_ms: true`, which is an `int` in Python and would
+  the parametrized table includes `elapsed_ms: true`, which is an `int` in Python and would
   have passed a bare `isinstance(value, int)` as 1 ms. Two pre-existing refusals in the same
   loader -- a file whose top level is not an object, an entry that is not an object -- had
   no test and now have one.
@@ -1073,7 +1086,7 @@ so a repeated key cannot reach `main` again.
   never-leave-the-two-paths promise as tests that can fail. Two of them run the real fetcher
   against a loopback HTTP server that records which requests actually arrived, because an
   assertion about a request that was *not* made is worth little unless something was listening.
-  One test pins the stock-opener behaviour that was replaced, so the delta stays documented.
+  One test pins the stock-opener behavior that was replaced, so the delta stays documented.
 - `tests/test_shipped_code_is_gated.py`: reads the Makefile, `pyproject.toml` and the pre-commit
   config and fails if any Python file in the archive a consumer downloads falls outside them.
 

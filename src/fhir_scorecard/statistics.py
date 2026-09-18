@@ -9,7 +9,7 @@ three things needed to wire it are the maintainer's to decide, and neither is a 
 
 * **The small-cell threshold**, which is a statement about what this site refuses to say. The
   sibling ``mrf-honest`` sets 20 in its ADR 0007, measured over payer files: at a denominator of
-  20 a 95 percent Wilson interval at the least favourable point still spans 0.401 of the scale.
+  20 a 95 percent Wilson interval at the least favorable point still spans 0.401 of the scale.
   This project publishes *named organizations*, and the same number does not automatically mean
   the same thing here. So this module has **no default threshold**: every caller states the one
   it was told to use, and ``estimate_proportion`` cannot be called without it.

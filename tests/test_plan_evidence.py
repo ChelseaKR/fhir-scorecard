@@ -329,7 +329,7 @@ def test_the_coverage_populations_are_the_ones_the_docs_print() -> None:
     assert tally[NO_PUBLIC_URL_FOUND] == 38
     assert tally[NOT_YET_REVIEWED] == 71
 
-    # README states them as a parenthesised run; ROADMAP as a named list. Both must carry the
+    # README states them as a parenthesized run; ROADMAP as a named list. Both must carry the
     # computed numbers, not merely a total that two of them could be traded within.
     assert f"retrieved from ({tally[VERIFIED]})" in README
     assert f"did not answer ({tally[DOCUMENTED_UNREACHABLE]})" in README
@@ -364,7 +364,7 @@ def test_a_shipped_phase_is_not_described_as_future_work() -> None:
         assert (src / f"{module}.py").is_file(), module
         heading = f"### Phase {phase}:"
         assert heading in ROADMAP, heading
-        # ROADMAP is whitespace-normalised, so a phase's section runs from its heading to the
+        # ROADMAP is whitespace-normalized, so a phase's section runs from its heading to the
         # next one. The delivery statement must sit inside it, naming the module that ships.
         section = ROADMAP.split(heading, 1)[1].split("### Phase ", 1)[0]
         assert "**Delivered 20" in section, f"phase {phase} claims no delivery"

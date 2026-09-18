@@ -6,7 +6,9 @@ would we have to change?* It is the same evidence, re-cut for the reader who is 
 for the endpoint rather than shopping across them, and it is built to be printed or handed to
 a compliance reviewer as it stands.
 
-**Free, and deliberately so.** No paywall, no email gate, no sign-up, no analytics, no cookie.
+**Free, and deliberately so.** No paywall, no email gate, no sign-up. Like every page on the
+site it carries the Google Analytics 4 loader (ADR 0006), which counts page views, never names a
+reader to this project, and does not load under GPC, DNT or the footer opt-out.
 The report is a page like every other page on this site: indexable, in the sitemap, linked
 from the endpoint it describes, and reachable by anyone with the URL.
 
@@ -31,11 +33,13 @@ each, gated. So the report is HTML with print rules in the shared stylesheet: a 
 needs a file uses the browser's print or "Save as PDF", and what they get is what the audit,
 the accessibility gate and the weight budget already examined.
 
-**What this cannot measure.** How many of these anybody reads. The site is static GitHub Pages
-output and this repository adds no analytics or tracking (``docs/RESPONSIBLE-TECH-AUDITS.md``),
-so there is no server log, no counter, and no privacy-respecting way to count views. The only
-demand signal that exists without collecting anything about a person is an inbound request, and
-``/claim/`` is already that channel; the report links to it. A view counter is not being added.
+**What this measures about readers.** Only what the site-wide Google Analytics 4 loader records
+for every page (``fhir_scorecard.analytics``, ADR 0006): page views, from browsers that have not
+sent Global Privacy Control or Do Not Track or used the footer opt-out. That was added on
+2026-09-17 for the whole site, not for this report. Before it, the site had no server log and no
+counter, and this module's position was that no privacy-respecting way to count views existed.
+The report adds no event of its own, and ``/claim/`` remains the only channel through which an
+organization tells this project anything.
 """
 
 from __future__ import annotations
@@ -144,7 +148,7 @@ def recoverable(card: Scorecard) -> list[tuple[DimensionScore, Finding, int]]:
     Measured 2026-09-12, and worth writing down because it says which of the two refusals is
     doing the work: every ``observed=False`` finding this grader can currently produce also has
     ``max_points == 0`` -- its real scale lives in ``withheld_points`` -- so the points check is
-    what fires today and the ``observed`` check is defence against a grader that changes. Both
+    what fires today and the ``observed`` check is defense against a grader that changes. Both
     are tested, the second against a finding built by hand, because a guard no fixture can reach
     is a guard a negative control cannot tell apart from ``if True``.
 

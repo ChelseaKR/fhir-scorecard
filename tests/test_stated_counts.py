@@ -174,7 +174,7 @@ def unverifiable_counts(relative: str, path: Path, current: int) -> list[str]:
 
 @pytest.mark.parametrize("relative", SCOPED)
 def test_a_stated_count_is_current_or_dated(relative: str) -> None:
-    """Parametrised per file so a failure names the file, not a wall of every file at once."""
+    """Parametrized per file so a failure names the file, not a wall of every file at once."""
     path = ROOT / relative
     assert path.is_file(), f"{relative} is in the gate's scope but does not exist"
     unverifiable = unverifiable_counts(relative, path, registry_size())
@@ -232,7 +232,7 @@ def test_the_gate_is_honest_about_how_much_it_examines() -> None:
 def test_the_gate_catches_a_stale_count_and_accepts_a_dated_one(tmp_path: Path) -> None:
     """The gate's own negative control, run every time rather than by hand.
 
-    Without this, the parametrised test above passes on a clean tree whether or not the regex
+    Without this, the parametrized test above passes on a clean tree whether or not the regex
     works, and nothing distinguishes "no stale counts" from "no counts found".
     """
     current = registry_size()

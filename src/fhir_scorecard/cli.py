@@ -51,7 +51,7 @@ from fhir_scorecard.fetch import (
     UNCLASSIFIED,
     FetchResult,
     fetch_json,
-    normalise_failure_kind,
+    normalize_failure_kind,
 )
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
 from fhir_scorecard.grading import Scorecard, build_scorecard, failure_kinds_of
@@ -97,6 +97,7 @@ from fhir_scorecard.site import (
     org_display_name,
     org_page,
     org_slug,
+    privacy_page,
     robots,
     sitemap,
     status_badge,
@@ -126,7 +127,7 @@ def _offline_refusal(path: Path, url: str) -> FetchResult:
     """Replay a captured refusal. Anything unreadable is itself a retrieval failure.
 
     Nothing here coerces: a ``failure_kind`` outside the published vocabulary reads as
-    ``unclassified`` through the same normaliser a foreign probe file goes through, rather than
+    ``unclassified`` through the same normalizer a foreign probe file goes through, rather than
     being trusted because it came off disk.
     """
     try:
@@ -149,7 +150,7 @@ def _offline_refusal(path: Path, url: str) -> FetchResult:
         elapsed_ms=0,
         body=b"",
         error=str(raw.get("error") or "refusal fixture names no condition"),
-        failure_kind=normalise_failure_kind(raw.get("failure_kind")),
+        failure_kind=normalize_failure_kind(raw.get("failure_kind")),
     )
 
 
@@ -1316,7 +1317,7 @@ def _cmd_diff(args: argparse.Namespace) -> int:
     Exit 2 is a usage error, meaning a file that is not there. Everything else is exit 0: a diff
     is an observation, and finding changes is what it is for. ``--fail-on-regression`` is the one
     exception, and it is opt-in because it is the operator's policy rather than this tool's
-    judgement.
+    judgment.
 
     A pair that could not be compared exits 0 and prints why. It deliberately does **not** trip
     ``--fail-on-regression``: "I could not read this document" is not "you removed something",
@@ -1897,6 +1898,7 @@ def _write_site(
         home_page(scorecards, origin, cohorts, coverage_link=coverage is not None),
         how_we_grade_page(origin),
         claim_page(origin),
+        privacy_page(origin),
         bundle_page(origin, _load_bundle_plan()),
         bundle_setup_page(origin),
         bundle_trust_page(origin),

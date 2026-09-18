@@ -188,7 +188,7 @@ def test_a_retrieved_smart_document_is_unaffected() -> None:
 
 
 def test_smart_requested_survives_the_probe_file_round_trip(tmp_path: Path) -> None:
-    """``write_probes`` serialises a dataclass and ``load_probe_files`` reads field by field.
+    """``write_probes`` serializes a dataclass and ``load_probe_files`` reads field by field.
 
     A field the loader does not name reads back as its default, which for this one is the
     conservative ``False`` -- so the round trip is where a correct writer would silently lose the
@@ -207,7 +207,7 @@ def test_the_probing_run_records_that_it_asked(tmp_path: Path) -> None:
     Every other test here constructs ``VantageProbe`` itself, so sabotaging
     ``_grade_endpoint``'s ``smart_requested=True`` left all six of them green: they proved the
     merge reads the field and never that anything writes it. This one drives the real probing
-    path and reads what it put in ``probes_seen``, which is what ``write_probes`` serialises.
+    path and reads what it put in ``probes_seen``, which is what ``write_probes`` serializes.
     """
     probes_seen: dict[str, VantageProbe] = {}
     from fhir_scorecard import cli

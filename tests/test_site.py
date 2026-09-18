@@ -395,14 +395,14 @@ def test_internal_links_follow_the_origin_shape(tmp_path: Path) -> None:
     assert '="/fhir-scorecard/fhir-scorecard/' not in prefixed
 
 
-def test_the_category_cards_keep_their_grade_colours_and_title_colour() -> None:
+def test_the_category_cards_keep_their_grade_colors_and_title_color() -> None:
     """Two cascade defects that shipped on the live home page, pinned.
 
-    The per-grade ``.grade-count-*`` rules set the pill's colour, and a later
+    The per-grade ``.grade-count-*`` rules set the pill's color, and a later
     ``.grade-count`` rule at equal specificity reset it to ink, so every pill
     rendered ink on ink; the letter cell painted ``background: currentcolor``
-    over its own ink colour, which is black by construction. And the card title
-    set no colour, so USWDS's ``a:visited`` turned it purple after one click.
+    over its own ink color, which is black by construction. And the card title
+    set no color, so USWDS's ``a:visited`` turned it purple after one click.
     """
     from importlib import resources
 
@@ -410,16 +410,16 @@ def test_the_category_cards_keep_their_grade_colours_and_title_colour() -> None:
     start = css.index(".grade-count {")
     block = css[start : css.index("}", start)]
     assert "color:" not in block.replace("currentcolor", ""), (
-        "the shared .grade-count rule must not set colour; it follows the per-grade rules "
+        "the shared .grade-count rule must not set color; it follows the per-grade rules "
         "at equal specificity and would reset every pill to ink"
     )
     assert "background:" not in block, "the shared .grade-count rule must not set background"
     letter = css[css.index(".grade-count span {") :]
     letter = letter[: letter.index("}")]
     assert "background: currentcolor" not in letter, (
-        "the letter cell's own colour is ink, so currentcolor paints it black"
+        "the letter cell's own color is ink, so currentcolor paints it black"
     )
-    assert ".category-card > a:visited" in css, "the card title must pin its visited colour"
+    assert ".category-card > a:visited" in css, "the card title must pin its visited color"
 
 
 def _png_size(data: bytes) -> tuple[int, int]:

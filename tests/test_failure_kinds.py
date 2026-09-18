@@ -8,7 +8,7 @@ population could be counted.
 
 These tests hold the classification and, just as much, hold what it is *not*. It is data about a
 condition. It makes no claim about whose choice the condition was, it moves no grade, and it
-never files an unrecognised failure under the nearest label.
+never files an unrecognized failure under the nearest label.
 
 The loopback server is a real HTTP server reached through a real `urllib` opener chain, so the
 status cases go through `fetch_json`'s own exception handling rather than a mock of it. The
@@ -41,7 +41,7 @@ from fhir_scorecard.fetch import (
     describe_error,
     failure_kind_for_status,
     fetch_json,
-    normalise_failure_kind,
+    normalize_failure_kind,
 )
 from fhir_scorecard.grading import build_scorecard
 from fhir_scorecard.vantage import VantageProbe, load_probe_files, reconcile, write_probes
@@ -242,12 +242,12 @@ def test_every_kind_the_status_mapper_can_return_is_in_the_vocabulary() -> None:
 def test_a_kind_from_outside_that_is_not_in_the_vocabulary_reads_as_unclassified(
     value: object,
 ) -> None:
-    assert normalise_failure_kind(value) == UNCLASSIFIED
+    assert normalize_failure_kind(value) == UNCLASSIFIED
 
 
 @pytest.mark.parametrize("value", list(FAILURE_KINDS))
 def test_every_published_kind_survives_the_round_trip(value: str) -> None:
-    assert normalise_failure_kind(value) == value
+    assert normalize_failure_kind(value) == value
 
 
 def test_a_probe_file_from_a_foreign_vantage_cannot_invent_a_kind(tmp_path: Path) -> None:
@@ -601,3 +601,10 @@ def test_an_unreached_endpoint_whose_failure_was_never_classified_says_so() -> N
         NO_SMART_RETRIEVED,
     )
     assert card.failure_kinds == (UNCLASSIFIED,)
+
+
+def test_the_released_british_spelled_name_still_resolves() -> None:
+    """v0.2.0 shipped `normalise_failure_kind`; the alias keeps that import working."""
+    from fhir_scorecard import fetch
+
+    assert fetch.normalise_failure_kind is normalize_failure_kind

@@ -13,10 +13,12 @@ is missing the setup Lambda refuses every checkout before it reads Stripe.
 ## 0. Two decisions
 
 **Prices.** `data/bundle/plan.json` proposes **$249** for one archive of up to 15 endpoints and
-**$499** for up to 70 (the whole payer-side registry today). They are a starting guess, not
-research; see "Prices" in `docs/compliance-bundle-plan.md` for the reasoning. Edit the two
-`price` values now if you want different ones: `scripts/stripe-setup.sh` reads them from that
-file, so Stripe and the page cannot disagree. The page publishes no price until section 11.
+**$499** for up to 70. They are a starting guess, not research; see "Prices" in
+`docs/compliance-bundle-plan.md` for the reasoning. Edit the two `price` values now if you want
+different ones: `scripts/stripe-setup.sh` reads them from that file, so Stripe and the page
+cannot disagree. The page publishes no price until section 11. The registry now tracks 77
+payer-side endpoints; if the top tier should cover all of them, its cap has to be raised before
+section 2 (the plan's "Prices" section says where).
 
 **Stripe account. Recommended: a new account under your existing Stripe login, not new products
 on gtfs-scorecard's account (`acct_1UEJ7fAJdYOJsO05`).**
@@ -176,7 +178,8 @@ of the sandbox in this account. The delivery email says "reply to this email", s
 1. Open the `bundle_15` test Payment Link (its `checkout_url` in `plan.json`). Pay with
    `4242 4242 4242 4242`, any future expiry, any CVC, and your own email.
 2. Stripe returns you to `/bundle/setup/?session_id=cs_test_...`. Send the form with two real
-   endpoint ids, one made-up id, and your email.
+   endpoint ids, one made-up id in the same shape (such as `not-a-real-endpoint`), and your
+   email.
 3. Expect "Thank you. Your reports are being generated..." Then:
    - `gh run list -R ChelseaKR/fhir-scorecard --workflow compliance-bundle.yml` shows one
      successful run. Open its log: your email, organization name, and endpoint ids must not
@@ -226,7 +229,7 @@ live webhook, and the live Payment Links agree.
 
 ## 13. GA4 (property 554880958)
 
-- **Admin > Events**: once each has been received, mark `view_item` and `begin_checkout` as key
+- **Admin > Data display > Events**: once each has been received, mark `view_item` and `begin_checkout` as key
   events. `purchase` is a key event by default. (Or create all three by name under **Admin > Key
   events > New key event** before they arrive.)
 - **Admin > Data streams > the web stream > Enhanced measurement**: turn off **Form
@@ -236,7 +239,9 @@ live webhook, and the live Payment Links agree.
 
 - Refunds are by hand from the Dashboard. The promise is a full refund on request within 30 days
   and whenever an archive has not arrived within two business days of payment.
-- A failed fulfillment run emails you through GitHub's failed-workflow notification. The repair
+- A failed fulfillment run emails you through GitHub's failed-workflow notification (the runs
+  are dispatched with your token, so they are yours; keep **Settings > Notifications > Actions**
+  on). The repair
   is `gh workflow run compliance-bundle.yml -R ChelseaKR/fhir-scorecard --ref main -f
   order_ref=<the order_ref in the failed run's summary>`.
 - To close the tier: `paymentsAvailable: false` in `plan.json` (PR, then redeploy pages), and

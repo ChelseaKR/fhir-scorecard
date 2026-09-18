@@ -28,7 +28,8 @@ availability, adoption statistics, and CapabilityStatement validation checkmarks
 publish letter grades, prioritized findings, or spec-cited compliance reports.** This registry's
 subject is the other side of the market entirely: payer Patient Access and Provider Directory
 APIs under the CMS Interoperability and Patient Access Rule (`data/cohorts/*-marketplace.json`,
-the `payer` and `payer_provider_directory` kinds -- 70 of the registry's 81 endpoints). README's
+the `payer` and `payer_provider_directory` kinds -- 70 of the registry's 81 endpoints when this was
+checked, 77 of 88 on 2026-09-18). README's
 own "How this relates to Inferno and Lantern" section already states this: "Lantern (ONC)
 monitors FHIR endpoints of certified EHRs on the provider side. This project's target registry is
 the payer side, which has no equivalent public monitor." Verified independently for this task via
@@ -110,7 +111,7 @@ buyer value with `::add-mask::` before anything can print it.
 | Plan | Price | What it covers |
 | --- | --- | --- |
 | `bundle_15` | **$249** once | One archive, up to 15 endpoints |
-| `bundle_70` | **$499** once | One archive, up to 70 endpoints (every payer-side endpoint tracked today) |
+| `bundle_70` | **$499** once | One archive, up to 70 endpoints (77 payer-side endpoints are tracked today) |
 
 These are proposals for the owner to confirm or change in `data/bundle/plan.json` before
 `scripts/stripe-setup.sh` creates the Stripe prices from that file. The evidence behind them:
@@ -129,8 +130,13 @@ These are proposals for the owner to confirm or change in `data/bundle/plan.json
   can make on a company card from the page. Keeping the widest bundle under $500 is meant to
   stay under the line where a purchase order is required. That line varies by organization and
   was not checked; it is an assumption.
-- **The registry's size.** 81 endpoints, 70 of them payer-side. The top tier is "the whole
-  payer-side registry", not an impressive round number.
+- **The registry's size.** 88 endpoints on 2026-09-18, 77 of them payer-side. The top tier was
+  sized as "the whole payer-side registry" when that was 70; the registry has since grown past
+  it. Raising the cap (to 100, say) is an owner decision with a price attached, and it touches
+  the plan key everywhere it is written (`common.PLAN_ENDPOINT_CAPS`, `site.BUNDLE_PLANS`,
+  `bundle.MAX_ENDPOINTS`, `main.tf`, `plan.json`, `stripe-setup.sh`), which
+  `tests/test_compliance_bundle_contract.py` holds equal. It must happen before the Stripe
+  prices are created, because a price's plan cannot be changed afterward.
 
 gtfs-scorecard had a verified market anchor for its prices (a single agency's commercial
 on-time-performance module at about $3,000 a year). **No comparable anchor was found for this

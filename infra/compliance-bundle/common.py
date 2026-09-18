@@ -197,7 +197,8 @@ def stripe_key() -> str:
     if not mode or not key:
         return ""
     if not key.startswith(f"rk_{mode}_"):
-        print(json.dumps({"event": "stripe_key_refused", "mode": mode, "prefix": key[:3]}))
+        # Nothing derived from the key is logged, not even its prefix.
+        print(json.dumps({"event": "stripe_key_refused", "mode": mode}))
         return ""
     return key
 

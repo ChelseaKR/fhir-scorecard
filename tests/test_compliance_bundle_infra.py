@@ -106,7 +106,6 @@ class FakeTable:
     def put_item(
         self, Item: dict[str, Any], ConditionExpression: str | None = None, **_: Any
     ) -> None:
-        pk = next(iter(Item.values())) if "bundle_id" not in Item else Item["bundle_id"]
         pk = Item.get("bundle_id") or Item.get("id")
         exists = pk in self.items
         if ConditionExpression == "attribute_not_exists(bundle_id)" and exists:

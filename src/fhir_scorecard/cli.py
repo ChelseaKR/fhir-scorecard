@@ -94,6 +94,7 @@ from fhir_scorecard.site import (
     org_display_name,
     org_page,
     org_slug,
+    privacy_page,
     robots,
     sitemap,
     status_badge,
@@ -1790,6 +1791,7 @@ def _write_site(
         home_page(scorecards, origin, cohorts, coverage_link=coverage is not None),
         how_we_grade_page(origin),
         claim_page(origin),
+        privacy_page(origin),
     ]
     archive = records(history or {}, scorecards)
     pages.append(index_page(archive, origin, mode_of(history or {})))

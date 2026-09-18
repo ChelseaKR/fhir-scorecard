@@ -14,6 +14,20 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **Google Analytics 4 on the HTML pages, and a `/privacy/` page that says what it records
+  (ADR 0006).** Per the owner's 2026-09-17 decision to run GA4 on every public site in the
+  portfolio. `src/fhir_scorecard/analytics.py` holds the measurement ID (`G-5XE50LHZDJ`) and an
+  inline loader that `site._shell` puts in every page's `<head>`. It loads nothing off
+  `fhir.chelseakr.com`, so no local, test or CI build contacts Google, and nothing under Global
+  Privacy Control, Do Not Track, or the new footer "Opt out of analytics" control, which is
+  remembered in `localStorage` under `fhir-scorecard:analytics-opt-out`. Google signals and ad
+  personalization are off, the three advertising consent settings are denied everywhere, and
+  `analytics_storage` is denied by default in the EEA, the UK and Switzerland (cookieless pings
+  there) and granted elsewhere. The data files, feeds, API tree and badges carry no script.
+  This reverses the site's earlier "no analytics, no tracking" position; README,
+  `docs/RESPONSIBLE-TECH-AUDITS.md` §C and the entity-report entry below were changed to match.
+  `tests/test_analytics.py` runs the loader in Node and holds each guard with a negative control.
+
 - **Why an endpoint did not answer is counted, not only stated (#117).** The endpoint page,
   `dataset.csv` and `api/endpoint/<id>.json` already published the condition each unreached
   endpoint ended in: 15 of the 15 endpoints no vantage reached on the 2026-09-13 publish. No
@@ -45,7 +59,7 @@ Merged changes land here until the next tag.
   the endpoint asks about itself: what did you observe, what did you *not* observe, and what
   would we have to change? One report per graded endpoint, linked from the endpoint page it
   describes, in the sitemap, indexable, built to print, and free - no paywall, no email gate,
-  no sign-up, no analytics, no cookie.
+  no sign-up. (It carries the site-wide Google Analytics loader added above, like every page.)
 
   **It carries the three states rather than flattening them.** Every check is published as one
   of: it ran, it was asked from every reporting vantage and answered by none, or it was never
@@ -65,11 +79,10 @@ Merged changes land here until the next tag.
   An endpoint reached from 1 of 3 is a different fact from one reached from 3 of 3, and hosts
   on one provider's network are one network's view sampled several times.
 
-  **What this deliberately does not add:** any way to count how many reports are read. The site
-  is static GitHub Pages output and this repository adds no analytics or tracking, so there is
-  no privacy-respecting way to measure views, and a counter that tracked readers would cost
-  more than the answer is worth. The demand signal is an inbound request, and `/claim/` is
-  already that channel; the report links to it.
+  **What this deliberately does not add:** a counter of its own for how many reports are read.
+  When this shipped the site had no analytics at all; the site-wide GA4 page views added above
+  now cover the report like any other page, and the report adds no event of its own. The demand
+  signal is still an inbound request, and `/claim/` is that channel; the report links to it.
 
 - **The interval arithmetic a published share needs, wired to nothing (#103).** The cohort,
   coverage and availability pages publish shares as counts over fixed denominators. They carry

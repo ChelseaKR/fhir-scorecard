@@ -448,9 +448,19 @@ the artifact is uploaded, so a site that fails any of them is not deployed. Its 
 sitemapped `/org/` pages that nothing on the site linked to.
 
 The pages are styled with the [U.S. Web Design System](https://designsystem.digital.gov/),
-vendored at a pinned version and served entirely from the site's own origin; this is an
+vendored at a pinned version and served from the site's own origin rather than a CDN; this is an
 independent open-source project, not a government website, and the site's own footer says so on
-every page. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and,
+every page.
+
+**Analytics.** The HTML pages use Google Analytics 4 to count visits
+([ADR 0006](docs/adr/0006-google-analytics-4.md)); `/privacy/` on the site says what it records.
+The loader in `src/fhir_scorecard/analytics.py` runs only on `fhir.chelseakr.com`, never in a
+local, test or CI build, and loads nothing when the browser sends Global Privacy Control or Do Not
+Track or the visitor has used the footer's "Opt out of analytics" control. Google signals and ad
+personalization are off, the advertising consent settings are denied everywhere, and analytics
+storage is denied by default in the EEA, the UK and Switzerland, where Google still receives
+cookieless pings. The data files, feeds, API tree and badges carry no script. Setting
+`GA4_MEASUREMENT_ID` to `""` removes GA from every page on the next publish. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and,
 more importantly, for the constraint that governs it: search traffic scales with registry size,
 and registry size is gated on payers publishing base URLs.
 
@@ -600,10 +610,10 @@ are no blank rows and no silent skips.
 | Documentation | Applies: README, ROADMAP, CONTRIBUTING, SECURITY, CHANGELOG, CITATION.cff, ADRs (`docs/adr/`) |
 | Quality & Metrics | Applies: deterministic findings tied to cited spec text; coverage floor enforced in CI; drift tracked across runs |
 | Release & Versioning | Applies: the composite Action in `action.yml` is consumed as `ChelseaKR/fhir-scorecard@<tag>`, so a tag is a shipped interface. Releases are cut by dispatching `.github/workflows/release.yml` with an existing SSH-signed annotated SemVer tag; the shared authorize workflow verifies the signature against `.github/allowed_signers` and that the commit is an ancestor of `main`, `make verify` and the full-history secret scan re-run at that commit, and the build is attested (SLSA provenance) and attached to a GitHub Release whose notes are the matching CHANGELOG section. Tag, `pyproject.toml` and CHANGELOG versions must agree or the release fails. `docs/adr/0002-release-versioning-applies-action-export.md` supersedes `docs/adr/0001-release-versioning-na.md`; the site and dataset are still published daily from `main` and are not what a version names |
-| Performance | Applies (scoped): the published pages are deterministically generated static HTML styled by the U.S. Web Design System, vendored into the package at a pinned version (`src/fhir_scorecard/assets/uswds/VERSION.txt`) and served from the site's own origin - stylesheets, scripts, fonts, and icons included - so there is still no third-party subresource; the only other images are same-origin badge SVGs the build writes. Two transfer-size budgets are enforced (`fhir_scorecard.weight`), one on each page's own bytes and one on the subresources more than one page links, both measured from the published site rather than chosen. No timing budget is enforced and none is claimed: there is no server-side surface to load-test, and a wall-clock number from a CI runner is a fact about the runner |
+| Performance | Applies (scoped): the published pages are deterministically generated static HTML styled by the U.S. Web Design System, vendored into the package at a pinned version (`src/fhir_scorecard/assets/uswds/VERSION.txt`) and served from the site's own origin - stylesheets, scripts, fonts, and icons included. The one third-party subresource is Google Analytics' `gtag.js`, which the inline loader requests only on the production host and never under GPC, DNT or the footer opt-out ([ADR 0006](docs/adr/0006-google-analytics-4.md)); it is outside both budgets, which count bytes this build writes. The only other images are same-origin badge SVGs the build writes. Two transfer-size budgets are enforced (`fhir_scorecard.weight`), one on each page's own bytes and one on the subresources more than one page links, both measured from the published site rather than chosen. No timing budget is enforced and none is claimed: there is no server-side surface to load-test, and a wall-clock number from a CI runner is a fact about the runner |
 | AI Development Measurement | Applies: no tool-usage counter is collected and none gates a merge. `make verify` and `.github/workflows/security.yml` are what a change clears regardless of how it was authored |
 | Incident Response | Applies: no incident to date. Vulnerabilities go through the path in [SECURITY.md](SECURITY.md); a wrong or unwanted listing goes through the remove-or-dispute issue template and is corrected without the reporter proving anything first. A postmortem will be committed under `docs/incidents/` when there is one to write |
-| Data Governance | Applies: the only collected data is the response to two unauthenticated GET requests against public FHIR discovery paths, at a rate stated in [SECURITY.md](SECURITY.md); no authentication, no patient data, no path beyond those two. Registry provenance and the rejected-candidate log are committed under `data/`, and every published payload names its source |
+| Data Governance | Applies: the only data the probes collect is the response to two unauthenticated GET requests against public FHIR discovery paths, at a rate stated in [SECURITY.md](SECURITY.md); no authentication, no patient data, no path beyond those two. Registry provenance and the rejected-candidate log are committed under `data/`, and every published payload names its source. Reading the site is measured separately, by Google Analytics 4 on the HTML pages only, with the retention (14 months), opt-outs and regional defaults stated on `/privacy/` and in [ADR 0006](docs/adr/0006-google-analytics-4.md) |
 | Responsible-Tech Framework | Applies: `docs/RESPONSIBLE-TECH-AUDITS.md` (ethics, bias, privacy, transparency, accessibility, security declarations) |
 
 ## Support

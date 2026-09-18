@@ -11,7 +11,7 @@ code and published on the site.
 
 - **A Ethics:** applies (this project grades named organizations in public; findings below)
 - **B Bias:** applies (grading rubric design; findings below)
-- **C Privacy:** applies (findings below; no personal data by design)
+- **C Privacy:** applies (findings below; no personal data in the probes or the dataset by design; the site's HTML pages carry Google Analytics 4)
 - **D Transparency:** applies (findings below)
 - **E Accessibility:** applies (published static site; formal review not yet performed)
 - **F Security:** applies (declarations below)
@@ -76,7 +76,9 @@ is the bias surface. Mitigations in place:
 
 ## C. Privacy
 
-**Findings:** no personal data is collected, stored, or processed, by design.
+**Findings:** the probes and the published dataset collect, store and process no personal
+data, by design. Visitor analytics on the site's HTML pages is the one exception, described in
+the last item below.
 
 - Inputs are server metadata documents from unauthenticated public URLs. The project never
   authenticates and never touches patient data. This used to read "enforced by having no code
@@ -87,8 +89,16 @@ is the bias surface. Mitigations in place:
   but the two discovery documents.
 - The published dataset contains organization names, base URLs, grades, findings, and
   timestamps only.
-- The site is static GitHub Pages output; this repository adds no analytics or tracking of its
-  own.
+- The site is static GitHub Pages output. Since 2026-09-17 the HTML pages carry Google
+  Analytics 4 ([ADR 0006](adr/0006-google-analytics-4.md)), so reading the site now sends Google
+  a page view with the usual browser, device and approximate-location data, and in most regions
+  sets the `_ga` cookies. What limits it: the loader runs only on `fhir.chelseakr.com`; it loads
+  nothing under Global Privacy Control, Do Not Track, or the footer's "Opt out of analytics"
+  control; Google signals and ad personalization are off and the advertising consent settings
+  are denied everywhere; analytics storage is denied by default in the EEA, the UK and
+  Switzerland, where Google still receives cookieless pings; and event data is kept 14 months.
+  `/privacy/` on the site states all of this to a reader. The data files, feeds, API tree and
+  badges carry no script, so a program fetching them is not measured.
 
 ## D. Transparency
 

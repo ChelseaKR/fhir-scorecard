@@ -459,8 +459,12 @@ local, test or CI build, and loads nothing when the browser sends Global Privacy
 Track or the visitor has used the footer's "Opt out of analytics" control. Google signals and ad
 personalization are off, the advertising consent settings are denied everywhere, and analytics
 storage is denied by default in the EEA, the UK and Switzerland, where Google still receives
-cookieless pings. The data files, feeds, API tree and badges carry no script. Setting
-`GA4_MEASUREMENT_ID` to `""` removes GA from every page on the next publish. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and,
+cookieless pings. Page addresses are sent without their query string. The compliance bundle
+pages also record three purchase steps (plans shown, checkout followed, purchase returned), each
+carrying only a plan and its price, and a hashed order number for the purchase
+([ADR 0007](docs/adr/0007-bundle-conversion-events.md)). The data files, feeds, API tree and
+badges carry no script. Setting `GA4_MEASUREMENT_ID` to `""` removes GA from every page on the
+next publish. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and,
 more importantly, for the constraint that governs it: search traffic scales with registry size,
 and registry size is gated on payers publishing base URLs.
 

@@ -77,6 +77,7 @@ SCOPED = (
     "src/fhir_scorecard/entity_report.py",
     "src/fhir_scorecard/weight.py",
     "src/fhir_scorecard/audit.py",
+    "src/fhir_scorecard/published.py",
 )
 
 #: Numbers written as words, since half of this repository's prose spells them out. A gate that
@@ -210,7 +211,10 @@ def test_the_gate_is_honest_about_how_much_it_examines() -> None:
     it does is stop a count being *reintroduced* there without being current or dated.
 
     Stated here so nobody reads a green run as "the workflows were verified". Measured when
-    written: 8 counts, in 5 of 17 scoped files.
+    written: 8 counts, in 5 of 17 scoped files. Measured again 2026-09-13, with
+    `src/fhir_scorecard/published.py` added to the scope: 11 counts, in 6 of 19. The earlier
+    measurement is kept rather than overwritten, because what it records is what the gate
+    could see on the day the gate was written.
     """
     per_file = {relative: len(_claims(ROOT / relative)) for relative in SCOPED}
     examinable = len(per_file)

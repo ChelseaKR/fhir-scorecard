@@ -443,7 +443,13 @@ sharing an id, an entry linking at a path the build did not write, or a page poi
 autodiscovery at something that is not a feed. The same command
 also runs twelve mechanical accessibility rules - seven naming the WCAG 2.2 Level A criterion
 they implement, five saying plainly that they are this project's own rule and not a criterion -
-and two transfer-size budgets. The publish workflow runs all three families before
+and two transfer-size budgets. A fourth family checks the published *grades*: that every grade
+is one the grader can produce, that no dimension carries a score for a check no vantage was able
+to make, that the CSV, the per-endpoint JSON, the API index and `scorecards.json` publish the
+same letter for the same endpoint, and that the page a reader opens shows what the data for that
+endpoint says. It decides nothing about whether a grade is *right*, which is the grader's
+business; it decides that what was published is a shape the grader can produce and that every
+surface agrees. The publish workflow runs all four families before
 the artifact is uploaded, so a site that fails any of them is not deployed. Its first run against a site carrying an organization page found twelve published,
 sitemapped `/org/` pages that nothing on the site linked to.
 

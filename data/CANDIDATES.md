@@ -537,8 +537,8 @@ project's own fetcher and probe contract (`/metadata` only, no authentication).
 | BCBS Nebraska Patient Access | api.bcbsnefhir.com/r4 | **Verified** → registry. 144 resource types, 37 supportedProfile canonicals; publisher `1upHealth`, software `1up FHIR Server` |
 | BCBS Alabama Patient Access (CARIN BB) | api-bcbsal-prd.safhir.io/v1/api/carin-bb | **Verified** → registry |
 | BCBS Alabama Provider Directory | api-bcbsal-prd.safhir.io/v1/api/provider-directory | **Verified** → registry |
-| Premera Patient Access | opala.tech/patient-access/premera/v1/fhir-r4 | **Verified** → registry, with the attribution caveat below |
-| Premera Provider Directory | opala.tech/provdir/premera/v1/fhir-r4 | **Verified** → registry, same caveat |
+| Premera Patient Access | opala.tech/patient-access/premera/v1/fhir-r4 | **Verified** → registry; attributed through the link chain below |
+| Premera Provider Directory | opala.tech/provdir/premera/v1/fhir-r4 | **Verified** → registry; base URL printed on premera.com |
 | AmeriHealth Caritas Next, Delaware — Patient Access | api-ext.amerihealthcaritas.com/DEEX/patient-api | **Verified** → registry |
 | AmeriHealth Caritas Next, Delaware — Provider Directory | api-ext.amerihealthcaritas.com/DEEX/provider-api | **Verified** → registry |
 
@@ -573,15 +573,22 @@ the same conclusion earlier waves recorded: Medica's document still answers HTTP
 automated client, Molina's portal still prints no address readable without registering, and
 Oscar's page still prints none at all and still names no legal entity, state or HIOS id.
 
-**The one weak attribution, stated rather than smoothed.** Premera's two endpoints are published
-by its vendor, not by Premera: the CapabilityStatements name `Opala` as publisher, and the pages
-that print the addresses are Opala's. `docs/SAMPLING-FRAME.md` would settle this with the
-organization's own materials, and `premera.com/visitor/developers` serves a 5,529-byte JavaScript
-shell to an automated client, so that half of the rule was not met. What is established is that
-the vendor's page is titled for Premera, the addresses carry a per-tenant `/premera/` segment,
-and Premera's own Alaska provider page confirms a Patient Access API for "current Premera Alaska
-Individual plan members" — this frame's exact population. A browser check on premera.com is the
-outstanding work.
+**Premera's attribution, checked in a browser on 2026-09-18.** Both endpoints are run by
+Premera's vendor, and the CapabilityStatements name `Opala` as publisher. When this wave was
+first written, `premera.com/visitor/developers` served an automated client a JavaScript shell,
+so the half of `docs/SAMPLING-FRAME.md`'s rule that asks for the organization's own materials was
+not met. A headless-browser render of that page on 2026-09-18, with its sections expanded, moved
+both entries:
+
+* **Provider Directory: the rule is met.** Under "Provider Directory API developer guide",
+  Premera's own page prints `Base URL: https://opala.tech/provdir/premera/v1/fhir-r4/`, with
+  example `Practitioner`, `Organization` and `HealthcareService` queries under the same address.
+* **Patient Access: attributed by a link chain, not by a printed address.** Premera's page
+  describes the Patient Access API (OpenID Connect over OAuth 2.0), names Opala as its
+  "Interoperability partner", and sends developers to `www.opala.com/developer-toolkit-premera`
+  and `developersupport@opala.com`. That link redirects to Opala's "Premera Dev Toolkit" page,
+  which prints the Patient Access capability-statement address. Premera's page does not print
+  the Patient Access base URL itself.
 
 **What this wave measured that earlier waves did not: who is behind the endpoints.** Opala's
 Provider Directory documentation prints two base URLs, one for Premera and one for Navitus, a

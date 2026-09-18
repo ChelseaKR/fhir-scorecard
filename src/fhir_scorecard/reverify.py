@@ -18,7 +18,7 @@ whole reason ``reverified`` is a separate dated record rather than an overwrite 
 (see ``registry``'s module docstring), and a re-check verb that quietly refreshed dates for
 endpoints that did not answer would undo it.
 
-**Attribution is a human judgement, and this verb does not make it.** ``CONTRIBUTING.md`` is
+**Attribution is a human judgment, and this verb does not make it.** ``CONTRIBUTING.md`` is
 explicit about why: a vendor-hosted multi-tenant platform usually describes the platform rather
 than the tenant, sometimes names nobody, and one such platform returned three different brand
 names across three consecutive fetches of a fixed URL. A machine cannot read that and conclude
@@ -395,8 +395,8 @@ def apply_to_registry(registry_path: Path, blocks: dict[str, dict[str, str]]) ->
     """Merge accepted blocks into the registry file. Returns how many entries moved.
 
     Writes nothing when there is nothing accepted, so the file is byte-for-byte untouched by a
-    run that approved no row. That early return is not an optimisation: this writer normalises
-    the file to two-space JSON, so re-serialising a registry formatted any other way would
+    run that approved no row. That early return is not an optimization: this writer normalizes
+    the file to two-space JSON, so re-serializing a registry formatted any other way would
     rewrite every line of it to record no decision at all.
     """
     if not blocks:

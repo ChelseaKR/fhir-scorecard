@@ -59,11 +59,12 @@ from __future__ import annotations
 import csv
 import html
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from fhir_scorecard.cohort import Cohort, CohortMember
+from fhir_scorecard.conditions import CONDITION_HEADINGS, CONDITIONS, SIDES, condition_of
 from fhir_scorecard.registry import Endpoint
 from fhir_scorecard.site import Page, json_ld
 
@@ -107,6 +108,15 @@ class FrameOrg:
     roster_name: str
     population: str
     detail: str
+    #: ``(endpoint id, condition)`` for each surface this organization lists that did not
+    #: answer on the publishing run, in registry order (#117).
+    #:
+    #: Only ever populated for :data:`DOCUMENTED_UNREACHABLE`, because it is only that
+    #: population whose one label covers several different facts. A ``VERIFIED`` organization
+    #: may also list a surface that did not answer -- it is counted as verified on its best
+    #: evidenced one -- and that surface is deliberately absent here: this is a breakdown *of*
+    #: the documented-unreachable population, not a second census of every failed probe.
+    surfaces: tuple[tuple[str, str], ...] = ()
 
     @property
     def reviewed(self) -> bool:
@@ -145,21 +155,37 @@ def read_reviewed_rows_by_cohort(cohort_dir: Path) -> dict[str, frozenset[tuple[
 def _population_for(
     member_endpoints: tuple[str, ...],
     endpoints: dict[str, Endpoint],
-) -> tuple[str, str]:
-    """The population and the sentence behind it, for a member that carries endpoints.
+    failure_kinds: Mapping[str, tuple[str, ...]],
+) -> tuple[str, str, tuple[tuple[str, str], ...]]:
+    """The population, the sentence behind it, and the condition of each unanswered surface.
 
     An organization with more than one surface is counted on its best-evidenced one. Publishing
     a Provider Directory that answers is a checkable endpoint whatever the Patient Access URL
     did, and counting the organization twice would break the frame's denominator.
+
+    The third return value is the #117 breakdown, and it is empty for every population except
+    ``DOCUMENTED_UNREACHABLE``. Two observations are being kept apart here and neither is
+    allowed to stand in for the other: the *population* is a curation record --- on what basis
+    the entry earned its place in ``data/registry.json``, carried with the date a person
+    established it --- while the *condition* is what the publishing run saw today. A surface can
+    be ``publisher_documented`` and answering, or ``live_capability`` and silent this morning.
+    So the condition is reported as a property of the run, dated on the page as such, and never
+    used to move an organization between populations.
     """
-    bases = [endpoints[e].verification_basis for e in member_endpoints if e in endpoints]
+    listed = [e for e in member_endpoints if e in endpoints]
+    bases = [endpoints[e].verification_basis for e in listed]
     if any(basis == "live_capability" for basis in bases):
         live = sum(1 for basis in bases if basis == "live_capability")
-        return VERIFIED, f"{live} of {len(bases)} listed surfaces answered when they were checked"
+        return (
+            VERIFIED,
+            f"{live} of {len(bases)} listed surfaces answered when they were checked",
+            (),
+        )
     return (
         DOCUMENTED_UNREACHABLE,
         f"{len(bases)} listed {'surface' if len(bases) == 1 else 'surfaces'}, "
         "each published by the organization and not retrievable on the date it was checked",
+        tuple((e, condition_of(tuple(failure_kinds.get(e, ())))) for e in listed),
     )
 
 
@@ -195,6 +221,7 @@ def classify(
     cohorts: tuple[Cohort, ...],
     endpoints: list[Endpoint],
     reviewed_rows: Mapping[str, frozenset[tuple[str, str]]],
+    failure_kinds: Mapping[str, tuple[str, ...]] | None = None,
 ) -> list[FrameOrg]:
     """Every frame row assigned to exactly one population.
 
@@ -203,24 +230,26 @@ def classify(
     comes from the committed cohort roster CSVs, per cohort, so a member can only answer for the
     frame rows its own cohort actually reviewed. A join on the name alone puts a national
     carrier's Texas review against its rows in twenty-two other states; a join on this project's
-    own normalisation of a name would give the frame a denominator only this project could
+    own normalization of a name would give the frame a denominator only this project could
     reproduce. Both are the defect ``docs/SAMPLING-FRAME.md`` exists to prevent.
     """
     by_id = {endpoint.endpoint_id: endpoint for endpoint in endpoints}
     members = _members_by_row(cohorts, reviewed_rows)
+    kinds = failure_kinds or {}
     classified = []
     for state, issuer_name in frame:
         # Reviewed-ness is a property of the (state, issuer) row, not of the name, and so is the
         # review itself. A row no member of the cohort that reviewed it answers for is unreviewed.
         member = members.get((state, issuer_name))
+        surfaces: tuple[tuple[str, str], ...] = ()
         if member is None:
             population, detail = NOT_YET_REVIEWED, "no review has been recorded for this state"
         elif member.endpoint_ids:
-            population, detail = _population_for(member.endpoint_ids, by_id)
+            population, detail, surfaces = _population_for(member.endpoint_ids, by_id, kinds)
         else:
             reason = member.exclusion.reason if member.exclusion else ""
             population, detail = NO_PUBLIC_URL_FOUND, reason
-        classified.append(FrameOrg(state, issuer_name, population, detail))
+        classified.append(FrameOrg(state, issuer_name, population, detail, surfaces))
     return classified
 
 
@@ -247,6 +276,124 @@ def publishing_rate(orgs: list[FrameOrg]) -> tuple[int, int]:
             "organization has no publishing outcome to put in a numerator or a denominator"
         )
     return sum(1 for org in orgs if org.population == VERIFIED), len(orgs)
+
+
+def unreachable_surfaces(orgs: list[FrameOrg]) -> list[tuple[FrameOrg, str, str]]:
+    """Every listed surface of every documented-unreachable organization, with its condition.
+
+    One row per surface rather than per organization, and that is the whole reason this is a
+    separate cut of the data. The populations count organizations, and an organization is in
+    exactly one of them; conditions belong to surfaces, and one organization can list two that
+    failed differently. Counting organizations by condition would either double-count one, or
+    pick a condition for it, and picking is the thing #117 exists to stop.
+    """
+    return [
+        (org, endpoint_id, condition)
+        for org in orgs
+        if org.population == DOCUMENTED_UNREACHABLE
+        for endpoint_id, condition in org.surfaces
+    ]
+
+
+def condition_counts(orgs: list[FrameOrg]) -> dict[str, int]:
+    """How many documented-unreachable *surfaces* were in each condition, every one present.
+
+    Present even at zero, like :func:`counts`, so a condition that stopped occurring reads as
+    zero occurrences rather than disappearing from the page.
+    """
+    counted = Counter(condition for _, _, condition in unreachable_surfaces(orgs))
+    return {condition: counted.get(condition, 0) for condition in CONDITIONS}
+
+
+def subtotal(orgs: list[FrameOrg], conditions: Sequence[str]) -> int:
+    """How many surfaces are in the given conditions, refusing a total that spans two sides.
+
+    The refusal is the point, and it is the same shape as :func:`publishing_rate`'s. #117 exists
+    because "the surface answered and declined this request" and "the public record produced no
+    document" were published as one number about a named organization. Grouping them for
+    presentation is fine --- that is what :data:`CONDITIONS` does --- but *adding* them
+    reconstructs exactly the merged figure, one level up, where it is harder to notice. The only
+    reliable way to stop that being published is to make it unrepresentable.
+
+    ``neither`` is a side of its own and cannot be added to either of the others: an
+    unclassified condition, a disagreement between vantages, and a surface this build has no
+    result for are each evidence about this project's reading, not about the organization.
+    """
+    unknown = [condition for condition in conditions if condition not in SIDES]
+    if unknown:
+        raise ValueError(f"not conditions this module publishes: {sorted(unknown)}")
+    sides = {SIDES[condition] for condition in conditions}
+    if len(sides) > 1:
+        raise ValueError(
+            f"subtotal was asked for one number over conditions on {len(sides)} sides "
+            f"({', '.join(sorted(sides))}). A surface that answered and declined this request "
+            "and a surface that produced no document are different findings about different "
+            "things, and a count covering both is the merge #117 exists to prevent"
+        )
+    wanted = set(conditions)
+    return sum(1 for _, _, condition in unreachable_surfaces(orgs) if condition in wanted)
+
+
+def _condition_rows(orgs: list[FrameOrg]) -> str:
+    tally = condition_counts(orgs)
+    return "".join(
+        f'<tr><th scope="row">{html.escape(CONDITION_HEADINGS[condition])}</th>'
+        f"<td>{tally[condition]}</td><td>{html.escape(meaning)}</td></tr>"
+        for condition, meaning in CONDITIONS.items()
+    )
+
+
+def _surface_rows(orgs: list[FrameOrg]) -> str:
+    rows = sorted(
+        unreachable_surfaces(orgs),
+        key=lambda row: (row[0].state, row[0].roster_name.lower(), row[1]),
+    )
+    return "".join(
+        f'<tr><th scope="row">{html.escape(org.roster_name)}</th>'
+        f"<td>{html.escape(org.state)}</td>"
+        f"<td><code>{html.escape(endpoint_id)}</code></td>"
+        f"<td>{html.escape(CONDITION_HEADINGS[condition])}</td></tr>"
+        for org, endpoint_id, condition in rows
+    )
+
+
+def _conditions_section(orgs: list[FrameOrg]) -> str:
+    """The #117 breakdown, or a sentence saying why there is none.
+
+    Absent rather than empty when this build has no surfaces to break down: a table of zeros
+    under a heading about conditions reads as "every condition was checked and none occurred",
+    which is a measurement, and it would not be one.
+    """
+    surfaces = unreachable_surfaces(orgs)
+    if not surfaces:
+        return (
+            "<p>No organization in this population lists a surface on this build, so there is "
+            "no condition to report.</p>"
+        )
+    return f"""<p>What "did not answer" was, for each of the {len(surfaces)} listed
+{"surface" if len(surfaces) == 1 else "surfaces"} these organizations publish. This is a
+property of the publishing run, not of the curation record above: the population says on what
+basis the entry earned its place in the registry, and the condition says what the surface did
+on the day this page was generated.</p>
+<div class="usa-alert usa-alert--info usa-alert--slim"><div class="usa-alert__body">
+<p class="usa-alert__text">These counts are never added to each other. A surface that answered
+and declined this request and a surface that produced no document are different facts about
+different things, and one number covering both is what this breakdown exists to replace. This
+project does not read either condition as a choice or as a defect; it reports the condition it
+observed, and the counts below are of surfaces, not of organizations.</p>
+</div></div>
+<table class="usa-table usa-table--striped">
+<caption>Listed surfaces of documented-unreachable organizations, by observed condition</caption>
+<thead><tr><th scope="col">Condition</th><th scope="col">Surfaces</th>
+<th scope="col">What it means</th></tr></thead>
+<tbody>{_condition_rows(orgs)}</tbody></table>
+<div class="usa-table-container--scrollable" tabindex="0" role="region"
+aria-label="Documented-unreachable surfaces and their conditions">
+<table class="usa-table usa-table--striped">
+<caption>Each listed surface and the condition observed on this run</caption>
+<thead><tr><th scope="col">Organization</th><th scope="col">State</th>
+<th scope="col">Endpoint</th><th scope="col">Condition</th></tr></thead>
+<tbody>{_surface_rows(orgs)}</tbody></table></div>"""
 
 
 def _state_rows(orgs: list[FrameOrg]) -> str:
@@ -347,6 +494,8 @@ asking for one.</p>
 listed and keeps being probed from every vantage, because an entry that was dropped cannot be
 corrected.</p>
 {_population_list(orgs, DOCUMENTED_UNREACHABLE)}
+<h3>What "did not answer" was</h3>
+{_conditions_section(orgs)}
 <h2>Reviewed, no base URL a stranger could read</h2>
 <p>The federal rule these organizations are in frame for does not require an issuer to print
 its base URL where an unregistered visitor can read it, so this is not a compliance finding
@@ -370,7 +519,9 @@ sampling frame</a>.</p>
                 "description": (
                     "Every issuer on CMS's QHP Landscape PY2026 Individual Medical file, assigned to one "
                     "of four populations: a verified public FHIR endpoint, a documented endpoint that "
-                    "did not answer, no public base URL found by review, or not yet reviewed."
+                    "did not answer, no public base URL found by review, or not yet reviewed. The "
+                    "documented-unreachable population is broken down by the condition each listed "
+                    "surface was observed in, and those conditions are never added together."
                 ),
                 "url": f"{origin}/{COVERAGE_PATH}/",
                 "isAccessibleForFree": True,

@@ -34,7 +34,7 @@ from typing import Any
 
 from fhir_scorecard.capability import parse_capability
 from fhir_scorecard.drift import fingerprint
-from fhir_scorecard.fetch import UNCLASSIFIED, normalise_failure_kind
+from fhir_scorecard.fetch import UNCLASSIFIED, normalize_failure_kind
 
 
 @dataclass(frozen=True)
@@ -429,7 +429,7 @@ def _declaration_key(document: str) -> str:
     ``drift.py`` fingerprints declared facts precisely so "a server that merely re-renders its
     CapabilityStatement does not read as changed", and byte equality across vantages fails that
     test for the same reasons it fails across days: a generation timestamp, a request id, a
-    load balancer serving two equally-current renderings, or a dict that serialised in a
+    load balancer serving two equally-current renderings, or a dict that serialized in a
     different order. Measured 2026-09-04 on the live registry, which held 45 endpoints then,
     byte comparison called 19 of those 45 disagreeing in one run - including three-of-three unique documents from a reference server
     that plainly does not serve three different declarations.
@@ -524,7 +524,7 @@ def probe_entry_failure(entry: dict[str, Any]) -> str | None:
     hand-written file, or a writer in a language where JSON booleans stringify, produces --
     was read as reachable.
 
-    Neither has bitten yet: :func:`write_probes` serialises a dataclass, so every file this
+    Neither has bitten yet: :func:`write_probes` serializes a dataclass, so every file this
     project has written carries a real boolean and a real integer. The path that makes it
     live is #100, where a vantage this project does not operate posts a probe file for the
     publishing run to admit. A file from a foreign writer is exactly the input these two
@@ -607,13 +607,13 @@ def load_probe_files(paths: list[Path]) -> dict[str, list[VantageProbe]]:
                     # A probe that reached the endpoint has no failure to classify, so it keeps
                     # ``None`` whatever the file says: a foreign writer that shipped both
                     # ``"reachable": true`` and a failure kind would otherwise put a reachable
-                    # endpoint into a failure population. One that did not reach is normalised
+                    # endpoint into a failure population. One that did not reach is normalized
                     # against the closed vocabulary -- an unknown label, a number, or nothing at
                     # all all read as ``unclassified``, which is what this run knows.
                     failure_kind=(
                         None
                         if entry.get("reachable") is True
-                        else normalise_failure_kind(entry.get("failure_kind"))
+                        else normalize_failure_kind(entry.get("failure_kind"))
                     ),
                 )
             )

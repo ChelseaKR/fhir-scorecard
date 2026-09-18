@@ -132,7 +132,7 @@ and describing them afterwards.
 ### The federal-exchange frame is national; the review proceeds a state at a time
 
 The QHP Landscape file is not a Texas file or a Florida file: it enumerates the whole
-federally-facilitated marketplace, which makes it the payer-side analogue of the rosters ONC's
+federally-facilitated marketplace, which makes it the payer-side analog of the rosters ONC's
 Lantern ingests on the provider side - a denominator somebody else publishes, at a scale nobody
 could assemble by hand. The whole national roster is committed under `data/frames/` so the
 denominator exists first, per the rule at the top of this document.

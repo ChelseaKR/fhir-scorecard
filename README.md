@@ -7,7 +7,8 @@
 rescored daily, each grade with the findings and spec citations behind it, plus the machine-readable
 [dataset](https://fhir.chelseakr.com/dataset.csv) and [API](https://fhir.chelseakr.com/api/).
 Published by `.github/workflows/pages.yml`; `tools/verify_live_site.py` fails if what is
-served stops matching what this checkout builds.
+served stops matching what this checkout builds — unless no publish has run since the change,
+which it reports as pending rather than as a fault.
 
 CMS interoperability rules require regulated payers to stand up FHIR R4 APIs (Patient Access,
 Provider Directory, and, under CMS-0057-F, more to come). Whether those endpoints are *actually
@@ -85,7 +86,7 @@ and a diff between yesterday's artifact and today's is a change in the endpoints
 **An endpoint this run did not reach is reported as not measured, never as a failure.** Its
 testcases are `skipped` naming the vantage, its SARIF results are `note` with a severity of
 `not observed`, and the run's summary counts it separately from the endpoints that were graded,
-so a run that reached nothing cannot summarise as a clean one. The exit code still answers only
+so a run that reached nothing cannot summarize as a clean one. The exit code still answers only
 the thresholds you set, exactly as the single-endpoint check does: an unreachable endpoint is a
 fact about the network path between your runner and it as much as about the endpoint, and a
 build that goes red for that is blaming the endpoint for the runner. To make an unreached
@@ -197,7 +198,7 @@ facts a machine can read:
   must not be able to read as a fresh one.
 
 Re-checking used to be entirely manual. `fhir-scorecard reverify` does the retrieval and leaves
-the judgement where it belongs:
+the judgment where it belongs:
 
 ```console
 # Re-check every entry nobody has looked at in 90 days. Writes a proposal, edits nothing.
@@ -389,7 +390,7 @@ function of `(endpoint_id, kind, date, digest)` rather than of the address the s
 from, so a rebuild republishes nothing and a hosting change republishes nothing. Every feed
 states how many events it carries out of how many the record holds and over what window: the
 site feed is capped at the newest 100 and says so, because a truncated dataset published as a
-complete one is the defect this project is organised against. An endpoint with no recorded
+complete one is the defect this project is organized against. An endpoint with no recorded
 event gets a feed with zero entries and a sentence saying which of the two reasons applies,
 not a 404. Two things a feed will not say: it reports no grade, because the record retains
 none; and an availability entry names no vantage, because an observation in the record is a
@@ -442,14 +443,30 @@ sharing an id, an entry linking at a path the build did not write, or a page poi
 autodiscovery at something that is not a feed. The same command
 also runs twelve mechanical accessibility rules - seven naming the WCAG 2.2 Level A criterion
 they implement, five saying plainly that they are this project's own rule and not a criterion -
-and two transfer-size budgets. The publish workflow runs all three families before
+and two transfer-size budgets. A fourth family checks the published *grades*: that every grade
+is one the grader can produce, that no dimension carries a score for a check no vantage was able
+to make, that the CSV, the per-endpoint JSON, the API index and `scorecards.json` publish the
+same letter for the same endpoint, and that the page a reader opens shows what the data for that
+endpoint says. It decides nothing about whether a grade is *right*, which is the grader's
+business; it decides that what was published is a shape the grader can produce and that every
+surface agrees. The publish workflow runs all four families before
 the artifact is uploaded, so a site that fails any of them is not deployed. Its first run against a site carrying an organization page found twelve published,
 sitemapped `/org/` pages that nothing on the site linked to.
 
 The pages are styled with the [U.S. Web Design System](https://designsystem.digital.gov/),
-vendored at a pinned version and served entirely from the site's own origin; this is an
+vendored at a pinned version and served from the site's own origin rather than a CDN; this is an
 independent open-source project, not a government website, and the site's own footer says so on
-every page. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and,
+every page.
+
+**Analytics.** The HTML pages use Google Analytics 4 to count visits
+([ADR 0006](docs/adr/0006-google-analytics-4.md)); `/privacy/` on the site says what it records.
+The loader in `src/fhir_scorecard/analytics.py` runs only on `fhir.chelseakr.com`, never in a
+local, test or CI build, and loads nothing when the browser sends Global Privacy Control or Do Not
+Track or the visitor has used the footer's "Opt out of analytics" control. Google signals and ad
+personalization are off, the advertising consent settings are denied everywhere, and analytics
+storage is denied by default in the EEA, the UK and Switzerland, where Google still receives
+cookieless pings. The data files, feeds, API tree and badges carry no script. Setting
+`GA4_MEASUREMENT_ID` to `""` removes GA from every page on the next publish. See [ROADMAP.md](ROADMAP.md) for what a production public service still needs and,
 more importantly, for the constraint that governs it: search traffic scales with registry size,
 and registry size is gated on payers publishing base URLs.
 
@@ -508,7 +525,7 @@ timeline records with, so the timeline and the verb cannot disagree.
 
 `--fail-on-regression` exits 1 when the later side no longer has something the earlier side had:
 a resource, an interaction, a declared profile, or a check that used to pass. It is opt-in
-because it is an operator's policy rather than this tool's judgement, and it is deliberately
+because it is an operator's policy rather than this tool's judgment, and it is deliberately
 narrow. An addition never trips it. Neither does a dimension that stopped publishing a score,
 which is reported as not comparable rather than as a fall, because treating a lost measurement as
 a fall would score an absence. Nor does a document this run could not read.
@@ -600,10 +617,10 @@ are no blank rows and no silent skips.
 | Documentation | Applies: README, ROADMAP, CONTRIBUTING, SECURITY, CHANGELOG, CITATION.cff, ADRs (`docs/adr/`) |
 | Quality & Metrics | Applies: deterministic findings tied to cited spec text; coverage floor enforced in CI; drift tracked across runs |
 | Release & Versioning | Applies: the composite Action in `action.yml` is consumed as `ChelseaKR/fhir-scorecard@<tag>`, so a tag is a shipped interface. Releases are cut by dispatching `.github/workflows/release.yml` with an existing SSH-signed annotated SemVer tag; the shared authorize workflow verifies the signature against `.github/allowed_signers` and that the commit is an ancestor of `main`, `make verify` and the full-history secret scan re-run at that commit, and the build is attested (SLSA provenance) and attached to a GitHub Release whose notes are the matching CHANGELOG section. Tag, `pyproject.toml` and CHANGELOG versions must agree or the release fails. `docs/adr/0002-release-versioning-applies-action-export.md` supersedes `docs/adr/0001-release-versioning-na.md`; the site and dataset are still published daily from `main` and are not what a version names |
-| Performance | Applies (scoped): the published pages are deterministically generated static HTML styled by the U.S. Web Design System, vendored into the package at a pinned version (`src/fhir_scorecard/assets/uswds/VERSION.txt`) and served from the site's own origin - stylesheets, scripts, fonts, and icons included - so there is still no third-party subresource; the only other images are same-origin badge SVGs the build writes. Two transfer-size budgets are enforced (`fhir_scorecard.weight`), one on each page's own bytes and one on the subresources more than one page links, both measured from the published site rather than chosen. No timing budget is enforced and none is claimed: there is no server-side surface to load-test, and a wall-clock number from a CI runner is a fact about the runner |
+| Performance | Applies (scoped): the published pages are deterministically generated static HTML styled by the U.S. Web Design System, vendored into the package at a pinned version (`src/fhir_scorecard/assets/uswds/VERSION.txt`) and served from the site's own origin - stylesheets, scripts, fonts, and icons included. The one third-party subresource is Google Analytics' `gtag.js`, which the inline loader requests only on the production host and never under GPC, DNT or the footer opt-out ([ADR 0006](docs/adr/0006-google-analytics-4.md)); it is outside both budgets, which count bytes this build writes. The only other images are same-origin badge SVGs the build writes. Two transfer-size budgets are enforced (`fhir_scorecard.weight`), one on each page's own bytes and one on the subresources more than one page links, both measured from the published site rather than chosen. No timing budget is enforced and none is claimed: there is no server-side surface to load-test, and a wall-clock number from a CI runner is a fact about the runner |
 | AI Development Measurement | Applies: no tool-usage counter is collected and none gates a merge. `make verify` and `.github/workflows/security.yml` are what a change clears regardless of how it was authored |
 | Incident Response | Applies: no incident to date. Vulnerabilities go through the path in [SECURITY.md](SECURITY.md); a wrong or unwanted listing goes through the remove-or-dispute issue template and is corrected without the reporter proving anything first. A postmortem will be committed under `docs/incidents/` when there is one to write |
-| Data Governance | Applies: the only collected data is the response to two unauthenticated GET requests against public FHIR discovery paths, at a rate stated in [SECURITY.md](SECURITY.md); no authentication, no patient data, no path beyond those two. Registry provenance and the rejected-candidate log are committed under `data/`, and every published payload names its source |
+| Data Governance | Applies: the only data the probes collect is the response to two unauthenticated GET requests against public FHIR discovery paths, at a rate stated in [SECURITY.md](SECURITY.md); no authentication, no patient data, no path beyond those two. Registry provenance and the rejected-candidate log are committed under `data/`, and every published payload names its source. Reading the site is measured separately, by Google Analytics 4 on the HTML pages only, with the retention (14 months), opt-outs and regional defaults stated on `/privacy/` and in [ADR 0006](docs/adr/0006-google-analytics-4.md) |
 | Responsible-Tech Framework | Applies: `docs/RESPONSIBLE-TECH-AUDITS.md` (ethics, bias, privacy, transparency, accessibility, security declarations) |
 
 ## Support

@@ -33,8 +33,10 @@ from __future__ import annotations
 import html
 from collections import Counter
 from dataclasses import dataclass
+from itertools import pairwise
 
 from fhir_scorecard.archive import Record
+from fhir_scorecard.conditions import CONDITION_HEADINGS, CONDITION_NOT_OBSERVED
 from fhir_scorecard.site import Page, json_ld
 
 #: Site path of the report.
@@ -52,6 +54,11 @@ class MonthlySection:
     missed_at_least_once: tuple[str, ...]
     changes: tuple[tuple[str, str, tuple[str, ...]], ...]
     returns: tuple[tuple[str, str, int], ...]
+    #: ``(date, endpoint name, condition before, condition after)`` for each time an endpoint
+    #: that did not answer moved from one recorded condition to another inside this month
+    #: (#117). An endpoint moving from a broken hostname to a credential gate is a real event
+    #: about the public record, and until the condition was retained nothing could see it.
+    condition_moves: tuple[tuple[str, str, str, str], ...] = ()
     #: How many endpoints entered the record before the first month this report covers. A
     #: report-level fact, carried on every section on purpose: "No endpoint entered the record
     #: this month" is the sentence it qualifies, and a reader meets that sentence inside a
@@ -111,11 +118,13 @@ def _month_section(month: str, records: list[Record], entered_before: int = 0) -
     missed: list[str] = []
     changes: list[tuple[str, str, tuple[str, ...]]] = []
     returns: list[tuple[str, str, int]] = []
+    moves: list[tuple[str, str, str, str]] = []
     for record in records:
         in_month = [o for o in record.observations if o.date.startswith(month)]
         if in_month:
             observed.append(record.name)
             (clean if all(o.up for o in in_month) else missed).append(record.name)
+        moves.extend(_condition_moves(record, month))
         if (record.first_seen or "").startswith(month):
             entered.append(record.name)
         for change in record.changes:
@@ -134,8 +143,34 @@ def _month_section(month: str, records: list[Record], entered_before: int = 0) -
         missed_at_least_once=tuple(sorted(missed)),
         changes=tuple(sorted(changes)),
         returns=tuple(sorted(returns)),
+        condition_moves=tuple(sorted(moves)),
         entered_before_the_window=entered_before,
     )
+
+
+def _condition_moves(record: Record, month: str) -> list[tuple[str, str, str, str]]:
+    """Each time this endpoint's recorded condition changed, within one month (#117).
+
+    Read over the *unanswered* observations only, in date order, so a day the endpoint answered
+    neither starts nor ends a run of conditions --- an endpoint that was gated, came back, and
+    was gated again has not moved condition, and reporting it as two moves would turn an outage
+    into a finding about the public record.
+
+    Observations carrying no recorded condition are skipped rather than compared. Most of the
+    record predates the field, and treating "not recorded" as a condition would publish a move
+    from nothing to something on the first day after this shipped, for every endpoint that was
+    already failing. That is a fact about when this field was added, not about any endpoint.
+    """
+    unanswered = [
+        observation
+        for observation in sorted(record.observations, key=lambda o: o.date)
+        if not observation.up and observation.condition != CONDITION_NOT_OBSERVED
+    ]
+    return [
+        (after.date, record.name, before.condition, after.condition)
+        for before, after in pairwise(unanswered)
+        if before.condition != after.condition and after.date.startswith(month)
+    ]
 
 
 def sections(records: list[Record]) -> list[MonthlySection]:
@@ -211,6 +246,35 @@ def _nobody_entered(section: MonthlySection) -> str:
     )
 
 
+def _condition_moves_block(section: MonthlySection) -> str:
+    """What moved between conditions this month, or why there is nothing to report (#117).
+
+    The empty sentence is careful about which of two very different situations it is in. Most of
+    the observation record predates the condition being retained, so "no endpoint moved" for an
+    early month is a fact about the record and not about the endpoints, and the sentence says so
+    rather than reading as a measured absence of movement.
+    """
+    if not section.condition_moves:
+        return (
+            "<p>No endpoint that failed to answer moved from one recorded condition to another "
+            "this month. A month with no move is the ordinary case; a month before this project "
+            "began retaining the condition can produce no move at all, which is a fact about "
+            "the record rather than about any endpoint.</p>"
+        )
+    items = "".join(
+        f"<li><strong>{html.escape(name)}</strong> ({html.escape(date)}): "
+        f"{html.escape(CONDITION_HEADINGS[before])} &rarr; "
+        f"{html.escape(CONDITION_HEADINGS[after])}</li>"
+        for date, name, before, after in section.condition_moves
+    )
+    return (
+        "<p>An endpoint that did not answer, and whose recorded condition differs from the "
+        "previous day it did not answer. Neither end of a move is a grade and neither is read "
+        "as better or worse than the other; this reports that the condition changed.</p>"
+        f"<ul>{items}</ul>"
+    )
+
+
 def _section_html(section: MonthlySection) -> str:
     return f"""
 <h3>{html.escape(section.month)}</h3>
@@ -230,6 +294,8 @@ was not observed at all this month, which is a fact about this project's runs.</
 <h4>Changed what it declares</h4>
 {_changes_block(section)}
 {_returns_block(section)}
+<h4>Moved from one condition to another</h4>
+{_condition_moves_block(section)}
 """
 
 

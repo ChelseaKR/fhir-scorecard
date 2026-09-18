@@ -335,7 +335,7 @@ def test_the_sarif_carries_the_2_1_0_structure_a_consumer_requires(tmp_path: Pat
 
 
 def test_every_rule_the_run_declares_is_one_the_run_actually_emitted(tmp_path: Path) -> None:
-    """Derived from the run, not from a hand-kept catalogue: a rule nothing emits is a rule
+    """Derived from the run, not from a hand-kept catalog: a rule nothing emits is a rule
     that has outlived its finding, and this is what would notice."""
     _, _, sarif = _run(tmp_path, OPERATOR_REGISTRY)
     document = json.loads(sarif.read_text(encoding="utf-8"))
@@ -490,7 +490,7 @@ def test_the_single_endpoint_check_still_works_and_still_needs_one_of_the_two() 
     assert main(["check", "http://example.com/fhir"]) == 2
 
 
-def test_a_run_that_reached_nothing_does_not_summarise_as_a_clean_one(
+def test_a_run_that_reached_nothing_does_not_summarize_as_a_clean_one(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """ "3 endpoints checked, 0 below the threshold" over three endpoints nothing answered is a

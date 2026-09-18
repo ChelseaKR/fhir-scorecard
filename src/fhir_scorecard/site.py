@@ -16,7 +16,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from fhir_scorecard import analytics
 from fhir_scorecard.cohort import Cohort, CohortMember
+from fhir_scorecard.conditions import CONDITION_HEADINGS, CONDITIONS, condition_of
 from fhir_scorecard.grading import (
     NOT_OBSERVED,
     WEIGHTED_DIMENSIONS,
@@ -92,7 +94,7 @@ _KIND_BLURBS = {
     ),
     "reference": (
         "Open test servers used by the FHIR community. Included as a baseline, not as "
-        "a judgement about anyone's production systems."
+        "a judgment about anyone's production systems."
     ),
 }
 
@@ -315,7 +317,7 @@ def _signal_status(card: Scorecard) -> str:
 
 
 def _signal_map(cards: Sequence[Scorecard]) -> str:
-    """Render every real endpoint as one labelled signal on the landing page."""
+    """Render every real endpoint as one labeled signal on the landing page."""
     rows: list[str] = []
     for kind in _KIND_SLUGS:
         group = [card for card in cards if card.kind == kind]
@@ -815,6 +817,62 @@ def _cohort_included_rows(cohort: Cohort, cards: dict[str, Scorecard]) -> str:
     return rows
 
 
+def _cohort_conditions_html(listed: list[Scorecard]) -> str:
+    """Why the listed endpoints that did not answer did not answer, split by kind (#117).
+
+    The cohort page publishes "N answered on this run" over the listed endpoints, and until now
+    the other endpoints were one number. An endpoint answering HTTP 401 and an endpoint whose
+    hostname does not resolve both landed in it, which is the merge #117 exists to remove one
+    level up on ``/coverage/``; a cohort page is where a reader meets a named plan, so it is the
+    place the merge costs most.
+
+    Split **within kind**, because a Patient Access API and a Provider Directory API are never
+    compared on this site and a condition table that pooled them would be the first place they
+    were. The counts are never added across conditions: each row is a count of endpoints in one
+    condition, and the only total on the page is the one already published beside "answered".
+
+    Absent, not empty, when every listed endpoint answered. A table of zeroes under a heading
+    about conditions would read as a measurement of conditions that did not occur.
+    """
+    unanswered = [card for card in listed if not card.reachable]
+    if not unanswered:
+        return ""
+    by_kind: dict[str, list[Scorecard]] = {}
+    for card in unanswered:
+        by_kind.setdefault(card.kind, []).append(card)
+    sections = ""
+    for kind in sorted(by_kind):
+        rows = "".join(
+            # A row header, not a cell: the endpoint names the row, and `test_headline_counts`
+            # counts `<td><a href="/endpoint/` to check the listed-endpoints table is one row
+            # per member. A second table using that markup would be counted as listings.
+            f'<tr><th scope="row"><a href="/endpoint/{card.endpoint_id}/">'
+            f"{html.escape(card.name)}</a></th>"
+            f"<td>{html.escape(CONDITION_HEADINGS[condition])}</td>"
+            f"<td>{html.escape(CONDITIONS[condition])}</td></tr>"
+            for card in sorted(by_kind[kind], key=lambda c: c.name.lower())
+            for condition in (condition_of(card.failure_kinds),)
+        )
+        label = KIND_LABELS.get(kind, kind)
+        sections += (
+            '<div class="usa-table-container--scrollable" tabindex="0" role="region" '
+            f'aria-label="Conditions observed for {html.escape(label)}">'
+            '<table class="usa-table usa-table--striped">'
+            f"<caption>{html.escape(label)}: "
+            f"{len(by_kind[kind])} listed "
+            f"{'endpoint' if len(by_kind[kind]) == 1 else 'endpoints'} did not answer</caption>"
+            '<thead><tr><th scope="col">Endpoint</th><th scope="col">Condition</th>'
+            '<th scope="col">What it means</th></tr></thead>'
+            f"<tbody>{rows}</tbody></table></div>"
+        )
+    return f"""<h2>What "did not answer" was</h2>
+<p>The condition each listed endpoint that did not answer was observed in on this run, kept
+apart by category and never added together. An endpoint that answered and declined this request
+is running; an endpoint that produced no document is a different fact about a different thing.
+This project reports the condition and reads neither of them as a choice or as a defect.</p>
+{sections}"""
+
+
 def _cohort_excluded_rows(cohort: Cohort) -> str:
     basis_words = {
         "portal_reviewed": "the plan's own documentation was reviewed",
@@ -881,7 +939,7 @@ def cohort_page(
     # thirteen endpoints and counted four of them twice in "answered on this run" -- still
     # served on 2026-09-12. `michigan-marketplace` has one such pair. The table below is right to keep a row per member - the row is about the plan,
     # and a plan that publishes through another entity's server is still that plan's answer to
-    # the rule - but a count labelled "endpoints" has to be a count of endpoints.
+    # the rule - but a count labeled "endpoints" has to be a count of endpoints.
     #
     # The label was the open question, and it is settled here rather than left to the reader:
     # "endpoints listed" counts endpoints. Three things decide it. The word is "endpoints", on a
@@ -890,7 +948,7 @@ def cohort_page(
     # one answer - so reading the first as listings and the second as endpoints would publish a
     # ratio ("11 of 17") whose halves count different things, and the page's own description
     # prints exactly that ratio. And a reader who wants the listings can have them under their
-    # own name: `listings_stat` publishes that number as its own labelled figure rather than
+    # own name: `listings_stat` publishes that number as its own labeled figure rather than
     # reusing this one, on the cohorts where the two differ.
     rows = [cards[eid] for m in cohort.included for eid in m.endpoint_ids if eid in cards]
     listed = list({card.endpoint_id: card for card in rows}.values())
@@ -965,6 +1023,7 @@ membership is public and finite, the gap is itself a finding.</p>
 <tbody>{_cohort_included_rows(cohort, cards)}</tbody></table></div>
 <p>Grades are comparable within a category only: a Patient Access API and a Provider Directory
 API answer to different expectations and are never ranked against each other.</p>
+{_cohort_conditions_html(listed)}
 {_declared_kinds_html(cohort, declared_kinds)}
 {excluded_html}
 <div class="usa-alert usa-alert--info usa-alert--slim site-caveat"><div class="usa-alert__body">
@@ -1079,11 +1138,11 @@ def write_page(out_dir: Path, page: Page, origin: str, generated_at: str) -> Non
 def write_assets(out_dir: Path) -> None:
     """Copy the vendored stylesheet, script, font, and icon files into the site output.
 
-    Every page links /assets/uswds/css/uswds.min.css and /assets/site.css, so the site stays
-    fully self-contained: the design system is served from the same origin as the pages, at the
-    version pinned in assets/uswds/VERSION.txt, and no page ever fetches a third-party
-    subresource. The files ship inside the package so an installed copy builds the same site a
-    checkout does.
+    Every page links /assets/uswds/css/uswds.min.css and /assets/site.css: the design system is
+    served from the same origin as the pages, at the version pinned in assets/uswds/VERSION.txt,
+    never from a CDN. The one third-party script is Google Analytics, loaded by the guarded
+    inline loader in ``fhir_scorecard.analytics`` and only on the production host (ADR 0006).
+    The files ship inside the package so an installed copy builds the same site a checkout does.
     """
     from importlib import resources
 
@@ -1145,6 +1204,12 @@ def _feed_link(page: Page) -> str:
     )
 
 
+def _analytics_head() -> str:
+    """The GA4 loader for ``<head>``, on its own line, or nothing when no ID is configured."""
+    snippet = analytics.head_snippet()
+    return f"\n{snippet}" if snippet else ""
+
+
 def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str:
     prefix = _site_path_prefix(origin)
     card = social_card_url(origin)
@@ -1176,7 +1241,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/uswds/css/uswds.min.css">
 <link rel="stylesheet" href="/assets/site.css">
-<script src="/assets/uswds/js/uswds-init.min.js"></script>
+<script src="/assets/uswds/js/uswds-init.min.js"></script>{_analytics_head()}
 </head>
 <body>
 <a class="usa-skipnav" href="#content">Skip to main content</a>
@@ -1221,6 +1286,8 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <li class="mobile-lg:grid-col-auto usa-footer__primary-content">
 <a class="usa-footer__primary-link" href="/dataset.csv">CSV</a></li>
 <li class="mobile-lg:grid-col-auto usa-footer__primary-content">
+<a class="usa-footer__primary-link" href="/privacy/">Privacy</a></li>
+<li class="mobile-lg:grid-col-auto usa-footer__primary-content">
 <a class="usa-footer__primary-link" href="https://github.com/ChelseaKR/fhir-scorecard">Source ↗</a></li>
 </ul>
 </nav>
@@ -1233,6 +1300,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <p>Generated {html.escape(generated_at)}. Only public <code>/metadata</code> and SMART discovery
 documents are read; no patient data is ever accessed. An independent open-source project; not a
 government website, and affiliated with no government agency.</p>
+{analytics.footer_note()}
 </div>
 </div>
 </footer>
@@ -1564,6 +1632,23 @@ _FINDING_DOCS = [
         "Not applicable to Provider Directory APIs, for the same reason as I2.",
     ),
 ]
+
+
+def privacy_page(origin: str) -> Page:
+    """What reading this site sends anywhere, true for whether or not GA4 is configured."""
+    return Page(
+        path="privacy",
+        title="Privacy: what this site measures",
+        description=(
+            "What Google Analytics records when you read these pages, what is switched off, "
+            "and how to turn it off."
+            if analytics.enabled()
+            else "This site runs no analytics and sets no cookies."
+        ),
+        body=analytics.privacy_body(),
+        changefreq="monthly",
+        priority="0.3",
+    )
 
 
 def claim_page(origin: str) -> Page:

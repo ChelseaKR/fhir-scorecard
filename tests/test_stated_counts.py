@@ -29,6 +29,16 @@ test suite are excluded, because their counts are history, planning arguments, o
 none of which describe the live registry, and all of which would be made *worse* by being forced
 to track it. A gate over everything would have to be silenced so often that the silencing would
 become the interface.
+
+**What the failure message may not do (#144).** The gate detects one thing — a count it cannot
+verify — and that condition has two different repairs. `site.py` renders cohort pages,
+organization pages and category pages, every one of which legitimately states a count that is a
+*subset* of the registry and can never equal it. The first version of this gate reported every
+rejection as `(registry holds N, and no date is given)`, which reads as an instruction to write
+N. On #130 it flagged a true, past-tense cohort count of 17 endpoints and a reader who trusted
+the sentence would have changed a correct number into a wrong one. So the message names both
+repairs and asserts neither, and it says the count is *unverifiable from here* rather than
+wrong: the gate knows the registry size, and it does not know what the sentence is counting.
 """
 
 from __future__ import annotations
@@ -67,6 +77,7 @@ SCOPED = (
     "src/fhir_scorecard/entity_report.py",
     "src/fhir_scorecard/weight.py",
     "src/fhir_scorecard/audit.py",
+    "src/fhir_scorecard/published.py",
 )
 
 #: Numbers written as words, since half of this repository's prose spells them out. A gate that
@@ -129,18 +140,45 @@ def _claims(path: Path) -> list[tuple[int, str, int, bool]]:
     return found
 
 
-@pytest.mark.parametrize("relative", SCOPED)
-def test_a_stated_count_is_current_or_dated(relative: str) -> None:
-    """Parametrised per file so a failure names the file, not a wall of every file at once."""
-    path = ROOT / relative
-    assert path.is_file(), f"{relative} is in the gate's scope but does not exist"
-    current = registry_size()
-    wrong = [
-        f"{relative}:{line} says {text!r} (registry holds {current}, and no date is given)"
+def diagnose(relative: str, line: int, text: str, current: int) -> str:
+    """The sentence printed for one count this gate could not verify.
+
+    Deliberately two branches and no verdict. The gate observes that a number is neither the
+    registry size nor dated; it cannot observe *what the number counts*, and a count on a cohort,
+    category or organization page is a subset by construction. Naming only the registry size
+    would send a reader to change a true subset count into a false registry count, which is what
+    happened on #130 and is worse than the gate not running. The dating escape is named second
+    because it is the repair that is correct in both branches.
+    """
+    return (
+        f"{relative}:{line} states {text!r}, which this gate cannot verify from here. "
+        f"If it counts the registry as a whole, it is stale: the registry holds {current}. "
+        f"If it counts a subset -- one cohort, one category, one organization -- or is a past "
+        f"observation, it may be exactly right, and the repair is to name the date it was "
+        f"measured (this repository dates observations rather than keeping them current)."
+    )
+
+
+def unverifiable_counts(relative: str, path: Path, current: int) -> list[str]:
+    """Every count in one file that is neither the registry size nor dated, already diagnosed.
+
+    Split out from the assertion so the message a reader acts on is reachable from a test rather
+    than only from a red run.
+    """
+    return [
+        diagnose(relative, line, text, current)
         for line, text, value, dated in _claims(path)
         if value != current and not dated
     ]
-    assert not wrong, "\n".join(wrong)
+
+
+@pytest.mark.parametrize("relative", SCOPED)
+def test_a_stated_count_is_current_or_dated(relative: str) -> None:
+    """Parametrized per file so a failure names the file, not a wall of every file at once."""
+    path = ROOT / relative
+    assert path.is_file(), f"{relative} is in the gate's scope but does not exist"
+    unverifiable = unverifiable_counts(relative, path, registry_size())
+    assert not unverifiable, "\n".join(unverifiable)
 
 
 def test_every_probing_workflow_is_in_scope() -> None:
@@ -173,7 +211,10 @@ def test_the_gate_is_honest_about_how_much_it_examines() -> None:
     it does is stop a count being *reintroduced* there without being current or dated.
 
     Stated here so nobody reads a green run as "the workflows were verified". Measured when
-    written: 8 counts, in 5 of 17 scoped files.
+    written: 8 counts, in 5 of 17 scoped files. Measured again 2026-09-13, with
+    `src/fhir_scorecard/published.py` added to the scope: 11 counts, in 6 of 19. The earlier
+    measurement is kept rather than overwritten, because what it records is what the gate
+    could see on the day the gate was written.
     """
     per_file = {relative: len(_claims(ROOT / relative)) for relative in SCOPED}
     examinable = len(per_file)
@@ -194,7 +235,7 @@ def test_the_gate_is_honest_about_how_much_it_examines() -> None:
 def test_the_gate_catches_a_stale_count_and_accepts_a_dated_one(tmp_path: Path) -> None:
     """The gate's own negative control, run every time rather than by hand.
 
-    Without this, the parametrised test above passes on a clean tree whether or not the regex
+    Without this, the parametrized test above passes on a clean tree whether or not the regex
     works, and nothing distinguishes "no stale counts" from "no counts found".
     """
     current = registry_size()
@@ -218,6 +259,47 @@ def test_the_gate_catches_a_stale_count_and_accepts_a_dated_one(tmp_path: Path) 
     fresh = tmp_path / "fresh.md"
     fresh.write_text(f"A daily rescore of {current} live third-party endpoints.")
     assert not [c for c in _claims(fresh) if c[2] != current and not c[3]]
+
+
+def test_the_diagnostic_names_both_repairs_and_asserts_neither(tmp_path: Path) -> None:
+    """#144: the gate detects one condition with two repairs, and must not name only one.
+
+    Driven through :func:`unverifiable_counts`, not through :func:`diagnose` alone, so this holds
+    the sentence a red run actually prints rather than a sentence only this test can reach.
+
+    The case is the real one. On #130 the gate flagged a past-tense **cohort** count -- 17
+    endpoints on ``florida-marketplace`` -- and reported it as though the number should have been
+    the registry size. A cohort is a subset by construction, so that number can never equal the
+    registry, and a reader who trusted the message would have replaced a true number with a false
+    one. The rule was right; the sentence was wrong.
+    """
+    current = registry_size()
+    subset = tmp_path / "cohort_comment.py"
+    subset.write_text('# so the page said "17 endpoints listed" over thirteen endpoints\n')
+
+    messages = unverifiable_counts("src/fhir_scorecard/site.py", subset, current)
+    assert len(messages) == 1, "the control did not reach the gate's rejection path"
+    message = messages[0]
+
+    # Where and what, so the reader can find it.
+    assert "src/fhir_scorecard/site.py:1" in message
+    assert "17 endpoints" in message
+
+    # Both readings are offered, and the registry size appears only under the first of them.
+    assert "If it counts the registry as a whole" in message
+    assert str(current) in message.split("If it counts a subset")[0]
+    assert "If it counts a subset" in message
+
+    # The repair that is correct under either reading is named explicitly.
+    assert "name the date it was measured" in message
+
+    # And neither reading is asserted. A verdict here is the defect: the gate knows the registry
+    # size and does not know what the sentence is counting.
+    lowered = message.lower()
+    for verdict in ("is wrong", "should say", "should be", "must equal", "and no date is given"):
+        assert verdict not in lowered, (
+            f"the diagnostic asserts a verdict it cannot support: {verdict!r}"
+        )
 
 
 def test_the_registry_size_is_read_from_the_registry() -> None:

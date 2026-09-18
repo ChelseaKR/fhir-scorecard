@@ -60,7 +60,7 @@ NUMBER_WORDS = {
     "twenty": 20,
     "twenty-one": 21,
 }
-"""Only the words this paragraph actually uses, plus enough neighbours that a changed count
+"""Only the words this paragraph actually uses, plus enough neighbors that a changed count
 fails on the number rather than on a missing dictionary entry."""
 
 

@@ -203,9 +203,9 @@ code {
 .category-card > a:focus { text-decoration: underline; }
 .category-card > p { max-width: 34rem; color: var(--usa-base-dark); font-size: .9rem; }
 .grade-distribution { display: flex; gap: .5rem; margin-top: 1.5rem; }
-/* One pill per grade: the container carries the grade colour (set by .grade-count-* above,
-   as colour and background), the count sits in a white box, and the letter sits on the
-   container's own background. This rule must set neither colour nor background: it follows
+/* One pill per grade: the container carries the grade color (set by .grade-count-* above,
+   as color and background), the count sits in a white box, and the letter sits on the
+   container's own background. This rule must set neither color nor background: it follows
    the per-grade rules at equal specificity, and when it did, every pill was ink on ink. */
 .grade-count {
   display: inline-flex;
@@ -288,7 +288,7 @@ li.ok .mark { color: var(--usa-success-dark); background: #dfeacd; }
 li.unobserved .mark, li.note .mark { color: var(--usa-base-dark); background: var(--usa-base-lightest); }
 li.unobserved .finding-copy, li.note .finding-copy { color: var(--usa-base-dark); font-style: italic; }
 /* "Asked from every vantage and answered by none" is a finding, not a silence, so it is not
-   greyed out like .unobserved -- and it is not red like .no either, because it is not a verdict
+   grayed out like .unobserved -- and it is not red like .no either, because it is not a verdict
    against the endpoint. Its own weight, between the two. */
 li.unanswered .mark { color: #71767a; background: var(--usa-base-lightest); border: 1px solid #71767a; }
 li.unanswered .finding-copy { color: var(--usa-ink); }
@@ -362,6 +362,11 @@ li.unanswered .finding-copy { color: var(--usa-ink); }
   white-space: nowrap;
 }
 .footer-tagline { margin: 0 0 .5rem; font-family: var(--font-serif); font-size: 1.15rem; }
+/* The footer's analytics opt-out (fhir_scorecard.analytics): a <button>, because it changes a
+ * setting, dressed as a link by USWDS's unstyled button. USWDS gives every .usa-button
+ * `display: inline-flex`, which beats the browser's own rule for the `hidden` attribute, so
+ * without this the button would stay on screen under GPC or DNT after the loader hid it. */
+.analytics-toggle[hidden] { display: none; }
 @media (max-width: 760px) {
   .home-hero, .endpoint-hero, .evidence-grid, .section-heading, .evidence-callout,
   .probe-contract, .weight-panel { grid-template-columns: 1fr; gap: 2rem; }

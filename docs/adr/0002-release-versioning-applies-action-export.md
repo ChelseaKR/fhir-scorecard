@@ -46,7 +46,7 @@ had; it is superseded because the facts changed, not because it was wrong.
 Release & Versioning **applies** to this repository. The Action is the released artifact, a
 GitHub Release at a signed tag is the release, and the tag is what consumers pin.
 
-1. Add `.github/workflows/release.yml`, modelled on the sibling `ChelseaKR/ctdl-validate`
+1. Add `.github/workflows/release.yml`, modeled on the sibling `ChelseaKR/ctdl-validate`
    workflow and sharing its trust boundary:
    - `workflow_dispatch` with a required existing-tag input, never firing on tag push. A tag
      push is not a review; a dispatch against an already-reviewed tag is.

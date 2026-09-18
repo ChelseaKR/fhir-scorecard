@@ -455,9 +455,9 @@ def test_a_reached_vantage_carrying_a_failure_kind_still_publishes_none() -> Non
     nothing observable and the sabotage read as a pass. That is a control you can predict will
     lie, and the answer is a case the guard is actually load-bearing for.
 
-    `load_probe_files` normalises this one layer up, which is exactly why the shape exists: a
+    `load_probe_files` normalizes this one layer up, which is exactly why the shape exists: a
     foreign vantage (#100) that ships both `"reachable": true` and a failure kind must not put a
-    working endpoint into a failure population, and defence in depth is only defence if something
+    working endpoint into a failure population, and defense in depth is only defense if something
     checks the inner layer.
     """
     from fhir_scorecard.vantage import _report_for

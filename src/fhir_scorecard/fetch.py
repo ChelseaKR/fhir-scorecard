@@ -85,7 +85,7 @@ MAX_REDIRECTS = 3
 #: currently disagree about that for a 401, and settling it is the owner's, not this module's.
 #:
 #: ``unclassified`` is a real member of the vocabulary and is published as itself. A classifier
-#: that quietly files an unrecognised failure under the nearest label is the thing this exists to
+#: that quietly files an unrecognized failure under the nearest label is the thing this exists to
 #: remove, so anything not listed here lands there rather than near something.
 FAILURE_KINDS: tuple[str, ...] = (
     "authentication_required",
@@ -100,7 +100,7 @@ FAILURE_KINDS: tuple[str, ...] = (
     "unclassified",
 )
 
-#: What an unrecognised condition is called. Named rather than repeated as a literal, because
+#: What an unrecognized condition is called. Named rather than repeated as a literal, because
 #: every fall-through in this module has to land on the same value or the population splits.
 UNCLASSIFIED = "unclassified"
 
@@ -124,7 +124,7 @@ def failure_kind_for_status(status: int) -> str:
     return UNCLASSIFIED
 
 
-def normalise_failure_kind(value: object) -> str:
+def normalize_failure_kind(value: object) -> str:
     """Read a failure kind that came from outside this process.
 
     Probe files are written by vantages this project does not operate (#100), so a kind arriving
@@ -139,6 +139,10 @@ def normalise_failure_kind(value: object) -> str:
     is the honest third state beside "gated" and "broken" rather than a silent default into one.
     """
     return value if isinstance(value, str) and value in FAILURE_KINDS else UNCLASSIFIED
+
+
+# Deprecated alias for the name released in v0.2.0; use `normalize_failure_kind`.
+normalise_failure_kind = normalize_failure_kind
 
 
 @dataclass(frozen=True)
@@ -373,7 +377,7 @@ def _verify_message(exc: ssl.SSLCertVerificationError) -> str:
     absent on an instance constructed any other way, and reading them as plain attributes meant
     this function -- which only ever runs inside an ``except`` block, describing a failure --
     could raise ``AttributeError`` out of the handler and end the run for every remaining
-    endpoint. Noticed while giving the classifier a fixture (#117). Defence rather than a fix
+    endpoint. Noticed while giving the classifier a fixture (#117). Defense rather than a fix
     for something seen in the wild, on the rule that the describing path is the last place that
     may throw.
     """

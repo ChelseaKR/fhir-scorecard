@@ -217,23 +217,23 @@ def to_junit(results: list[EndpointResult]) -> str:
 def _rules(results: list[EndpointResult]) -> list[dict[str, object]]:
     """One SARIF rule per finding code this run actually produced.
 
-    Derived from the run rather than from a hand-kept catalogue, so a new finding code cannot
+    Derived from the run rather than from a hand-kept catalog, so a new finding code cannot
     arrive with no rule behind it and a retired one cannot linger as a rule nothing emits.
     """
-    catalogue: dict[str, Finding] = {}
+    catalog: dict[str, Finding] = {}
     for result in results:
         for dimension in result.card.dimensions:
             for finding in dimension.findings:
-                catalogue.setdefault(finding.code, finding)
+                catalog.setdefault(finding.code, finding)
     return [
         {
             "id": code,
             "name": code,
-            "shortDescription": {"text": catalogue[code].message},
-            "helpUri": catalogue[code].citation,
-            "properties": {"maxPoints": catalogue[code].max_points},
+            "shortDescription": {"text": catalog[code].message},
+            "helpUri": catalog[code].citation,
+            "properties": {"maxPoints": catalog[code].max_points},
         }
-        for code in sorted(catalogue)
+        for code in sorted(catalog)
     ]
 
 

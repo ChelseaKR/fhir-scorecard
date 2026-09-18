@@ -142,7 +142,7 @@ def condition_of(kinds: tuple[str, ...]) -> str:
     * kinds that all mean the same condition give that condition;
     * kinds meaning different conditions give :data:`CONDITION_DISAGREED`, never the first one.
 
-    An unrecognised kind would be a vocabulary this module has fallen behind, which is a bug
+    An unrecognized kind would be a vocabulary this module has fallen behind, which is a bug
     rather than a condition, so it raises instead of landing in ``unclassified`` --- that label
     already means something specific and borrowing it would hide the drift.
     """

@@ -65,7 +65,7 @@ link from a page may be recorded by GA's enhanced measurement as a download.
 - Reading the site now sends Google a page view with the page address, referrer, browser and
   device data and an approximate location, and outside the EEA, UK and Switzerland sets the
   `_ga` cookies for up to two years. `/privacy/`, linked from every footer and listed in the
-  sitemap, says so, along with retention, the regional behaviour, and how to turn it off.
+  sitemap, says so, along with retention, the regional behavior, and how to turn it off.
 - The README's "no third-party subresource" statement is now "one third-party subresource,
   gtag.js". The weight budgets are unchanged: they count bytes this build writes, and the loader
   adds about 3 KB (3,018 bytes) to each page's own HTML.

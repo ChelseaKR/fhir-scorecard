@@ -152,7 +152,7 @@ class Footprint:
     #: that decides which endpoints share an ``/org/`` page, so "one organization" means here
     #: what it means on the site - including where that slug splits one organization in two.
     #: ``securityhealth.org`` reads as two organizations on 2026-09-13 because Security Health
-    #: Plan named one of its two entries "... Member", and no normalisation this module could
+    #: Plan named one of its two entries "... Member", and no normalization this module could
     #: apply would be safer than printing the slugs and letting a reader see it.
     organizations: tuple[str, ...]
     #: Whether ``key`` names a party at all. False for exactly one bucket,

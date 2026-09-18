@@ -181,7 +181,7 @@ class TestTheRedirectRulesThemselves:
             )
 
     def test_the_stock_handler_would_have_followed_that_downgrade(self) -> None:
-        """The behaviour being replaced, pinned so the delta is documented and not folklore."""
+        """The behavior being replaced, pinned so the delta is documented and not folklore."""
         assert (
             _redirect(
                 urllib.request.HTTPRedirectHandler(),
@@ -317,7 +317,7 @@ class TestWhatTheRunActuallyAsksFor:
         assert all(is_discovery_url(url) for url in asked)
 
     def test_every_network_call_in_the_package_goes_through_the_guarded_fetcher(self) -> None:
-        """A source scan, and named as one: it cannot prove behaviour, only that no other module
+        """A source scan, and named as one: it cannot prove behavior, only that no other module
         opens its own connection and so bypasses everything the tests above establish."""
         modules = sorted(p for p in SRC.glob("*.py") if p.name != "fetch.py")
         assert len(modules) >= 10, "the scan found almost no modules; it would pass over nothing"

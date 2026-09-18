@@ -220,7 +220,7 @@ def test_a_mismatch_renders_with_its_path() -> None:
     assert str(Mismatch("api/index.json", "gone")) == "api/index.json: gone"
 
 
-def test_a_manifest_dataclass_serialises_deterministically() -> None:
+def test_a_manifest_dataclass_serializes_deterministically() -> None:
     one = Manifest("2026-08-27", {"b": {"bytes": 1}, "a": {"bytes": 2}}, ("x",))
     two = Manifest("2026-08-27", {"a": {"bytes": 2}, "b": {"bytes": 1}}, ("x",))
     assert one.to_json() == two.to_json()

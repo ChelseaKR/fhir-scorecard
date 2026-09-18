@@ -126,15 +126,15 @@ the reference page genuinely satisfies all twelve rather than being silently vac
   axe-core likewise tags `landmark-one-main` as `best-practice`.
 
 This is the same failure mode the PR *correctly* avoided twice: `A11Y_TITLE_NOT_UNIQUE` and
-`A11Y_DUPLICATE_ID` are already labelled "this project's rule, not a criterion", and the PR is
+`A11Y_DUPLICATE_ID` are already labeled "this project's rule, not a criterion", and the PR is
 careful to note that SC 4.1.1 Parsing was removed in WCAG 2.2 and is not cited. Two rules did not
 get the same treatment. Nothing is fabricated - every criterion number and title that appears is
-real and correctly levelled - but two rules wear a number that does not require them.
+real and correctly leveled - but two rules wear a number that does not require them.
 
 **Needs work, narrowly:** relabel those two as project rules the way the other two already are,
 and update the "twelve, each naming a criterion" sentence in `README.md`, `CHANGELOG.md`,
 `ROADMAP.md`, ADR 0004 and `pages.yml:139`. That makes it **eight** criterion-backed rules and
-four project rules, not the ten and four written here first: twelve rules, two already labelled
+four project rules, not the ten and four written here first: twelve rules, two already labeled
 as this project's own, two more moving across.
 
 Two more worth fixing while there, neither blocking:
@@ -171,7 +171,7 @@ Two caveats, neither blocking:
   no row is a day nothing was recorded", which will be false for every evicted day. The real
   record began 2026-08-05, so this becomes live in early December 2026.
 - The "no zero" refusal is enforced on the record page but not the index, where a never-observed
-  endpoint still renders `0`, `0`. The last column contextualises it, so this is a scope-of-claim
+  endpoint still renders `0`, `0`. The last column contextualizes it, so this is a scope-of-claim
   problem rather than a misleading page.
 
 ### #57 - drift timeline. **Blocking defect.**
@@ -218,7 +218,7 @@ The fix is one predicate and a third sentence; `record.answered` is already on t
 
 Two more, both real:
 
-- **The "never dated unknown" refusal is one-sided.** It is honoured for change dates and violated
+- **The "never dated unknown" refusal is one-sided.** It is honored for change dates and violated
   for returns: `drift._apply_alternation_rule` can write the literal string `"unknown"` as a date,
   `archive._returns` accepts it (it only checks `isinstance(..., str)`), and the page renders
   "unknown: returned 3 times to a declaration first observed unknown".
@@ -426,7 +426,7 @@ instead.
    - the #57 empty-state predicate - `record.answered` rather than `record.observations`, plus a third
      sentence for "probed, never answered". One line and one string.
    - the #59 member lookup key - `(state, roster_name)` rather than `roster_name`. One expression.
-   - the #55 WCAG relabelling - two rules moved from "criterion" to "this project's rule", and the
+   - the #55 WCAG relabeling - two rules moved from "criterion" to "this project's rule", and the
      "twelve, each naming a criterion" sentence corrected in five files.
 4. **Merge #61 alone.** It contains all seven features. One merge, one CI cycle, no conflict
    resolution.
@@ -438,7 +438,7 @@ instead.
 7. **Close issue #49**, which is already fixed (below).
 
 If you would rather review in smaller pieces than one 4,448-line merge, the only clean prefix is
-**#55 (after its relabelling) then #56**. Everything from #57 on needs the fixes first. Merging #55
+**#55 (after its relabeling) then #56**. Everything from #57 on needs the fixes first. Merging #55
 then #56 sequentially costs one trivial conflict resolution.
 
 ## Issue #49 - already fixed, should be closed

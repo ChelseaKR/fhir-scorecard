@@ -203,7 +203,7 @@ def text_of(body: str) -> str:
     severity for not matching ``<SCRIPT>``; adding ``re.I`` produced a second alert for not
     matching ``</script >``. Both were right, and the second one is the argument against
     fixing the first: a regex over HTML tags has an open-ended list of ways to miss one, and
-    this is a *matcher*, which is worse to get wrong here than a sanitiser would be. A page
+    this is a *matcher*, which is worse to get wrong here than a sanitizer would be. A page
     whose JSON-LD leaked into "the words a reader sees" would put the endpoint's name and URL
     into the prose these tests read, so an assertion that some sentence is absent could pass or
     fail on structured data. ``audit.py`` and ``accessibility.py`` already read this site's
@@ -300,7 +300,7 @@ def test_the_grader_gives_every_unobserved_finding_a_zero_scale() -> None:
     ``recoverable`` refuses a finding twice: once because it was not observed, once because it
     carries no points. Today those are the same set - every ``observed=False`` finding the
     grader can produce has ``max_points == 0``, with its real scale in ``withheld_points`` - so
-    the ``observed`` check is defence and the points check is what fires. That makes the
+    the ``observed`` check is defense and the points check is what fires. That makes the
     ``observed`` branch unreachable from any card the grader builds, which is exactly the shape
     that turns a negative control green and reads as proof.
 

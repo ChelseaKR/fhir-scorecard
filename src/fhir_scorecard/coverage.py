@@ -230,7 +230,7 @@ def classify(
     comes from the committed cohort roster CSVs, per cohort, so a member can only answer for the
     frame rows its own cohort actually reviewed. A join on the name alone puts a national
     carrier's Texas review against its rows in twenty-two other states; a join on this project's
-    own normalisation of a name would give the frame a denominator only this project could
+    own normalization of a name would give the frame a denominator only this project could
     reproduce. Both are the defect ``docs/SAMPLING-FRAME.md`` exists to prevent.
     """
     by_id = {endpoint.endpoint_id: endpoint for endpoint in endpoints}

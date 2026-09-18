@@ -244,7 +244,7 @@ def write_dataset(
                     # apart from them. Dropping the two meant a check that was never made
                     # published as `"ok": false` -- a failing verdict about a named payer -- to
                     # every consumer of this file, while the site's own reader saw "○ Not
-                    # observed" for the same finding. The HTML surface has honoured both fields
+                    # observed" for the same finding. The HTML surface has honored both fields
                     # since they existed and `ci_report.py` says in its docstring that "nothing
                     # here reads `ok` without reading `observed` first"; this writer was the one
                     # surface where a reader could not.

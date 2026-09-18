@@ -395,7 +395,7 @@ def test_a_day_the_endpoint_answered_records_no_condition() -> None:
 def test_a_kinds_value_that_cannot_be_read_is_no_condition_never_unclassified(
     raw: dict[str, object],
 ) -> None:
-    """The opposite coercion from `fetch.normalise_failure_kind`, and deliberately so.
+    """The opposite coercion from `fetch.normalize_failure_kind`, and deliberately so.
 
     That function reads a kind arriving from a foreign probe, where something did fail. Here
     nothing may be assumed to have failed at all: `unclassified` is a condition a run recorded,

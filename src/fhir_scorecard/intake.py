@@ -160,7 +160,7 @@ def parse_form(body: str) -> dict[str, str]:
 
 @dataclass(frozen=True)
 class Claim:
-    """What the submitter said. No judgement of any kind, and nothing retrieved."""
+    """What the submitter said. No judgment of any kind, and nothing retrieved."""
 
     organization: str
     base_url: str
@@ -536,7 +536,7 @@ def assess(
 
     result = fetcher(metadata_url, timeout=timeout)
     # The SMART document is retrieved because it is the second half of the contract every other
-    # verb honours and because its absence is itself a fact about the endpoint. Nothing here
+    # verb honors and because its absence is itself a fact about the endpoint. Nothing here
     # grades it, and no proposal turns on it.
     fetcher(smart_url, timeout=timeout)
 

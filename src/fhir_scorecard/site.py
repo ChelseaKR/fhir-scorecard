@@ -86,7 +86,7 @@ _KIND_BLURBS = {
     ),
     "reference": (
         "Open test servers used by the FHIR community. Included as a baseline, not as "
-        "a judgement about anyone's production systems."
+        "a judgment about anyone's production systems."
     ),
 }
 
@@ -309,7 +309,7 @@ def _signal_status(card: Scorecard) -> str:
 
 
 def _signal_map(cards: Sequence[Scorecard]) -> str:
-    """Render every real endpoint as one labelled signal on the landing page."""
+    """Render every real endpoint as one labeled signal on the landing page."""
     rows: list[str] = []
     for kind in _KIND_SLUGS:
         group = [card for card in cards if card.kind == kind]
@@ -931,7 +931,7 @@ def cohort_page(
     # thirteen endpoints and counted four of them twice in "answered on this run" -- still
     # served on 2026-09-12. `michigan-marketplace` has one such pair. The table below is right to keep a row per member - the row is about the plan,
     # and a plan that publishes through another entity's server is still that plan's answer to
-    # the rule - but a count labelled "endpoints" has to be a count of endpoints.
+    # the rule - but a count labeled "endpoints" has to be a count of endpoints.
     #
     # The label was the open question, and it is settled here rather than left to the reader:
     # "endpoints listed" counts endpoints. Three things decide it. The word is "endpoints", on a
@@ -940,7 +940,7 @@ def cohort_page(
     # one answer - so reading the first as listings and the second as endpoints would publish a
     # ratio ("11 of 17") whose halves count different things, and the page's own description
     # prints exactly that ratio. And a reader who wants the listings can have them under their
-    # own name: `listings_stat` publishes that number as its own labelled figure rather than
+    # own name: `listings_stat` publishes that number as its own labeled figure rather than
     # reusing this one, on the cohorts where the two differ.
     rows = [cards[eid] for m in cohort.included for eid in m.endpoint_ids if eid in cards]
     listed = list({card.endpoint_id: card for card in rows}.values())

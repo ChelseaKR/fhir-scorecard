@@ -161,6 +161,7 @@ CHECKED_INPUTS: tuple[str, ...] = (
     "data/registry.json",
     "src/fhir_scorecard/assets",
     "src/fhir_scorecard/dataset.py",
+    "src/fhir_scorecard/published.py",
     "src/fhir_scorecard/registry.py",
     "src/fhir_scorecard/site.py",
 )

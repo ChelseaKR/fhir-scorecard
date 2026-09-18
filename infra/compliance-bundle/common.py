@@ -9,23 +9,40 @@ Ported from gtfs-scorecard's infra/program-bundle/common.py (same author, same o
 shape of product) and renamed to this product's domain. A quarterly refresh's recurring
 re-dispatch (gtfs's refresh_handler.py) and the daily undelivered-order audit (gtfs's
 reconcile_handler.py) are deliberately NOT ported in this first version -- see
-docs/compliance-bundle-plan.md for what that leaves open. What is ported is the part that makes
-a purchase safe to accept at all: signature verification, the paid-and-for-this-product check,
-and the anti-arbitrage rule that a cheap subscription must not unlock a wide bundle it never
-paid for.
+docs/compliance-bundle-plan.md for what that leaves open, and why the subscription plans are not
+sold until they are. What is ported is the part that makes a purchase safe to accept at all:
+signature verification, the paid-and-for-this-product check, and the anti-arbitrage rule that a
+cheap subscription must not unlock a wide bundle it never paid for.
 
-Environment (set by Terraform):
-  GITHUB_TOKEN          fine-scoped token: actions: write to dispatch the fulfilment workflow
+Two things differ from the reference implementation on purpose:
+
+**Secrets are read from SSM Parameter Store at run time, never from the environment.** The
+Stripe restricted key, the webhook signing secret, and the GitHub dispatch token live as
+``SecureString`` parameters under ``SSM_PREFIX`` (see :data:`SECRET_PARAMETERS`), so none of the
+three is ever a Terraform variable, a Lambda environment variable, or a value in Terraform
+state. A parameter that does not exist, cannot be read, or holds the wrong kind of key reads as
+``""``, and every caller treats ``""`` as "closed": :func:`payments_enabled` is false, the
+webhook refuses every signature, and nothing is built.
+
+**The fulfillment workflow is never handed buyer data.** This repository is public, and GitHub
+prints every step's environment, including values that came from ``workflow_dispatch`` inputs,
+in a run log anyone can read. So the setup route writes the validated request to the private
+artifacts bucket under a fresh random name (:func:`store_request`) and dispatches the workflow
+with that name alone (:func:`dispatch_bundle_workflow`). The name is not a credential: reading
+the object needs the workflow's AWS role.
+
+Environment (set by Terraform; nothing here is secret):
+  SSM_PREFIX            parameter path of the three secrets: /fhir-scorecard/compliance-bundle
+  STRIPE_MODE           "test" or "live"; the restricted key must be an rk_<mode>_ key
   GITHUB_REPO           owner/name, e.g. ChelseaKR/fhir-scorecard
   WORKFLOW_FILE         compliance-bundle.yml
   WORKFLOW_REF          branch to dispatch on, default main
-  STRIPE_SECRET_KEY     restricted key: read checkout sessions only
-  STRIPE_WEBHOOK_SECRET signing secret of the one webhook endpoint
   STRIPE_PRICE_IDS      JSON of terraform's stripe_price_ids: plan key -> price id
   PAYMENTS_ENABLED      "1" while the purchase surface is open; anything else closes it
   SUBSCRIPTIONS_TABLE   DynamoDB table of subscriptions (hash: id)
   BUNDLES_TABLE         DynamoDB table of bundle capabilities (hash: bundle_id)
-  ARTIFACTS_BUCKET      where compliance-bundle.yml puts compliance-bundles/<id>/bundle.zip
+  ARTIFACTS_BUCKET      private bucket: orders in compliance-requests/, archives in
+                        compliance-bundles/
   ALLOW_ORIGIN          CORS origin of the setup form (never '*')
 """
 
@@ -36,6 +53,8 @@ import hashlib
 import hmac
 import json
 import os
+import re
+import secrets
 import time
 import urllib.error
 import urllib.parse
@@ -45,11 +64,26 @@ from typing import Any
 DEFAULT_ORIGIN = "https://fhir.chelseakr.com"
 GITHUB_API = "https://api.github.com"
 STRIPE_API = "https://api.stripe.com"
-# Kept in step with fhir_scorecard.bundle.DOWNLOAD_DAYS and the S3 lifecycle rule for
-# compliance-bundles/ in infra/artifacts/main.tf.
+# Kept in step with fhir_scorecard.bundle.DOWNLOAD_DAYS and the S3 lifecycle rules in
+# infra/compliance-bundle/main.tf.
 DOWNLOAD_DAYS = 30
 # Stripe's own recommended replay tolerance for the signed timestamp.
 SIGNATURE_TOLERANCE_SECONDS = 300
+
+# The three secrets, by the last segment of their SSM parameter name under SSM_PREFIX. The
+# owner creates them (docs/compliance-bundle-owner-steps.md); Terraform only grants the Lambdas
+# read access to the path and never sees a value.
+STRIPE_KEY_PARAMETER = "stripe-restricted-key"
+WEBHOOK_SECRET_PARAMETER = "stripe-webhook-secret"  # noqa: S105 - a parameter name, not a secret
+GITHUB_TOKEN_PARAMETER = "github-dispatch-token"  # noqa: S105 - a parameter name, not a secret
+SECRET_PARAMETERS = (STRIPE_KEY_PARAMETER, WEBHOOK_SECRET_PARAMETER, GITHUB_TOKEN_PARAMETER)
+# A rotated secret reaches a warm Lambda within this long, without a redeploy.
+SECRET_CACHE_SECONDS = 300
+STRIPE_MODES = ("test", "live")
+# Where the setup route leaves a validated order for the workflow to collect. Expires with the
+# archive (main.tf's lifecycle rule), because it holds the buyer's email address.
+REQUESTS_PREFIX = "compliance-requests/"
+ORDER_REF_RE = re.compile(r"[a-f0-9]{32}")
 
 
 # What each price buys (docs/compliance-bundle-plan.md, "Prices"). The setup route holds the
@@ -60,9 +94,13 @@ SIGNATURE_TOLERANCE_SECONDS = 300
 # `_inherited_cap`. A refresh renews a bundle somebody already bought and covers the endpoints
 # *that bundle* covers, so the 70 on the two refresh rows is only the widest a refresh could
 # ever be, never what one buys on its own. Read as an entitlement it made the cheapest product
-# dominate the most expensive one: $99 a quarter would deliver the same 70-endpoint archive the
-# $699 bundle sells, because the caps were equal and nothing required the bundle first (the same
-# arbitrage gtfs-scorecard's own PLAN_AGENCY_CAPS comment documents catching).
+# dominate the most expensive one: a quarterly refresh would deliver the same 70-endpoint archive
+# the widest one-time bundle sells, because the caps were equal and nothing required the bundle
+# first (the same arbitrage gtfs-scorecard's own PLAN_AGENCY_CAPS comment documents catching).
+#
+# The two refresh plans are not sold at launch: nothing re-dispatches a subscription's second
+# quarter yet (docs/compliance-bundle-plan.md). Terraform refuses a price id for either of them,
+# so price_plans() below can never recognize one, and a refresh checkout is refused unread.
 PLAN_ENDPOINT_CAPS: dict[str, int] = {
     "bundle_15": 15,
     "bundle_70": 70,
@@ -96,11 +134,87 @@ class UpstreamError(RuntimeError):
         self.status = status
 
 
+_SECRET_CACHE: dict[str, tuple[float, str]] = {}
+
+
+def _read_parameter(name: str) -> str:
+    """One SecureString from SSM, decrypted. Raises on anything but a readable value."""
+    import boto3
+
+    region = os.environ.get("AWS_REGION", "us-west-2")
+    ssm = boto3.client("ssm", region_name=region)
+    value = ssm.get_parameter(Name=name, WithDecryption=True)["Parameter"]["Value"]
+    return str(value)
+
+
+def secret(parameter: str) -> str:
+    """The value of one of :data:`SECRET_PARAMETERS`, or ``""`` when it is not configured.
+
+    ``""`` covers every way a secret can be absent: no ``SSM_PREFIX``, a parameter the owner has
+    not created yet, one this role cannot read, or an SSM outage. Each caller treats ``""`` as
+    closed, so an absent secret can only ever refuse a purchase, never half-accept one. A miss
+    is logged by parameter name and error class, never by value, and is not cached, so creating
+    the parameter takes effect on the next request.
+    """
+    if parameter not in SECRET_PARAMETERS:
+        raise ValueError(f"not a compliance-bundle secret: {parameter}")
+    cached = _SECRET_CACHE.get(parameter)
+    if cached is not None and time.monotonic() - cached[0] < SECRET_CACHE_SECONDS:
+        return cached[1]
+    prefix = os.environ.get("SSM_PREFIX", "").rstrip("/")
+    if not prefix.startswith("/"):
+        return ""
+    try:
+        value = _read_parameter(f"{prefix}/{parameter}").strip()
+    except Exception as err:  # ParameterNotFound, AccessDenied, throttling, no network
+        print(
+            json.dumps(
+                {"event": "secret_unavailable", "parameter": parameter, "error": type(err).__name__}
+            )
+        )
+        return ""
+    if value:
+        _SECRET_CACHE[parameter] = (time.monotonic(), value)
+    return value
+
+
+def stripe_mode() -> str:
+    """ "test" or "live" as Terraform set it, or ``""`` for anything else (which closes)."""
+    mode = os.environ.get("STRIPE_MODE", "")
+    return mode if mode in STRIPE_MODES else ""
+
+
+def stripe_key() -> str:
+    """The restricted Stripe key, or ``""`` when there is none this Lambda may use.
+
+    Only an ``rk_<mode>_`` key for the mode Terraform declared is ever returned. A full secret
+    key (``sk_``) can refund, charge, and read every customer on the account and is never used
+    by a deployed function, and a key for the other mode would read none of the checkouts the
+    configured prices produce -- a live purchase would be refused after the card was charged.
+    """
+    mode = stripe_mode()
+    key = secret(STRIPE_KEY_PARAMETER)
+    if not mode or not key:
+        return ""
+    if not key.startswith(f"rk_{mode}_"):
+        print(json.dumps({"event": "stripe_key_refused", "mode": mode, "prefix": key[:3]}))
+        return ""
+    return key
+
+
 def payments_enabled() -> bool:
-    """True only while Terraform has opened the purchase surface. The API route for the setup
-    form is removed when the gate is closed; this is the same gate read again inside the
-    Lambda, so a stale route or a direct invoke cannot build anything either."""
-    return os.environ.get("PAYMENTS_ENABLED", "0") == "1"
+    """True only while the purchase surface is open *and* everything a purchase needs exists.
+
+    ``PAYMENTS_ENABLED`` is the Terraform gate. On its own it is not enough: a payment accepted
+    with no Stripe key cannot be confirmed, one with no dispatch token cannot be built, and one
+    with no bucket has nowhere to go. Each of those is a buyer charged for nothing, so each one
+    closes the route instead, before the checkout is claimed. No key means no checkout.
+    """
+    if os.environ.get("PAYMENTS_ENABLED", "0") != "1":
+        return False
+    if not os.environ.get("ARTIFACTS_BUCKET"):
+        return False
+    return bool(stripe_key()) and bool(secret(GITHUB_TOKEN_PARAMETER))
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +254,7 @@ def epoch_in(days: int) -> int:
 
 
 # ---------------------------------------------------------------------------
-# GitHub: dispatch the fulfilment workflow
+# GitHub: dispatch the fulfillment workflow
 # ---------------------------------------------------------------------------
 
 
@@ -162,12 +276,54 @@ def _request(
     return json.loads(raw) if raw.strip() else {}
 
 
-def dispatch_bundle_workflow(inputs: dict[str, str]) -> None:
-    """POST a workflow_dispatch for compliance-bundle.yml with the given inputs.
+def new_order_ref() -> str:
+    """A fresh 128-bit name for one dispatched order. Not the bundle id, and not derived from
+    it: it appears in a public run log, so it must reveal nothing, and on its own it grants
+    nothing (the object it names is readable only by the workflow's AWS role)."""
+    return secrets.token_hex(16)
 
-    GitHub returns 204 with no body on success. Inputs are the workflow's declared inputs and
-    nothing else; the workflow re-validates every one.
+
+def request_key(order_ref: str) -> str:
+    """Where :func:`store_request` puts an order, and where compliance-bundle.yml reads it."""
+    if not ORDER_REF_RE.fullmatch(order_ref):
+        raise ValueError("an order reference is 32 lowercase hex characters")
+    return f"{REQUESTS_PREFIX}{order_ref}.json"
+
+
+def store_request(order_ref: str, request: dict[str, Any]) -> None:
+    """Write one validated order to the private bucket for the workflow to collect.
+
+    Raises UpstreamError when the write fails, so the caller answers "could not start" and the
+    buyer can resend the same checkout, exactly as for a failed dispatch.
     """
+    body = json.dumps(request, sort_keys=True).encode()
+    try:
+        import boto3
+
+        s3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "us-west-2"))
+        s3.put_object(
+            Bucket=os.environ["ARTIFACTS_BUCKET"],
+            Key=request_key(order_ref),
+            Body=body,
+            ContentType="application/json",
+            ServerSideEncryption="AES256",
+        )
+    except Exception as err:  # botocore ClientError, EndpointConnectionError, a missing bucket
+        raise UpstreamError(f"storing the order request failed: {type(err).__name__}") from err
+
+
+def dispatch_bundle_workflow(order_ref: str) -> None:
+    """POST a workflow_dispatch for compliance-bundle.yml naming one stored order.
+
+    The one input is the order reference. Nothing a buyer typed and nothing that grants access
+    (the bundle id is the download capability) travels in the dispatch, because GitHub prints a
+    step's environment in the run log and this repository's run logs are public. GitHub returns
+    204 with no body on success.
+    """
+    request_key(order_ref)  # refuses a malformed reference before anything is sent
+    token = secret(GITHUB_TOKEN_PARAMETER)
+    if not token:
+        raise UpstreamError("the GitHub dispatch token is not configured")
     repo = os.environ["GITHUB_REPO"]
     workflow = os.environ.get("WORKFLOW_FILE", "compliance-bundle.yml")
     ref = os.environ.get("WORKFLOW_REF", "main")
@@ -175,41 +331,11 @@ def dispatch_bundle_workflow(inputs: dict[str, str]) -> None:
         "POST",
         f"{GITHUB_API}/repos/{repo}/actions/workflows/{workflow}/dispatches",
         {
-            "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+            "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github+json",
         },
-        {"ref": ref, "inputs": inputs},
+        {"ref": ref, "inputs": {"order_ref": order_ref}},
     )
-
-
-def dispatch_key(bundle_id: str) -> str:
-    """A public, one-way name for one bundle's workflow runs.
-
-    The bundle id is the download capability, and this repository is public, so it cannot be
-    the artifact name or the concurrency group in compliance-bundle.yml. sha256 over a 128-bit
-    token, truncated to 64 bits: enough to separate every bundle this product will ever sell,
-    and no help at all to somebody trying to recover the id it came from.
-    """
-    return hashlib.sha256(bundle_id.encode()).hexdigest()[:16]
-
-
-def workflow_inputs(request: dict[str, Any]) -> dict[str, str]:
-    """The workflow_dispatch inputs for a stored or validated request dict."""
-    endpoint_ids = request.get("endpoint_ids") or []
-    if isinstance(endpoint_ids, list | tuple):
-        endpoint_ids = ",".join(str(a) for a in endpoint_ids)
-    bundle_id = str(request["bundle_id"])
-    return {
-        "bundle_id": bundle_id,
-        "program_name": str(request["program_name"]),
-        "accent": str(request.get("accent") or ""),
-        "logo": str(request.get("logo") or ""),
-        "endpoint_ids": str(endpoint_ids),
-        "deliver_to": str(request["deliver_to"]),
-        "cadence": str(request.get("cadence") or "one_time"),
-        "dispatch_key": dispatch_key(bundle_id),
-        "promised_by": str(request.get("promised_by") or ""),
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -218,10 +344,10 @@ def workflow_inputs(request: dict[str, Any]) -> dict[str, str]:
 
 
 def stripe_get(path: str) -> dict[str, Any]:
-    """GET one Stripe object with the restricted secret key."""
-    key = os.environ.get("STRIPE_SECRET_KEY", "")
+    """GET one Stripe object with the restricted key."""
+    key = stripe_key()
     if not key:
-        raise UpstreamError("STRIPE_SECRET_KEY is not configured")
+        raise UpstreamError("the Stripe restricted key is not configured")
     out = _request("GET", f"{STRIPE_API}{path}", {"Authorization": f"Bearer {key}"})
     return out if isinstance(out, dict) else {}
 
@@ -230,7 +356,7 @@ def price_plans() -> dict[str, str]:
     """Map each configured Stripe price id to the plan it sells.
 
     Read from STRIPE_PRICE_IDS on every call. A blank id, an unknown plan key, or unreadable
-    JSON recognises nothing, and an id configured for two plans is dropped rather than guessed:
+    JSON recognizes nothing, and an id configured for two plans is dropped rather than guessed:
     a half-configured deploy refuses a purchase it cannot place, and never sells more than was
     paid for.
     """
@@ -238,10 +364,10 @@ def price_plans() -> dict[str, str]:
     try:
         configured = json.loads(raw)
     except ValueError:
-        print("STRIPE_PRICE_IDS is not readable JSON; no price is recognised")
+        print("STRIPE_PRICE_IDS is not readable JSON; no price is recognized")
         return {}
     if not isinstance(configured, dict):
-        print("STRIPE_PRICE_IDS is not a JSON object; no price is recognised")
+        print("STRIPE_PRICE_IDS is not a JSON object; no price is recognized")
         return {}
     plans: dict[str, str] = {}
     ambiguous: set[str] = set()

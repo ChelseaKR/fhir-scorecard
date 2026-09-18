@@ -16,3 +16,7 @@ infra/**/*.tfstate
 infra/**/*.tfstate.*
 infra/**/*.zip
 infra/**/build/
+# Written by scripts/stripe-setup.sh and `terraform plan -out`; local to the owner's machine.
+infra/**/terraform.tfvars
+infra/**/tfplan
+infra/**/*.tfplan

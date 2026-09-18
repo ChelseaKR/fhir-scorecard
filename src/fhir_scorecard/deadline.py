@@ -169,8 +169,8 @@ def promised_epoch(deliver_by_epoch: object) -> float | None:
     promise.
 
     **The type this has to survive is DynamoDB's, not Python's.** The capability row is written
-    with an ``int``, and boto3's resource layer serialises that to ``{"N": "..."}`` and
-    deserialises it back to a ``decimal.Decimal`` -- which is not an ``int`` and not a
+    with an ``int``, and boto3's resource layer serializes that to ``{"N": "..."}`` and
+    deserializes it back to a ``decimal.Decimal`` -- which is not an ``int`` and not a
     ``float``. A reader written as ``isinstance(value, int | float)`` therefore refuses every
     promise this product has ever made, and refuses it silently: the order reads as one that
     made no commitment, so it can be reported late and can never be reported as a breach. A fake

@@ -2,14 +2,20 @@
 
 One endpoint, ``POST /webhook``. Every request is verified against the endpoint's signing
 secret before the body is parsed; an unsigned or mis-signed request is refused with 400 and
-nothing is read from it.
+nothing is read from it. The signing secret is read from SSM (``common.secret``); while it does
+not exist every request fails the check, so an endpoint registered before its secret is stored
+accepts nothing. A verified event from the other Stripe mode (a test event reaching the live
+deployment, or the reverse) is acknowledged and ignored rather than written.
 
 The webhook is the record of subscription state, not the trigger for a build. A build starts
 from the setup form (setup_handler.py) after the buyer has told us the organization's details.
 So this handler does little:
 
-- ``checkout.session.completed``: note the session, so a buyer who closes the tab before the
-  setup form can be found from the Stripe dashboard and helped by hand. Only a checkout for one
+- ``checkout.session.completed`` and ``checkout.session.async_payment_succeeded``: note the
+  session, so a buyer who closes the tab before the setup form can be found from the Stripe
+  dashboard and helped by hand. Noting is idempotent: the row is keyed on the session id, so a
+  redelivered event (Stripe retries until it sees a 2xx) rewrites the same row rather than
+  adding a second. Only a checkout for one
   of this product's prices is noted (its line items are read with the restricted key); a
   checkout for anything else on the same Stripe account is ignored. If Stripe cannot be read the
   session is noted as ``unverified`` rather than failing the delivery, so an outage never gets
@@ -34,21 +40,24 @@ product's domain; the event-handling logic is unchanged.
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 from common import (
     CHECKOUT_PREFIX,
+    WEBHOOK_SECRET_PARAMETER,
     UpstreamError,
     checkout_plan,
     json_response,
     now_iso,
+    secret,
+    stripe_mode,
     subscription_plan,
     table,
     verify_stripe_signature,
 )
 
 ACTIVE_STATUSES = ("active", "trialing")
+CHECKOUT_EVENTS = ("checkout.session.completed", "checkout.session.async_payment_succeeded")
 
 
 def _headers(event: dict[str, Any]) -> dict[str, str]:
@@ -98,7 +107,7 @@ def apply_event(event_type: str, data: dict[str, Any], *, subscriptions: Any, bu
     """Apply one verified event to the tables. Returns a one-word outcome for the response body
     and the log."""
     obj = data.get("object") or {}
-    if event_type == "checkout.session.completed":
+    if event_type in CHECKOUT_EVENTS:
         session_id = str(obj.get("id") or "")
         plan = _checkout_note_plan(session_id)
         if not plan:
@@ -157,7 +166,7 @@ def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
         return json_response(405, {"ok": False, "error": "POST only."})
     raw = _raw_body(event)
     signature = _headers(event).get("stripe-signature", "")
-    if not verify_stripe_signature(raw, signature, os.environ.get("STRIPE_WEBHOOK_SECRET", "")):
+    if not verify_stripe_signature(raw, signature, secret(WEBHOOK_SECRET_PARAMETER)):
         return json_response(400, {"ok": False, "error": "Signature check failed."})
     try:
         payload = json.loads(raw.decode())
@@ -165,6 +174,8 @@ def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
         return json_response(400, {"ok": False, "error": "Body is not JSON."})
     if not isinstance(payload, dict):
         return json_response(400, {"ok": False, "error": "Body is not an event."})
+    if payload.get("livemode") is not (stripe_mode() == "live"):
+        return json_response(200, {"ok": True, "outcome": "ignored"})
     outcome = apply_event(
         str(payload.get("type") or ""),
         payload.get("data") or {},

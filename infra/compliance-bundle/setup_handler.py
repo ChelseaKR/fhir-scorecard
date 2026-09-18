@@ -9,19 +9,22 @@ Two routes on the compliance-bundle API, both stateless per request:
     prices (a paid checkout for anything else on the same Stripe account builds nothing), settles
     how many endpoints this checkout covers, mints a bundle id, validates the request with the
     pipeline's own parse_request held to that number, records the session so a replayed form
-    cannot dispatch twice, stores the capability row, dispatches compliance-bundle.yml, and for a
-    subscription stores the request so a future quarterly refresh could re-dispatch it (the
-    re-dispatch cron itself is not part of this first version -- see
-    docs/compliance-bundle-plan.md).
+    cannot dispatch twice, stores the capability row, writes the validated order to the private
+    bucket under a fresh random reference, and dispatches compliance-bundle.yml with that
+    reference alone (common.store_request, common.dispatch_bundle_workflow: this repository's
+    run logs are public, so nothing the buyer typed travels in the dispatch). For a subscription
+    it also stores the request so a future quarterly refresh could re-dispatch it (the
+    re-dispatch cron itself is not part of this first version, and the refresh plans are not
+    sold until it is -- see docs/compliance-bundle-plan.md).
 
     **A refresh renews a bundle.** A one-time bundle is its own entitlement, but ``refresh_qtr``
     and ``refresh_yr`` are not: each requires an earlier bundle purchase on the same address and
     covers the endpoints that bundle covered (``_inherited_cap``). Without that rule the two
-    refresh prices carried the 70-endpoint cap in their own right, so $99 a quarter bought the
-    archive the $699 bundle sells and then cancelled -- the cheapest product on the page strictly
-    dominating the most expensive one. A refresh with no bundle to renew is refused **before the
-    checkout is claimed**, so the buyer is left holding an unused checkout they can cancel, not a
-    consumed one and no archive.
+    refresh prices carried the 70-endpoint cap in their own right, so one quarter of the
+    cheapest plan bought the archive the widest one-time bundle sells and then canceled -- the
+    cheapest product on the page strictly dominating the most expensive one. A refresh with no
+    bundle to renew is refused **before the checkout is claimed**, so the buyer is left holding
+    an unused checkout they can cancel, not a consumed one and no archive.
 
 ``GET /download/{bundle_id}``
     The link in the delivery email. Looks up the capability row, and if the archive exists,
@@ -33,8 +36,9 @@ Two routes on the compliance-bundle API, both stateless per request:
 
 Payment is the only gate. There is no account and no password; the capability in the email is
 the credential, the same posture as the free coverage-alert confirm link this project's sibling
-projects use. The setup route also refuses outright unless PAYMENTS_ENABLED is "1", the same
-Terraform gate that decides whether the route exists.
+projects use. The setup route also refuses outright unless ``common.payments_enabled()``: the
+Terraform gate is "1" *and* the restricted key, the dispatch token, and the bucket all exist.
+No key means no checkout is accepted, before anything is claimed.
 
 Ported from gtfs-scorecard's infra/program-bundle/setup_handler.py with names changed to this
 product's domain (agency -> endpoint, program report -> compliance report); the entitlement and
@@ -64,12 +68,13 @@ from common import (
     dispatch_bundle_workflow,
     html_response,
     json_response,
+    new_order_ref,
     now_iso,
     payments_enabled,
     scan_all,
+    store_request,
     stripe_get,
     table,
-    workflow_inputs,
 )
 
 from fhir_scorecard import deadline
@@ -200,7 +205,7 @@ def _paid_purchase(session_id: str) -> tuple[dict[str, Any], str, str]:
                     404,
                     {
                         "ok": False,
-                        "error": "That checkout reference is not one Stripe recognises. Open the "
+                        "error": "That checkout reference is not one Stripe recognizes. Open the "
                         "page Stripe sent you to after paying, address and all. If you have lost "
                         "it, reply to the receipt Stripe emailed you rather than paying again.",
                     },
@@ -277,15 +282,15 @@ _NO_PRIOR_BUNDLE = (
     "refreshed, and it does not include a bundle of its own. Nothing was found on this "
     "email address to renew, so nothing was built and your endpoint list was not used. "
     "Buy a bundle at fhir.chelseakr.com/bundle/ with this same address and then start the "
-    "refresh, or, if the bundle was bought under a different address, open an issue at "
-    "github.com/ChelseaKR/fhir-scorecard/issues and the two can be linked by hand. You can "
-    "cancel this subscription from the receipt Stripe emailed you."
+    "refresh, or, if the bundle was bought under a different address, reply to the receipt "
+    "Stripe emailed you and the two can be linked by hand. You can cancel this subscription "
+    "from that receipt."
 )
 _NO_CHECKOUT_EMAIL = (
     "A refresh renews a bundle you have already bought, and this checkout carries no email "
     "address, so there is no way to tell which bundle it renews. Nothing was built and your "
-    "checkout has not been used. Open an issue at github.com/ChelseaKR/fhir-scorecard/issues "
-    "and it can be set up by hand."
+    "checkout has not been used. Reply to the receipt Stripe emailed you and it can be set up "
+    "by hand."
 )
 _CANNOT_SETTLE_PRIOR = (
     "Could not check which bundle this refresh renews just now, so nothing was built and "
@@ -386,7 +391,7 @@ def _record_subscription(
     **This route does not decide whether a subscription is active.** Stripe does, and the
     webhook is where Stripe's answer arrives. Writing the whole row with ``put_item`` would
     overwrite that answer with ``status: "active"``, and the form is submitted *after* checkout,
-    so the events that can lose the race are the ones that matter: a subscription cancelled from
+    so the events that can lose the race are the ones that matter: a subscription canceled from
     the Stripe receipt in the minutes before the buyer fills in this form must not come back as
     active.
 
@@ -498,19 +503,23 @@ def setup(event: dict[str, Any]) -> dict[str, Any]:
 
     _record_subscription(session, request, price=price, plan=plan, entitlement=entitlement)
 
+    order_ref = new_order_ref()
     try:
-        dispatch = request.as_dict()
-        dispatch["promised_by"] = deadline.spoken_date(deadline.deadline_date(checkout_at))
-        dispatch_bundle_workflow(workflow_inputs(dispatch))
+        order = request.as_dict()
+        order["promised_by"] = deadline.spoken_date(deadline.deadline_date(checkout_at))
+        order["max_endpoints"] = entitlement.cap
+        store_request(order_ref, order)
+        dispatch_bundle_workflow(order_ref)
     except UpstreamError as err:
+        # By reference only. The bundle id is a download credential and the address is the
+        # buyer's; both are in the bundles table, found from the session id.
         print(
             json.dumps(
                 {
                     "event": "dispatch_failed",
                     "session_id": session_id,
-                    "bundle_id": request.bundle_id,
+                    "order_ref": order_ref,
                     "plan": plan,
-                    "deliver_to": request.deliver_to,
                     "error": str(err),
                 }
             )
@@ -521,8 +530,8 @@ def setup(event: dict[str, Any]) -> dict[str, Any]:
                 "ok": False,
                 "error": "Your order is recorded but the build could not start. "
                 "Nothing was charged twice. Send this form again in a few minutes and it "
-                "will pick up the same order; if it keeps failing, open an issue at "
-                "github.com/ChelseaKR/fhir-scorecard/issues.",
+                "will pick up the same order; if it keeps failing, reply to the receipt "
+                "Stripe emailed you.",
                 "bundle_id": request.bundle_id,
             },
         )
@@ -551,7 +560,7 @@ def download(bundle_id: str) -> dict[str, Any]:
             404,
             "Link expired",
             "That download link has expired. Bundles are kept for 30 days; "
-            "open an issue at github.com/ChelseaKR/fhir-scorecard/issues and it can be rebuilt.",
+            "reply to the receipt Stripe emailed you and it can be rebuilt.",
         )
     import boto3
 
@@ -566,7 +575,7 @@ def download(bundle_id: str) -> dict[str, Any]:
             "Still being prepared",
             "Your reports are still being generated. Try this link again in a few minutes. "
             "If this page still says the same thing an hour from now, the build did not "
-            "finish: open an issue at github.com/ChelseaKR/fhir-scorecard/issues and quote "
+            "finish: reply to the receipt Stripe emailed you, quoting "
             f"{bundle_id[:8]}, and it will be rebuilt or refunded.",
         )
     url = s3.generate_presigned_url(

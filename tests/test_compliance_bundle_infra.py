@@ -23,6 +23,7 @@ import hashlib
 import hmac
 import importlib.util
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -308,7 +309,7 @@ def test_apply_event_cancels_a_subscription(
     assert subscriptions.items["sub_1"]["status"] == "canceled"
 
 
-def test_apply_event_ignores_an_unrecognised_event_type(webhook_handler: Any) -> None:
+def test_apply_event_ignores_an_unrecognized_event_type(webhook_handler: Any) -> None:
     outcome = webhook_handler.apply_event(
         "some.other.event", {}, subscriptions=FakeTable(), bundles=FakeTable()
     )
@@ -339,12 +340,56 @@ def _paid_session(
     return session
 
 
+SSM_PREFIX = "/fhir-scorecard/compliance-bundle"
+STRIPE_TEST_KEY = "rk_test_fake-key-for-tests"  # not key-shaped, so secret scanners pass it
+GITHUB_FAKE_TOKEN = "github_pat_fakeDispatchTokenForTests"  # noqa: S105 - a fixture, not a credential
+#: The parameter store the Lambdas would read, keyed by full parameter name. A test removes or
+#: replaces an entry to take a secret away; `_read_parameter` raises for an absent one, exactly
+#: as SSM's ParameterNotFound does.
+PARAMETERS = {
+    f"{SSM_PREFIX}/stripe-restricted-key": STRIPE_TEST_KEY,
+    f"{SSM_PREFIX}/stripe-webhook-secret": SIGNING_SECRET,
+    f"{SSM_PREFIX}/github-dispatch-token": GITHUB_FAKE_TOKEN,
+}
+
+
+class ParameterNotFound(Exception):
+    """Named like SSM's own, which common.secret treats like any other failure."""
+
+
 @pytest.fixture()
-def _env(monkeypatch: pytest.MonkeyPatch) -> None:
+def ssm(common: Any, monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    store = dict(PARAMETERS)
+    reads: list[str] = []
+
+    def _read(name: str) -> str:
+        reads.append(name)
+        if name not in store:
+            raise ParameterNotFound(name)
+        return store[name]
+
+    monkeypatch.setattr(common, "_read_parameter", _read)
+    monkeypatch.setenv("SSM_PREFIX", SSM_PREFIX)
+    monkeypatch.setenv("STRIPE_MODE", "test")
+    store["__reads__"] = reads  # type: ignore[assignment]
+    return store
+
+
+@pytest.fixture()
+def _env(ssm: dict[str, Any], setup_handler: Any, monkeypatch: pytest.MonkeyPatch) -> Any:
+    """Everything a purchase needs, present. Records every stored order and every dispatch."""
     monkeypatch.setenv("PAYMENTS_ENABLED", "1")
     monkeypatch.setenv("STRIPE_PRICE_IDS", CONFIGURED_PRICES)
     monkeypatch.setenv("GITHUB_REPO", "ChelseaKR/fhir-scorecard")
-    monkeypatch.setenv("GITHUB_TOKEN", "gh-fake-token")
+    monkeypatch.setenv("ARTIFACTS_BUCKET", "fhir-scorecard-compliance-bundles-test")
+    record: dict[str, list[Any]] = {"stored": [], "dispatched": []}
+    monkeypatch.setattr(
+        setup_handler, "store_request", lambda ref, order: record["stored"].append((ref, order))
+    )
+    monkeypatch.setattr(
+        setup_handler, "dispatch_bundle_workflow", lambda ref: record["dispatched"].append(ref)
+    )
+    return record
 
 
 def test_setup_refuses_outright_when_payments_are_disabled(
@@ -356,16 +401,13 @@ def test_setup_refuses_outright_when_payments_are_disabled(
 
 
 def test_setup_happy_path_dispatches_and_claims_the_session(
-    setup_handler: Any, _env: None, monkeypatch: pytest.MonkeyPatch
+    setup_handler: Any, _env: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(setup_handler, "stripe_get", lambda path: _paid_session(PRICE_BUNDLE_15))
     monkeypatch.setattr(
         setup_handler, "checkout_plan", lambda session_id: (PRICE_BUNDLE_15, "bundle_15")
     )
-    dispatched: list[dict[str, str]] = []
-    monkeypatch.setattr(
-        setup_handler, "dispatch_bundle_workflow", lambda inputs: dispatched.append(inputs)
-    )
+    dispatched = _env["dispatched"]
     bundles = FakeTable()
     monkeypatch.setattr(setup_handler, "table", lambda name: bundles)
 
@@ -383,8 +425,17 @@ def test_setup_happy_path_dispatches_and_claims_the_session(
     assert resp["statusCode"] == 200
     assert body["ok"] is True
     assert len(dispatched) == 1
-    assert dispatched[0]["program_name"] == "Acme Compliance Partners"
-    assert dispatched[0]["endpoint_ids"] == "one-payer,two-payer"
+    order_ref = dispatched[0]
+    assert re.fullmatch(r"[0-9a-f]{32}", order_ref)
+    # The order itself went to the private bucket, under the reference the dispatch names.
+    [(stored_ref, order)] = _env["stored"]
+    assert stored_ref == order_ref
+    assert order["program_name"] == "Acme Compliance Partners"
+    assert order["endpoint_ids"] == ["one-payer", "two-payer"]
+    assert order["deliver_to"] == "buyer@example.org"
+    assert order["max_endpoints"] == 15
+    assert order["bundle_id"] == body["bundle_id"] != order_ref
+    assert order["promised_by"]
     # The session claim exists under the session# prefix and is marked dispatched.
     from common import SESSION_PREFIX  # type: ignore[import-not-found]
 
@@ -393,7 +444,7 @@ def test_setup_happy_path_dispatches_and_claims_the_session(
 
 
 def test_setup_refuses_an_endpoint_list_over_the_paid_plans_cap(
-    setup_handler: Any, _env: None, monkeypatch: pytest.MonkeyPatch
+    setup_handler: Any, _env: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(setup_handler, "stripe_get", lambda path: _paid_session(PRICE_BUNDLE_15))
     monkeypatch.setattr(
@@ -416,7 +467,7 @@ def test_setup_refuses_an_endpoint_list_over_the_paid_plans_cap(
 
 
 def test_setup_refuses_a_checkout_for_something_else_on_the_account(
-    setup_handler: Any, _env: None, monkeypatch: pytest.MonkeyPatch
+    setup_handler: Any, _env: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(setup_handler, "stripe_get", lambda path: _paid_session(PRICE_FOREIGN))
     monkeypatch.setattr(setup_handler, "checkout_plan", lambda session_id: None)
@@ -430,7 +481,7 @@ def test_setup_refuses_a_checkout_for_something_else_on_the_account(
 
 
 def test_setup_refuses_an_unpaid_session(
-    setup_handler: Any, _env: None, monkeypatch: pytest.MonkeyPatch
+    setup_handler: Any, _env: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     unpaid = _paid_session(PRICE_BUNDLE_15)
     unpaid["payment_status"] = "unpaid"
@@ -444,16 +495,13 @@ def test_setup_refuses_an_unpaid_session(
 
 
 def test_setup_double_submit_is_idempotent_and_does_not_redispatch(
-    setup_handler: Any, _env: None, monkeypatch: pytest.MonkeyPatch
+    setup_handler: Any, _env: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(setup_handler, "stripe_get", lambda path: _paid_session(PRICE_BUNDLE_15))
     monkeypatch.setattr(
         setup_handler, "checkout_plan", lambda session_id: (PRICE_BUNDLE_15, "bundle_15")
     )
-    dispatched: list[dict[str, str]] = []
-    monkeypatch.setattr(
-        setup_handler, "dispatch_bundle_workflow", lambda inputs: dispatched.append(inputs)
-    )
+    dispatched = _env["dispatched"]
     bundles = FakeTable()
     monkeypatch.setattr(setup_handler, "table", lambda name: bundles)
 
@@ -469,7 +517,7 @@ def test_setup_double_submit_is_idempotent_and_does_not_redispatch(
 
 
 def test_setup_refuses_a_refresh_with_no_prior_bundle_before_claiming_the_session(
-    setup_handler: Any, _env: None, monkeypatch: pytest.MonkeyPatch
+    setup_handler: Any, _env: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Negative control for the anti-arbitrage rule: a refresh with nothing to renew must be
     refused, AND the session must be left unclaimed -- checked directly against the fake table,
@@ -496,7 +544,7 @@ def test_setup_refuses_a_refresh_with_no_prior_bundle_before_claiming_the_sessio
 
 
 def test_setup_refresh_inherits_the_cap_of_the_bundle_it_renews(
-    setup_handler: Any, _env: None, monkeypatch: pytest.MonkeyPatch
+    setup_handler: Any, _env: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A refresh must be capped at what the ONE-TIME bundle it renews actually bought, never at
     the refresh price's own ceiling -- the arbitrage setup_handler.py's own docstring names:
@@ -521,10 +569,6 @@ def test_setup_refresh_inherits_the_cap_of_the_bundle_it_renews(
     )
     monkeypatch.setattr(
         setup_handler, "checkout_plan", lambda session_id: (PRICE_REFRESH_QTR, "refresh_qtr")
-    )
-    dispatched: list[dict[str, str]] = []
-    monkeypatch.setattr(
-        setup_handler, "dispatch_bundle_workflow", lambda inputs: dispatched.append(inputs)
     )
 
     # 20 endpoints is over bundle_15's cap (15) but under refresh_qtr's own ceiling (70): must
@@ -560,3 +604,341 @@ def test_download_reports_unissued_link(
     resp = setup_handler.download("d" * 32)
     assert resp["statusCode"] == 404
     assert "never issued" in resp["body"]
+
+
+# ---------------------------------------------------------------------------
+# Fails closed: no key means no checkout is accepted
+# ---------------------------------------------------------------------------
+
+
+def _paid_setup(setup_handler: Any, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    """Wire a paid bundle_15 checkout and record whether Stripe was even asked."""
+    calls: dict[str, Any] = {"stripe": 0, "bundles": FakeTable()}
+
+    def _stripe(path: str) -> dict[str, Any]:
+        calls["stripe"] += 1
+        return _paid_session(PRICE_BUNDLE_15)
+
+    monkeypatch.setattr(setup_handler, "stripe_get", _stripe)
+    monkeypatch.setattr(
+        setup_handler, "checkout_plan", lambda session_id: (PRICE_BUNDLE_15, "bundle_15")
+    )
+    monkeypatch.setattr(setup_handler, "table", lambda name: calls["bundles"])
+    return calls
+
+
+_FORM = {"session_id": "cs_test_paid", "program_name": "Acme", "endpoint_ids": "one-payer"}
+
+
+def test_positive_control_a_fully_configured_setup_accepts_the_checkout(
+    setup_handler: Any, _env: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = _paid_setup(setup_handler, monkeypatch)
+    assert setup_handler.setup(_event(_FORM))["statusCode"] == 200
+    assert calls["stripe"] == 1
+    assert len(_env["dispatched"]) == 1
+
+
+def _drop(ssm: dict[str, Any], name: str) -> None:
+    key = f"{SSM_PREFIX}/{name}"
+    assert key in ssm, f"{key} was never configured, so removing it proves nothing"
+    del ssm[key]
+
+
+@pytest.mark.parametrize(
+    "take_away",
+    [
+        pytest.param(lambda ssm, mp: _drop(ssm, "stripe-restricted-key"), id="no-stripe-key"),
+        pytest.param(lambda ssm, mp: _drop(ssm, "github-dispatch-token"), id="no-dispatch-token"),
+        pytest.param(lambda ssm, mp: mp.delenv("SSM_PREFIX"), id="no-ssm-prefix"),
+        pytest.param(lambda ssm, mp: mp.delenv("ARTIFACTS_BUCKET"), id="no-bucket"),
+        pytest.param(lambda ssm, mp: mp.setenv("PAYMENTS_ENABLED", "0"), id="gate-closed"),
+        pytest.param(lambda ssm, mp: mp.setenv("STRIPE_MODE", "staging"), id="unknown-mode"),
+        pytest.param(
+            lambda ssm, mp: ssm.update({f"{SSM_PREFIX}/stripe-restricted-key": "sk_test_full"}),
+            id="a-full-secret-key",
+        ),
+        pytest.param(
+            lambda ssm, mp: ssm.update({f"{SSM_PREFIX}/stripe-restricted-key": "rk_live_x"}),
+            id="a-live-key-in-test-mode",
+        ),
+        pytest.param(
+            lambda ssm, mp: ssm.update({f"{SSM_PREFIX}/stripe-restricted-key": "  "}),
+            id="a-blank-key",
+        ),
+    ],
+)
+def test_setup_refuses_before_touching_stripe_without_everything_a_purchase_needs(
+    setup_handler: Any,
+    _env: Any,
+    ssm: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    take_away: Any,
+) -> None:
+    """Negative controls for the fail-closed gate: take one thing away and the route answers
+    503 before Stripe is read, before the checkout is claimed, and before anything is stored or
+    dispatched -- the buyer keeps an unused checkout, not a consumed one and no archive."""
+    calls = _paid_setup(setup_handler, monkeypatch)
+    take_away(ssm, monkeypatch)
+    resp = setup_handler.setup(_event(_FORM))
+    assert resp["statusCode"] == 503
+    assert "Setup is closed" in json.loads(resp["body"])["error"]
+    assert calls["stripe"] == 0
+    assert calls["bundles"].items == {}
+    assert _env["stored"] == [] and _env["dispatched"] == []
+
+
+def test_stripe_get_refuses_to_call_stripe_without_a_usable_key(
+    common: Any, ssm: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    requested: list[str] = []
+    monkeypatch.setattr(common, "_request", lambda *a, **k: requested.append(a[1]) or {})
+    _drop(ssm, "stripe-restricted-key")
+    with pytest.raises(common.UpstreamError, match="not configured"):
+        common.stripe_get("/v1/checkout/sessions/cs_x")
+    assert requested == []
+
+
+def test_a_secret_is_read_once_and_a_missing_one_is_not_remembered(
+    common: Any, ssm: dict[str, Any]
+) -> None:
+    reads = ssm["__reads__"]
+    assert common.secret("stripe-restricted-key") == STRIPE_TEST_KEY
+    assert common.secret("stripe-restricted-key") == STRIPE_TEST_KEY
+    assert reads.count(f"{SSM_PREFIX}/stripe-restricted-key") == 1
+    _drop(ssm, "github-dispatch-token")
+    assert common.secret("github-dispatch-token") == ""
+    # Creating the parameter takes effect on the next request, not after the cache expires.
+    ssm[f"{SSM_PREFIX}/github-dispatch-token"] = GITHUB_FAKE_TOKEN
+    assert common.secret("github-dispatch-token") == GITHUB_FAKE_TOKEN
+
+
+def test_a_secret_name_outside_the_three_is_a_programming_error(common: Any) -> None:
+    with pytest.raises(ValueError, match="not a compliance-bundle secret"):
+        common.secret("aws-root-password")
+
+
+def test_an_unreadable_secret_is_logged_by_name_never_by_value(
+    common: Any, ssm: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    _drop(ssm, "stripe-webhook-secret")
+    assert common.secret("stripe-webhook-secret") == ""
+    logged = capsys.readouterr().out
+    assert "stripe-webhook-secret" in logged and "ParameterNotFound" in logged
+    assert SIGNING_SECRET not in logged
+
+
+# ---------------------------------------------------------------------------
+# The dispatch carries no buyer data (this repository's run logs are public)
+# ---------------------------------------------------------------------------
+
+
+def test_the_dispatch_names_the_stored_order_and_carries_nothing_the_buyer_typed(
+    setup_handler: Any, _env: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _paid_setup(setup_handler, monkeypatch)
+    form = {
+        "session_id": "cs_test_paid",
+        "program_name": "Example Compliance Partners",
+        "endpoint_ids": "one-payer, two-payer",
+        "deliver_to": "reports@example-compliance.test",
+        "logo": "",
+    }
+    assert setup_handler.setup(_event(form))["statusCode"] == 200
+    [order_ref] = _env["dispatched"]
+    [(_, order)] = _env["stored"]
+    for value in (
+        order["bundle_id"],
+        order["deliver_to"],
+        order["program_name"],
+        "one-payer",
+        "buyer@example.org",
+        "cs_test_paid",
+    ):
+        assert value not in json.dumps(order_ref)
+
+
+def test_dispatch_bundle_workflow_posts_only_the_order_reference(
+    common: Any, ssm: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sent: list[tuple[str, str, dict[str, str], Any]] = []
+    monkeypatch.setattr(
+        common,
+        "_request",
+        lambda method, url, headers, payload=None: sent.append((method, url, headers, payload)),
+    )
+    monkeypatch.setenv("GITHUB_REPO", "ChelseaKR/fhir-scorecard")
+    common.dispatch_bundle_workflow("a" * 32)
+    [(method, url, headers, payload)] = sent
+    assert method == "POST"
+    assert url.endswith(
+        "/repos/ChelseaKR/fhir-scorecard/actions/workflows/compliance-bundle.yml/dispatches"
+    )
+    assert payload == {"ref": "main", "inputs": {"order_ref": "a" * 32}}
+    assert headers["Authorization"] == f"Bearer {GITHUB_FAKE_TOKEN}"
+
+
+@pytest.mark.parametrize("ref", ["", "A" * 32, "a" * 31, "../../etc/passwd", "a" * 32 + "\n"])
+def test_dispatch_refuses_a_malformed_order_reference(
+    common: Any, ssm: dict[str, Any], ref: str
+) -> None:
+    with pytest.raises(ValueError, match="32 lowercase hex"):
+        common.dispatch_bundle_workflow(ref)
+
+
+def test_dispatch_refuses_without_the_token(
+    common: Any, ssm: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(common, "_request", lambda *a, **k: pytest.fail("GitHub was called"))
+    _drop(ssm, "github-dispatch-token")
+    with pytest.raises(common.UpstreamError, match="not configured"):
+        common.dispatch_bundle_workflow("b" * 32)
+
+
+class _FakeS3:
+    def __init__(self, fail: bool = False) -> None:
+        self.fail = fail
+        self.puts: list[dict[str, Any]] = []
+
+    def put_object(self, **kwargs: Any) -> None:
+        if self.fail:
+            raise RuntimeError("AccessDenied")
+        self.puts.append(kwargs)
+
+
+def _fake_boto3(monkeypatch: pytest.MonkeyPatch, s3: _FakeS3) -> None:
+    fake = type(sys)("boto3")
+    fake.client = lambda service, region_name=None: s3  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "boto3", fake)
+
+
+def test_store_request_writes_one_encrypted_object_under_the_reference(
+    common: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    s3 = _FakeS3()
+    _fake_boto3(monkeypatch, s3)
+    monkeypatch.setenv("ARTIFACTS_BUCKET", "bucket-x")
+    common.store_request("c" * 32, {"bundle_id": "d" * 32, "deliver_to": "a@b.test"})
+    [put] = s3.puts
+    assert put["Bucket"] == "bucket-x"
+    assert put["Key"] == f"compliance-requests/{'c' * 32}.json"
+    assert put["ServerSideEncryption"] == "AES256"
+    assert json.loads(put["Body"]) == {"bundle_id": "d" * 32, "deliver_to": "a@b.test"}
+
+
+def test_a_failed_store_is_an_upstream_error_and_nothing_is_dispatched(
+    setup_handler: Any, common: Any, _env: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The setup route answers "could not start" for a store failure exactly as for a failed
+    dispatch, and the claim is left unfinished so the same checkout can be sent again."""
+    calls = _paid_setup(setup_handler, monkeypatch)
+    _fake_boto3(monkeypatch, _FakeS3(fail=True))
+    monkeypatch.setattr(setup_handler, "store_request", common.store_request)
+    resp = setup_handler.setup(_event(_FORM))
+    assert resp["statusCode"] == 502
+    assert _env["dispatched"] == []
+    from common import SESSION_PREFIX  # type: ignore[import-not-found]
+
+    assert calls["bundles"].items[f"{SESSION_PREFIX}cs_test_paid"]["dispatched"] is False
+
+
+# ---------------------------------------------------------------------------
+# The webhook entrypoint: signature first, secret from SSM, mode, idempotence
+# ---------------------------------------------------------------------------
+
+
+def _webhook_event(payload: dict[str, Any], secret: str | None = SIGNING_SECRET) -> dict[str, Any]:
+    body = json.dumps(payload)
+    headers = {"Stripe-Signature": _sign(body.encode(), secret)} if secret else {}
+    return {"requestContext": {"http": {"method": "POST"}}, "headers": headers, "body": body}
+
+
+_COMPLETED = {
+    "type": "checkout.session.completed",
+    "livemode": False,
+    "data": {
+        "object": {"id": "cs_test_w1", "mode": "payment", "customer_details": {"email": "a@b.test"}}
+    },
+}
+
+
+@pytest.fixture()
+def webhook_tables(
+    webhook_handler: Any, ssm: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> Any:
+    bundles, subscriptions = FakeTable(), FakeTable()
+    monkeypatch.setattr(
+        webhook_handler, "table", lambda name: bundles if name == "BUNDLES_TABLE" else subscriptions
+    )
+    monkeypatch.setattr(
+        webhook_handler, "checkout_plan", lambda session_id: (PRICE_BUNDLE_15, "bundle_15")
+    )
+    return bundles
+
+
+def test_webhook_notes_a_signed_checkout(webhook_handler: Any, webhook_tables: Any) -> None:
+    resp = webhook_handler.handler(_webhook_event(_COMPLETED))
+    assert resp["statusCode"] == 200
+    assert json.loads(resp["body"])["outcome"] == "noted"
+    assert "checkout#cs_test_w1" in webhook_tables.items
+
+
+def test_webhook_redelivery_is_idempotent(webhook_handler: Any, webhook_tables: Any) -> None:
+    """Stripe redelivers until it sees a 2xx; the second delivery rewrites the same row."""
+    for _ in range(3):
+        assert webhook_handler.handler(_webhook_event(_COMPLETED))["statusCode"] == 200
+    assert list(webhook_tables.items) == ["checkout#cs_test_w1"]
+    assert webhook_tables.items["checkout#cs_test_w1"]["plan"] == "bundle_15"
+
+
+def test_webhook_notes_an_async_payment_that_succeeded(
+    webhook_handler: Any, webhook_tables: Any
+) -> None:
+    event = {**_COMPLETED, "type": "checkout.session.async_payment_succeeded"}
+    assert json.loads(webhook_handler.handler(_webhook_event(event))["body"])["outcome"] == "noted"
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        pytest.param(_webhook_event(_COMPLETED, secret=None), id="unsigned"),
+        pytest.param(
+            _webhook_event(_COMPLETED, secret="whsec_somebody_else"),  # noqa: S106 - a fixture
+            id="wrong-secret",
+        ),
+        pytest.param(
+            {**_webhook_event(_COMPLETED), "body": json.dumps({**_COMPLETED, "type": "x"})},
+            id="tampered-body",
+        ),
+    ],
+)
+def test_webhook_refuses_an_unverified_event_before_reading_it(
+    webhook_handler: Any, webhook_tables: Any, monkeypatch: pytest.MonkeyPatch, event: Any
+) -> None:
+    monkeypatch.setattr(webhook_handler, "apply_event", lambda *a, **k: pytest.fail("read it"))
+    resp = webhook_handler.handler(event)
+    assert resp["statusCode"] == 400
+    assert webhook_tables.items == {}
+
+
+def test_webhook_refuses_everything_until_its_secret_exists(
+    webhook_handler: Any, common: Any, webhook_tables: Any, ssm: dict[str, Any]
+) -> None:
+    """Negative control on the SSM read: the same correctly signed event is accepted with the
+    secret present and refused with it absent."""
+    assert webhook_handler.handler(_webhook_event(_COMPLETED))["statusCode"] == 200
+    webhook_tables.items.clear()
+    _drop(ssm, "stripe-webhook-secret")
+    common._SECRET_CACHE.clear()  # a cold start, which is when a removed secret is noticed
+    assert webhook_handler.handler(_webhook_event(_COMPLETED))["statusCode"] == 400
+    assert webhook_tables.items == {}
+
+
+def test_webhook_ignores_a_verified_event_from_the_other_mode(
+    webhook_handler: Any, webhook_tables: Any
+) -> None:
+    live = {**_COMPLETED, "livemode": True}
+    resp = webhook_handler.handler(_webhook_event(live))
+    assert resp["statusCode"] == 200
+    assert json.loads(resp["body"])["outcome"] == "ignored"
+    assert webhook_tables.items == {}

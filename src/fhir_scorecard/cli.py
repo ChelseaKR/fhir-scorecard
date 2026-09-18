@@ -1258,7 +1258,7 @@ def _cmd_bundle(args: argparse.Namespace) -> int:
     Deliberately registry-free of the ``grade`` path's setup: this reads the registry itself
     (every entry, not just the enabled ones -- classify() needs to see a disabled entry to
     report it rather than treating it as unknown) and the already-published dataset, and never
-    probes a network. Fulfilment (infra/compliance-bundle) and hand dispatch
+    probes a network. Fulfillment (infra/compliance-bundle) and hand dispatch
     (.github/workflows/compliance-bundle.yml) both go through this one command, so there is one
     implementation of "what is a valid bundle" rather than one per caller.
     """
@@ -1857,8 +1857,8 @@ def _advertise_feeds(pages: list[Page], written: tuple[str, ...]) -> list[Page]:
 
 #: Read once per site build. A missing or unreadable file is never a build failure: it is the
 #: state every fixture directory and every checkout that has not touched the compliance bundle
-#: is in, and ``bundle_page`` already renders "Not yet available" for a plan with no products,
-#: which is the honest thing to say about a repository that has not priced anything yet.
+#: is in, and ``site.bundle_offers`` sells nothing for a plan with no products, which is the
+#: honest thing to say about a repository that has not priced anything yet.
 _BUNDLE_PLAN_PATH = Path("data/bundle/plan.json")
 
 
@@ -1894,13 +1894,14 @@ def _write_site(
     origin = origin.rstrip("/")
     by_id = {e.endpoint_id: e for e in endpoints}
     coverage = _coverage_page(cohorts_dir, cohorts, endpoints, origin, scorecards)
+    bundle_plan = _load_bundle_plan()
     pages = [
         home_page(scorecards, origin, cohorts, coverage_link=coverage is not None),
         how_we_grade_page(origin),
         claim_page(origin),
         privacy_page(origin),
-        bundle_page(origin, _load_bundle_plan()),
-        bundle_setup_page(origin),
+        bundle_page(origin, bundle_plan),
+        bundle_setup_page(origin, bundle_plan),
         bundle_trust_page(origin),
     ]
     archive = records(history or {}, scorecards)

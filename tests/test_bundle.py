@@ -489,7 +489,7 @@ def test_resolve_logo_fetches_and_sniffs_png() -> None:
     assert result == f"data:image/png;base64,{base64.b64encode(_TINY_PNG).decode()}"
 
 
-def test_resolve_logo_rejects_an_unrecognised_image_type() -> None:
+def test_resolve_logo_rejects_an_unrecognized_image_type() -> None:
     with pytest.raises(bundle.BundleError, match="did not return"):
         bundle.resolve_logo("https://cdn.example.test/logo.bin", fetch=lambda url: b"not-an-image")
 
@@ -508,7 +508,7 @@ def test_resolve_logo_wraps_a_fetch_failure() -> None:
         bundle.resolve_logo("https://cdn.example.test/logo.png", fetch=_boom)
 
 
-def test_sniff_media_type_recognises_jpeg_and_svg() -> None:
+def test_sniff_media_type_recognizes_jpeg_and_svg() -> None:
     assert bundle._sniff_media_type(b"\xff\xd8\xff\xe0rest of jpeg") == "image/jpeg"
     assert bundle._sniff_media_type(b"  <svg xmlns='x'></svg>") == "image/svg+xml"
 
@@ -516,7 +516,7 @@ def test_sniff_media_type_recognises_jpeg_and_svg() -> None:
 def test_default_fetch_delegates_to_the_one_guarded_fetcher(monkeypatch) -> None:
     """bundle.py must never open its own connection: tests/test_probe_contract.py enforces that
     fetch.py is the only module in the package allowed to call urlopen. This checks the
-    delegation directly; fetch.fetch_bytes's own behaviour (streaming, the byte cap, no
+    delegation directly; fetch.fetch_bytes's own behavior (streaming, the byte cap, no
     redirects) is covered by tests/test_fetch_bytes.py."""
     calls: list[tuple[str, int]] = []
 

@@ -1135,7 +1135,7 @@
       "kind": "payer",
       "base_url": "https://api-ext.amerihealthcaritas.com/DEEX/patient-api",
       "verification": {
-        "method": "the DEEX row of the Swagger API Details table on AmeriHealth Caritas's corporate developer portal, labelled 'AmeriHealth Caritas Next, Delaware', which prints https://api-ext.amerihealthcaritas.com/DEEX/patient-api/metadata. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, software 'AmeriHealth Caritas' 1.0.0, 22 resource types, implementation.url matching the requested base exactly. Listed as its own entry rather than mapped to the Florida, Louisiana or North Carolina entries for the reason the 2026-09-04 wave recorded when it made the same call for LAEX and NCEX: the publisher's table carries a separate plan id per state and each serves a distinct document. The table also carries DEDS and DEDSC rows, which are Delaware dual-eligible plans and not individual-market QHP issuers, so they are out of this frame",
+        "method": "the DEEX row of the Swagger API Details table on AmeriHealth Caritas's corporate developer portal, labeled 'AmeriHealth Caritas Next, Delaware', which prints https://api-ext.amerihealthcaritas.com/DEEX/patient-api/metadata. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, software 'AmeriHealth Caritas' 1.0.0, 22 resource types, implementation.url matching the requested base exactly. Listed as its own entry rather than mapped to the Florida, Louisiana or North Carolina entries for the reason the 2026-09-04 wave recorded when it made the same call for LAEX and NCEX: the publisher's table carries a separate plan id per state and each serves a distinct document. The table also carries DEDS and DEDSC rows, which are Delaware dual-eligible plans and not individual-market QHP issuers, so they are out of this frame",
         "date": "2026-09-13",
         "basis": "live_capability",
         "source": "https://developer.amerihealthcaritas.com/dvp/v1/apidocumentation"
@@ -1148,7 +1148,7 @@
       "kind": "payer_provider_directory",
       "base_url": "https://api-ext.amerihealthcaritas.com/DEEX/provider-api",
       "verification": {
-        "method": "the same DEEX row of the same table, which prints https://api-ext.amerihealthcaritas.com/DEEX/provider-api/metadata beside the patient one. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, software 'AmeriHealth Caritas' 1.0.0, 6 resource types, implementation.url matching the requested base exactly. This surface declares no supportedProfile canonicals, which is what the grade reports and not a curation judgement",
+        "method": "the same DEEX row of the same table, which prints https://api-ext.amerihealthcaritas.com/DEEX/provider-api/metadata beside the patient one. Live CapabilityStatement retrieved unauthenticated from the davis-ca residential vantage: fhirVersion 4.0.1, software 'AmeriHealth Caritas' 1.0.0, 6 resource types, implementation.url matching the requested base exactly. This surface declares no supportedProfile canonicals, which is what the grade reports and not a curation judgment",
         "date": "2026-09-13",
         "basis": "live_capability",
         "source": "https://developer.amerihealthcaritas.com/dvp/v1/apidocumentation"

@@ -70,6 +70,7 @@ from fhir_scorecard.operator import (
     load_operator_registry,
 )
 from fhir_scorecard.over_time import page as over_time_page
+from fhir_scorecard.published import audit_published_grades
 from fhir_scorecard.registry import EXPECTS, KINDS, Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
@@ -224,8 +225,9 @@ def _grade_from_probes(
         # served one. That is the same observation `_grade_endpoint` makes when it probes
         # directly, and it grades identically: `parsed` False, `observed` True, I2 scored 0 of
         # 35. Reading it as an absence instead withheld those 35 points, and `grading.letter`
-        # then could not pin a band, so eighteen of the eighty-one live endpoints published no
-        # letter on 2026-09-12 while all three vantages held their CapabilityStatements.
+        # then could not pin a band. Measured 2026-09-12, when the registry held 81: that left
+        # eighteen of the eighty-one live endpoints publishing no letter while all three
+        # vantages held their CapabilityStatements.
         smart_facts = SMART_NOT_SERVED
     else:
         # Nobody asked, or nobody's file says whether they did. Unknown, and it stays unknown.
@@ -1425,10 +1427,14 @@ def _cmd_verify_snapshot(args: argparse.Namespace) -> int:
 def _cmd_audit_site(args: argparse.Namespace) -> int:
     """Report every way a built site breaks its contract, and exit nonzero if it does.
 
-    Three families run, and all three run every time: the site contract (sitemap, canonical,
-    structured data, links, orphans), the mechanical accessibility rules, and the transfer-size
-    budgets. They are not separately switchable on purpose - a publish that could skip one is a
-    publish that will.
+    Four families run, and all four run every time: the site contract (sitemap, canonical,
+    structured data, links, orphans), the mechanical accessibility rules, the transfer-size
+    budgets, and the published-grade contract. They are not separately switchable on purpose - a
+    publish that could skip one is a publish that will.
+
+    The fourth arrived after 2026-09-12, when the first three examined every page a build wrote
+    and not one of them examined a grade. `fhir_scorecard.published` states what it holds and
+    what it deliberately does not decide.
 
     Exit 2 is reserved for "there was nothing to audit", which is a usage error and must not
     read as a clean site. Exit 1 means the site was read and found wanting.
@@ -1440,13 +1446,17 @@ def _cmd_audit_site(args: argparse.Namespace) -> int:
         audit_site(args.directory, args.origin.rstrip("/"))
         + audit_accessibility(args.directory)
         + audit_weight(args.directory)
+        + audit_published_grades(args.directory)
     )
     for finding in sorted(findings, key=lambda f: (f.where, f.code, f.detail)):
         print(finding)
     if findings:
         print(f"{len(findings)} site finding(s) against {args.origin}", file=sys.stderr)
         return 1
-    print(f"site contract, accessibility and weight budgets: clean against {args.origin}")
+    print(
+        f"site contract, accessibility, weight budgets and published grades: clean against "
+        f"{args.origin}"
+    )
     return 0
 
 

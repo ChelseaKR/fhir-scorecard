@@ -308,9 +308,9 @@ roster committed beside the cohort as `florida-marketplace.roster.csv`. Nine of 
 a base URL this project could verify from the organization's own documentation, which inverts the
 Texas result, and the smallest issuers are among the cleanest publishers: a brand-new one-county
 plan prints its base URLs in the open while three national names publish nothing a stranger can
-reach. The frame behind the twelve marketplace cohorts is national - 176 state-issuer organizations
+reach. The frame behind the twenty marketplace cohorts is national - 176 state-issuer organizations
 across 30 federally-facilitated-exchange states, committed under `data/frames/` - of which those
-cohorts have reviewed 105; the other 71 are *not yet reviewed*, a statement about this
+cohorts have reviewed 133; the other 43 are *not yet reviewed*, a statement about this
 project's progress that is never rendered as "publishes nothing"
 (see [docs/SAMPLING-FRAME.md](docs/SAMPLING-FRAME.md)).
 
@@ -360,8 +360,8 @@ from the fingerprint would invent a measurement nobody took.
 `/coverage/` answers the question the frame was built for: how much of the federal marketplace
 has a publicly checkable FHIR endpoint at all. Every one of the 176 state-issuer organizations
 lands in exactly one of four populations, and no two of them are ever added together: publishes
-a base URL a conformance document was retrieved from (61), publishes one that did not answer
-(6), was reviewed and publishes none a stranger can read (38), and not yet reviewed (71). The
+a base URL a conformance document was retrieved from (80), publishes one that did not answer
+(6), was reviewed and publishes none a stranger can read (47), and not yet reviewed (43). The
 fourth is a fact about this project's progress, never about an issuer, and `publishing_rate`
 raises rather than compute a rate over a set that contains one.
 
@@ -443,7 +443,13 @@ sharing an id, an entry linking at a path the build did not write, or a page poi
 autodiscovery at something that is not a feed. The same command
 also runs twelve mechanical accessibility rules - seven naming the WCAG 2.2 Level A criterion
 they implement, five saying plainly that they are this project's own rule and not a criterion -
-and two transfer-size budgets. The publish workflow runs all three families before
+and two transfer-size budgets. A fourth family checks the published *grades*: that every grade
+is one the grader can produce, that no dimension carries a score for a check no vantage was able
+to make, that the CSV, the per-endpoint JSON, the API index and `scorecards.json` publish the
+same letter for the same endpoint, and that the page a reader opens shows what the data for that
+endpoint says. It decides nothing about whether a grade is *right*, which is the grader's
+business; it decides that what was published is a shape the grader can produce and that every
+surface agrees. The publish workflow runs all four families before
 the artifact is uploaded, so a site that fails any of them is not deployed. Its first run against a site carrying an organization page found twelve published,
 sitemapped `/org/` pages that nothing on the site linked to.
 
@@ -577,11 +583,12 @@ the grounding fractions.
 v0.2.0, the version this tree declares and the one a consumer pins. Changes
 merged after a tag are collected under Unreleased in
 [CHANGELOG.md](CHANGELOG.md); what a version names is the composite
-GitHub Action and the distribution behind it, not the daily site rebuild. Eighty-one
+GitHub Action and the distribution behind it, not the daily site rebuild. Eighty-eight
 endpoints across payers, payer provider directories, a federal provider
-API, EHR vendor sandboxes, and reference servers, in thirteen curated cohorts (California payers
+API, EHR vendor sandboxes, and reference servers, in twenty-one curated cohorts (California payers
 and the marketplace issuers of Texas, Florida, Ohio, Wisconsin, Arizona, Michigan, Missouri,
-Oklahoma, Iowa, Kansas, Louisiana and North Carolina). Sixty-nine were verified from a retrieved
+Oklahoma, Iowa, Kansas, Louisiana, North Carolina, Nebraska, Alabama, Alaska, Wyoming, West
+Virginia, Delaware, Indiana and Mississippi). Seventy-six were verified from a retrieved
 conformance document; twelve are listed on the organization's own publication of a base URL that does
 not answer, which is a finding about the public record rather than a gap in this one. Registry
 curation continues one roster at a time - see [docs/SAMPLING-FRAME.md](docs/SAMPLING-FRAME.md) -

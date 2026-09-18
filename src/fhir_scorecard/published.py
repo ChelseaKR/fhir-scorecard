@@ -23,7 +23,7 @@ production because nothing examined the thing that was wrong:
   ``reachability_score: 0`` beside a named health insurer while no vantage had reached them.
   :data:`GRADE_PUBLISHED_WITHOUT_A_REACH` is that shape, read off the row.
 * **A letter that went missing.** Measured 2026-09-12: 18 endpoints published no letter at all
-  while all three vantages held their CapabilityStatements. Its neighbouring impossible state -
+  while all three vantages held their CapabilityStatements. Its neighboring impossible state -
   ``not observed`` over three scored dimensions, which :func:`fhir_scorecard.grading.letter`
   cannot produce - is :data:`GRADE_WITHHELD_OVER_A_COMPLETE_MEASUREMENT`.
 * **Surfaces that could disagree and nothing that would notice.** The CSV's grade column was

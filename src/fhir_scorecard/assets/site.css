@@ -362,6 +362,11 @@ li.unanswered .finding-copy { color: var(--usa-ink); }
   white-space: nowrap;
 }
 .footer-tagline { margin: 0 0 .5rem; font-family: var(--font-serif); font-size: 1.15rem; }
+/* The footer's analytics opt-out (fhir_scorecard.analytics): a <button>, because it changes a
+ * setting, dressed as a link by USWDS's unstyled button. USWDS gives every .usa-button
+ * `display: inline-flex`, which beats the browser's own rule for the `hidden` attribute, so
+ * without this the button would stay on screen under GPC or DNT after the loader hid it. */
+.analytics-toggle[hidden] { display: none; }
 @media (max-width: 760px) {
   .home-hero, .endpoint-hero, .evidence-grid, .section-heading, .evidence-callout,
   .probe-contract, .weight-panel { grid-template-columns: 1fr; gap: 2rem; }

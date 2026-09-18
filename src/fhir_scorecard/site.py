@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from fhir_scorecard import analytics
 from fhir_scorecard.cohort import Cohort, CohortMember
 from fhir_scorecard.conditions import CONDITION_HEADINGS, CONDITIONS, condition_of
 from fhir_scorecard.grading import (
@@ -1129,11 +1130,11 @@ def write_page(out_dir: Path, page: Page, origin: str, generated_at: str) -> Non
 def write_assets(out_dir: Path) -> None:
     """Copy the vendored stylesheet, script, font, and icon files into the site output.
 
-    Every page links /assets/uswds/css/uswds.min.css and /assets/site.css, so the site stays
-    fully self-contained: the design system is served from the same origin as the pages, at the
-    version pinned in assets/uswds/VERSION.txt, and no page ever fetches a third-party
-    subresource. The files ship inside the package so an installed copy builds the same site a
-    checkout does.
+    Every page links /assets/uswds/css/uswds.min.css and /assets/site.css: the design system is
+    served from the same origin as the pages, at the version pinned in assets/uswds/VERSION.txt,
+    never from a CDN. The one third-party script is Google Analytics, loaded by the guarded
+    inline loader in ``fhir_scorecard.analytics`` and only on the production host (ADR 0006).
+    The files ship inside the package so an installed copy builds the same site a checkout does.
     """
     from importlib import resources
 
@@ -1195,6 +1196,12 @@ def _feed_link(page: Page) -> str:
     )
 
 
+def _analytics_head() -> str:
+    """The GA4 loader for ``<head>``, on its own line, or nothing when no ID is configured."""
+    snippet = analytics.head_snippet()
+    return f"\n{snippet}" if snippet else ""
+
+
 def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str:
     prefix = _site_path_prefix(origin)
     card = social_card_url(origin)
@@ -1226,7 +1233,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/uswds/css/uswds.min.css">
 <link rel="stylesheet" href="/assets/site.css">
-<script src="/assets/uswds/js/uswds-init.min.js"></script>
+<script src="/assets/uswds/js/uswds-init.min.js"></script>{_analytics_head()}
 </head>
 <body>
 <a class="usa-skipnav" href="#content">Skip to main content</a>
@@ -1271,6 +1278,8 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <li class="mobile-lg:grid-col-auto usa-footer__primary-content">
 <a class="usa-footer__primary-link" href="/dataset.csv">CSV</a></li>
 <li class="mobile-lg:grid-col-auto usa-footer__primary-content">
+<a class="usa-footer__primary-link" href="/privacy/">Privacy</a></li>
+<li class="mobile-lg:grid-col-auto usa-footer__primary-content">
 <a class="usa-footer__primary-link" href="https://github.com/ChelseaKR/fhir-scorecard">Source ↗</a></li>
 </ul>
 </nav>
@@ -1283,6 +1292,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <p>Generated {html.escape(generated_at)}. Only public <code>/metadata</code> and SMART discovery
 documents are read; no patient data is ever accessed. An independent open-source project; not a
 government website, and affiliated with no government agency.</p>
+{analytics.footer_note()}
 </div>
 </div>
 </footer>
@@ -1614,6 +1624,23 @@ _FINDING_DOCS = [
         "Not applicable to Provider Directory APIs, for the same reason as I2.",
     ),
 ]
+
+
+def privacy_page(origin: str) -> Page:
+    """What reading this site sends anywhere, true for whether or not GA4 is configured."""
+    return Page(
+        path="privacy",
+        title="Privacy: what this site measures",
+        description=(
+            "What Google Analytics records when you read these pages, what is switched off, "
+            "and how to turn it off."
+            if analytics.enabled()
+            else "This site runs no analytics and sets no cookies."
+        ),
+        body=analytics.privacy_body(),
+        changefreq="monthly",
+        priority="0.3",
+    )
 
 
 def claim_page(origin: str) -> Page:

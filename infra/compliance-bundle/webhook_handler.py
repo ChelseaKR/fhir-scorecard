@@ -166,7 +166,10 @@ def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
         return json_response(405, {"ok": False, "error": "POST only."})
     raw = _raw_body(event)
     signature = _headers(event).get("stripe-signature", "")
-    if not verify_stripe_signature(raw, signature, secret(WEBHOOK_SECRET_PARAMETER)):
+    signing = secret(WEBHOOK_SECRET_PARAMETER)
+    if not signing:
+        print(json.dumps({"event": "webhook_closed", "missing": "signing secret"}))
+    if not verify_stripe_signature(raw, signature, signing):
         return json_response(400, {"ok": False, "error": "Signature check failed."})
     try:
         payload = json.loads(raw.decode())

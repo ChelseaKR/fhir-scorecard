@@ -717,13 +717,40 @@ def test_a_secret_name_outside_the_three_is_a_programming_error(common: Any) -> 
         common.secret("aws-root-password")
 
 
-def test_an_unreadable_secret_is_logged_by_name_never_by_value(
-    common: Any, ssm: dict[str, Any], capsys: pytest.CaptureFixture[str]
+def test_a_closed_setup_says_what_is_missing_and_never_a_value(
+    common: Any,
+    _env: Any,
+    ssm: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert common.payments_enabled()
+    assert capsys.readouterr().out == ""  # an open, complete setup logs nothing
+    common._SECRET_CACHE.clear()  # a cold start; a warm one notices within SECRET_CACHE_SECONDS
+    _drop(ssm, "github-dispatch-token")
+    ssm[f"{SSM_PREFIX}/stripe-restricted-key"] = "sk_test_full"
+    monkeypatch.delenv("ARTIFACTS_BUCKET")
+    assert not common.payments_enabled()
+    out = capsys.readouterr().out
+    assert "sk_test_full" not in out and GITHUB_FAKE_TOKEN not in out
+    logged = json.loads(out.strip().splitlines()[-1])
+    assert logged == {
+        "event": "setup_closed",
+        "missing": [
+            "artifacts bucket",
+            "usable Stripe restricted key",
+            "GitHub dispatch token",
+        ],
+    }
+
+
+def test_the_webhook_says_its_secret_is_missing_and_never_a_value(
+    webhook_handler: Any, ssm: dict[str, Any], capsys: pytest.CaptureFixture[str]
 ) -> None:
     _drop(ssm, "stripe-webhook-secret")
-    assert common.secret("stripe-webhook-secret") == ""
+    assert webhook_handler.handler(_webhook_event(_COMPLETED))["statusCode"] == 400
     logged = capsys.readouterr().out
-    assert "stripe-webhook-secret" in logged and "ParameterNotFound" in logged
+    assert json.loads(logged) == {"event": "webhook_closed", "missing": "signing secret"}
     assert SIGNING_SECRET not in logged
 
 

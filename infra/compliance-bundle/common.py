@@ -153,8 +153,10 @@ def secret(parameter: str) -> str:
     ``""`` covers every way a secret can be absent: no ``SSM_PREFIX``, a parameter the owner has
     not created yet, one this role cannot read, or an SSM outage. Each caller treats ``""`` as
     closed, so an absent secret can only ever refuse a purchase, never half-accept one. A miss
-    is logged by parameter name and error class, never by value, and is not cached, so creating
-    the parameter takes effect on the next request.
+    is not cached, so creating the parameter takes effect on the next request. Nothing is
+    logged here: the callers that close say what is missing in fixed words
+    (:func:`payments_enabled`, the webhook), so no log line carries anything read from, or
+    naming, a secret.
     """
     if parameter not in SECRET_PARAMETERS:
         raise ValueError(f"not a compliance-bundle secret: {parameter}")
@@ -166,12 +168,7 @@ def secret(parameter: str) -> str:
         return ""
     try:
         value = _read_parameter(f"{prefix}/{parameter}").strip()
-    except Exception as err:  # ParameterNotFound, AccessDenied, throttling, no network
-        print(
-            json.dumps(
-                {"event": "secret_unavailable", "parameter": parameter, "error": type(err).__name__}
-            )
-        )
+    except Exception:  # ParameterNotFound, AccessDenied, throttling, no network
         return ""
     if value:
         _SECRET_CACHE[parameter] = (time.monotonic(), value)
@@ -213,9 +210,20 @@ def payments_enabled() -> bool:
     """
     if os.environ.get("PAYMENTS_ENABLED", "0") != "1":
         return False
-    if not os.environ.get("ARTIFACTS_BUCKET"):
-        return False
-    return bool(stripe_key()) and bool(secret(GITHUB_TOKEN_PARAMETER))
+    missing = [
+        label
+        for label, present in (
+            ("artifacts bucket", bool(os.environ.get("ARTIFACTS_BUCKET"))),
+            ("usable Stripe restricted key", bool(stripe_key())),
+            ("GitHub dispatch token", bool(secret(GITHUB_TOKEN_PARAMETER))),
+        )
+        if not present
+    ]
+    if missing:
+        # The gate says open and a purchase cannot be completed: the one closed state worth a
+        # log line. Fixed words only.
+        print(json.dumps({"event": "setup_closed", "missing": missing}))
+    return not missing
 
 
 # ---------------------------------------------------------------------------

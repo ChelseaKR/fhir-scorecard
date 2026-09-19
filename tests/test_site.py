@@ -279,10 +279,20 @@ def test_site_build_produces_indexable_pages(tmp_path: Path) -> None:
     assert "/badge/alpha.svg" in ep
     assert "Share this endpoint's grade" in ep
 
-    # Every generated page must appear in the sitemap: an orphan page is not indexable.
+    # Every generated page must appear in the sitemap, with one deliberate exception: a page
+    # carrying <meta name="robots" content="noindex..."> (Page.noindex=True, site.py) is meant
+    # to be unreachable except from a direct link Stripe itself sends
+    # (/bundle/setup/, reachable only from a post-checkout redirect) and is excluded from the
+    # sitemap on purpose -- see audit.py's own _page_is_noindex, which reads the same tag for
+    # the same reason. An orphan page with no such tag is still the real defect this test guards.
     xml = (out / "sitemap.xml").read_text()
     generated = {str(p.parent.relative_to(out)).replace(".", "") for p in out.rglob("index.html")}
     for rel in generated:
+        page_html = (
+            (out / rel / "index.html").read_text() if rel else (out / "index.html").read_text()
+        )
+        if 'name="robots"' in page_html and "noindex" in page_html:
+            continue
         loc = f"https://example.test/{rel + '/' if rel else ''}"
         assert f"<loc>{loc}</loc>" in xml, f"orphan page {rel!r}"
 

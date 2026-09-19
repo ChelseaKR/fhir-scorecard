@@ -367,6 +367,22 @@ li.unanswered .finding-copy { color: var(--usa-ink); }
  * `display: inline-flex`, which beats the browser's own rule for the `hidden` attribute, so
  * without this the button would stay on screen under GPC or DNT after the loader hid it. */
 .analytics-toggle[hidden] { display: none; }
+/* Compliance report bundle: /bundle/ plan cards and FAQ, /bundle/setup/ form status. */
+.support-paths { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; max-width: 48rem; margin: 1.5rem 0 2.5rem; }
+.support-path { padding: 1.25rem 1.5rem; border: 1px solid var(--usa-base-lighter); border-radius: .25rem; background: #fff; }
+.support-path h3 { margin: .35rem 0 .75rem; }
+.support-path-kicker { margin: 0; color: var(--usa-base-dark); font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.plan-price { margin: 0 0 1rem; color: var(--usa-ink); font-size: 1.35rem; font-weight: 700; }
+.method-list--faq .method-card { grid-template-columns: 1fr; gap: 0; }
+.method-list--faq .method-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.usa-alert + .buy-terms { margin-top: 1.5rem; }
+.submit-form + .fineprint { margin-top: 1.5rem; }
+.form-status { max-width: 36rem; margin-top: 1.25rem; }
+.form-status:empty { display: none; }
+.form-status-ok { color: var(--usa-success-dark); }
+.form-status-err { color: var(--usa-error-dark); }
+.form-status-info { color: var(--usa-base-dark); }
+
 @media (max-width: 760px) {
   .home-hero, .endpoint-hero, .evidence-grid, .section-heading, .evidence-callout,
   .probe-contract, .weight-panel { grid-template-columns: 1fr; gap: 2rem; }
@@ -374,7 +390,7 @@ li.unanswered .finding-copy { color: var(--usa-ink); }
   .signal-panel-heading { display: block; }
   .signal-totals { margin-top: 1.5rem; }
   .signal-row { grid-template-columns: minmax(8rem, 1fr) 1.5rem 1fr; }
-  .category-grid, .surface-grid, .action-grid, .method-list { grid-template-columns: 1fr; }
+  .category-grid, .surface-grid, .action-grid, .method-list, .support-paths { grid-template-columns: 1fr; }
   .score-overview { grid-template-columns: 1fr; }
   .category-summary, .cohort-stats { align-items: flex-start; flex-wrap: wrap; }
   .category-summary .grade-distribution { width: 100%; margin-left: 0; }

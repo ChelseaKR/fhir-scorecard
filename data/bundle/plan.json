@@ -1,0 +1,22 @@
+{
+  "schema_version": "2",
+  "paymentsAvailable": false,
+  "setup_api_base": null,
+  "currency": "USD",
+  "provisioning_business_days": 2,
+  "max_endpoints": 70,
+  "products": {
+    "bundle_15": {
+      "label": "One archive, up to 15 endpoints",
+      "price": 249,
+      "interval": null,
+      "checkout_url": null
+    },
+    "bundle_70": {
+      "label": "One archive, up to 70 endpoints",
+      "price": 499,
+      "interval": null,
+      "checkout_url": null
+    }
+  }
+}

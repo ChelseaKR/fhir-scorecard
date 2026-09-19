@@ -239,9 +239,18 @@ const document = {
   createElement: (tag) => ({ tagName: tag, async: false, src: "" }),
   addEventListener: (t, f) => { (listeners[t] = listeners[t] || []).push(f); },
   querySelector: (s) => (s === "[data-analytics-choice]" ? box : null),
+  referrer: sc.referrer || "",
 };
 const navigator = Object.assign({}, sc.navigator || {});
-const window = { location: { hostname: sc.hostname } };
+const window = { location: Object.assign(
+  { hostname: sc.hostname, origin: "https://" + sc.hostname, pathname: "/", search: "", hash: "" },
+  sc.location || {}) };
+const session = Object.assign({}, sc.session || {});
+window.sessionStorage = {
+  getItem: (k) => (Object.prototype.hasOwnProperty.call(session, k) ? session[k] : null),
+  setItem: (k, v) => { session[k] = String(v); },
+  removeItem: (k) => { delete session[k]; },
+};
 if (sc.windowDoNotTrack !== undefined) window.doNotTrack = sc.windowDoNotTrack;
 Object.defineProperty(window, "localStorage", {
   get() { if (sc.storageGetterThrows) throw new Error("denied"); return storage; },
@@ -255,12 +264,19 @@ if (sc.domReady) {
   states.push(snap());
   for (let i = 0; i < (sc.clicks || 0); i++) { button.onclick(); states.push(snap()); }
 }
+const mark = window.dataLayer ? window.dataLayer.length : 0;
+(sc.commerce || []).forEach((detail) => {
+  if (detail === "OPT_OUT") { data[sc.optOutKey] = "1"; return; }
+  (listeners[sc.commerceEvent] || []).forEach((f) => f({ detail }));
+});
 const plain = (x) => (x instanceof Date ? "<date>" : x);
 process.stdout.write(JSON.stringify({
   dataLayer: window.dataLayer ? window.dataLayer.map((a) => Array.from(a).map(plain)) : null,
   appended: appended.map((e) => ({ tag: e.tagName, async: e.async, src: e.src })),
   listeners: Object.keys(listeners),
   states,
+  sent: window.dataLayer ? window.dataLayer.slice(mark).map((a) => Array.from(a).map(plain)) : [],
+  session,
 }));
 """
 
@@ -287,6 +303,8 @@ def run(tmp_path: Path) -> Iterator[Any]:
         script.write_text(analytics.head_snippet() if snippet is None else snippet, "utf-8")
         scenario.setdefault("hostname", analytics.PRODUCTION_HOST)
         scenario.setdefault("gaDisable", f"ga-disable-{MID}")
+        scenario.setdefault("commerceEvent", analytics.COMMERCE_EVENT)
+        scenario.setdefault("optOutKey", analytics.OPT_OUT_STORAGE_KEY)
         spec = tmp_path / f"scenario-{n}.json"
         spec.write_text(json.dumps(scenario), encoding="utf-8")
         done = subprocess.run(  # noqa: S603 - a fixed local node binary and files this test wrote
@@ -325,7 +343,8 @@ def test_nothing_loads_off_host_under_gpc_or_dnt_or_opted_out(run: Any, case: st
     result = run(**NOTHING_LOADS[case])
     assert result["dataLayer"] is None
     assert result["appended"] == []
-    # The footer control is wired everywhere; nothing else is registered.
+    # The footer control is wired everywhere; nothing else is registered, so a purchase step
+    # announced on this page has nothing to reach.
     assert result["listeners"] == ["DOMContentLoaded"]
 
 
@@ -350,7 +369,12 @@ def test_on_the_production_host_ga_loads_with_the_decided_configuration(run: Any
         [
             "config",
             MID,
-            {"allow_google_signals": False, "allow_ad_personalization_signals": False},
+            {
+                "allow_google_signals": False,
+                "allow_ad_personalization_signals": False,
+                "page_location": f"https://{analytics.PRODUCTION_HOST}/",
+                "page_referrer": "",
+            },
         ],
     ]
 
@@ -454,3 +478,244 @@ def test_negative_control_turning_google_signals_on_is_caught(run: Any) -> None:
     assert broken != snippet
     config = run(broken)["dataLayer"][-1]
     assert config[0] == "config" and config[2]["allow_google_signals"] is True
+
+
+# --- the bundle's purchase steps (ADR 0007): what reaches Google, and what never does ---
+
+SESSION = "cs_live_a1B2c3D4e5F6g7H8i9J0kLmNoPqRsTuVwXyZ"
+EMAIL = "buyer@example-compliance.test"
+ORG = "Example Compliance Partners"
+ORDER = "0123456789abcdef0123456789abcdef"
+SETUP_PAGE = {
+    "origin": f"https://{analytics.PRODUCTION_HOST}",
+    "pathname": "/bundle/setup/",
+    "search": f"?session_id={SESSION}",
+    "hash": "#top",
+}
+PLAN_15 = {"item_id": "bundle_15", "price": 249}
+PLAN_70 = {"item_id": "bundle_70", "price": 499}
+#: Everything a page script could conceivably put in an event by mistake. None of it may reach
+#: the dataLayer, whichever event carries it.
+PII = (SESSION, EMAIL, ORG, "deliver_to", "program_name", "session_id", "cms-blue-button-2")
+
+
+def _leaks(result: dict[str, Any]) -> list[str]:
+    sent = json.dumps(result["dataLayer"])
+    return [marker for marker in PII if marker in sent]
+
+
+def _events(result: dict[str, Any]) -> list[list[Any]]:
+    return [entry for entry in result["sent"] if entry[0] == "event"]
+
+
+def test_the_page_address_is_sent_without_its_query_or_fragment(run: Any) -> None:
+    config = run(location=SETUP_PAGE)["dataLayer"][-1]
+    assert config[0] == "config"
+    assert config[2]["page_location"] == f"https://{analytics.PRODUCTION_HOST}/bundle/setup/"
+    assert SESSION not in json.dumps(config)
+
+
+@pytest.mark.parametrize(
+    ("referrer", "sent"),
+    [
+        (
+            f"https://checkout.stripe.com/c/pay/{SESSION}#fidkdWxOYHwnPyd1",
+            "https://checkout.stripe.com",
+        ),
+        (
+            f"https://{analytics.PRODUCTION_HOST}/bundle/setup/?session_id={SESSION}",
+            f"https://{analytics.PRODUCTION_HOST}/bundle/setup/",
+        ),
+        ("https://www.google.com/search?q=fhir+payer+compliance", "https://www.google.com"),
+        ("", ""),
+        ("not a url", ""),
+    ],
+)
+def test_the_referrer_is_an_origin_or_a_path_on_this_site_and_never_a_query(
+    run: Any, referrer: str, sent: str
+) -> None:
+    config = run(referrer=referrer)["dataLayer"][-1]
+    assert config[2]["page_referrer"] == sent
+
+
+def test_view_item_and_begin_checkout_carry_the_plan_and_price_and_nothing_else(run: Any) -> None:
+    dirty = {
+        "event": "view_item",
+        "currency": "USD",
+        "value": 249,
+        "items": [
+            {**PLAN_15, "email": EMAIL, "item_name": ORG},
+            {**PLAN_70, "session_id": SESSION},
+        ],
+        "deliver_to": EMAIL,
+        "program_name": ORG,
+    }
+    result = run(commerce=[dirty, {**dirty, "event": "begin_checkout", "items": [PLAN_70]}])
+    assert _events(result) == [
+        [
+            "event",
+            "view_item",
+            {
+                "currency": "USD",
+                "value": 249,
+                "items": [
+                    {"item_id": "bundle_15", "price": 249, "quantity": 1},
+                    {"item_id": "bundle_70", "price": 499, "quantity": 1},
+                ],
+                "page_location": f"https://{analytics.PRODUCTION_HOST}/",
+                "page_referrer": "",
+            },
+        ],
+        [
+            "event",
+            "begin_checkout",
+            {
+                "currency": "USD",
+                "value": 249,
+                "items": [{"item_id": "bundle_70", "price": 499, "quantity": 1}],
+                "page_location": f"https://{analytics.PRODUCTION_HOST}/",
+                "page_referrer": "",
+            },
+        ],
+    ]
+    for _, _, params in _events(result):
+        assert set(params) <= set(analytics.COMMERCE_FIELDS)
+    assert _leaks(result) == []
+    assert json.loads(result["session"][analytics.CHECKOUT_STORAGE_KEY]) == {
+        "item": {"item_id": "bundle_70", "price": 499, "quantity": 1},
+        "currency": "USD",
+    }
+
+
+def test_a_purchase_carries_the_hashed_order_and_the_plan_chosen_and_counts_once(run: Any) -> None:
+    result = run(
+        location=SETUP_PAGE,
+        session={analytics.CHECKOUT_STORAGE_KEY: json.dumps({"item": PLAN_15, "currency": "USD"})},
+        commerce=[
+            {"event": "purchase", "transaction_id": ORDER, "email": EMAIL},
+            {"event": "purchase", "transaction_id": ORDER},  # a reload of the same page
+        ],
+    )
+    assert _events(result) == [
+        [
+            "event",
+            "purchase",
+            {
+                "transaction_id": ORDER,
+                "currency": "USD",
+                "value": 249,
+                "items": [{"item_id": "bundle_15", "price": 249, "quantity": 1}],
+                "page_location": f"https://{analytics.PRODUCTION_HOST}/bundle/setup/",
+                "page_referrer": "",
+            },
+        ]
+    ]
+    assert _leaks(result) == []
+    assert json.loads(result["session"][analytics.CHECKOUT_STORAGE_KEY]) == {"reported": ORDER}
+
+
+def test_a_purchase_from_a_tab_with_no_checkout_is_counted_without_a_value(run: Any) -> None:
+    result = run(location=SETUP_PAGE, commerce=[{"event": "purchase", "transaction_id": ORDER}])
+    assert _events(result) == [
+        [
+            "event",
+            "purchase",
+            {
+                "transaction_id": ORDER,
+                "page_location": f"https://{analytics.PRODUCTION_HOST}/bundle/setup/",
+                "page_referrer": "",
+            },
+        ]
+    ]
+
+
+@pytest.mark.parametrize(
+    "detail",
+    [
+        {"event": "purchase", "transaction_id": SESSION},
+        {"event": "purchase", "transaction_id": EMAIL},
+        {"event": "purchase", "transaction_id": ORDER.upper()},
+        {"event": "purchase"},
+        {"event": "add_payment_info", "currency": "USD", "value": 1, "items": [PLAN_15]},
+        {"event": "view_item", "currency": "usd", "value": 249, "items": [PLAN_15]},
+        {"event": "view_item", "currency": "USD", "value": "249", "items": [PLAN_15]},
+        {"event": "view_item", "currency": "USD", "value": 249, "items": []},
+        {"event": "view_item", "currency": "USD", "value": 249, "items": [{"item_id": EMAIL}]},
+        {
+            "event": "view_item",
+            "currency": "USD",
+            "value": 249,
+            "items": [{"item_id": ORG, "price": 1}],
+        },
+        "purchase",
+        None,
+    ],
+)
+def test_an_event_the_loader_cannot_check_is_dropped_whole(run: Any, detail: Any) -> None:
+    result = run(commerce=[detail])
+    assert _events(result) == []
+    assert _leaks(result) == []
+
+
+def test_nothing_is_forwarded_after_an_opt_out_on_the_same_page(run: Any) -> None:
+    step = {"event": "view_item", "currency": "USD", "value": 249, "items": [PLAN_15]}
+    assert len(_events(run(commerce=[step]))) == 1
+    assert _events(run(commerce=["OPT_OUT", step])) == []
+
+
+def test_the_opt_out_removes_the_kept_checkout(run: Any) -> None:
+    kept = {analytics.CHECKOUT_STORAGE_KEY: json.dumps({"item": PLAN_15, "currency": "USD"})}
+    result = run(domReady=True, clicks=1, session=kept)
+    assert result["states"][1]["stored"] == {KEY: "1"}
+    assert analytics.CHECKOUT_STORAGE_KEY not in result["session"]
+
+
+def test_negative_control_a_loader_that_sends_the_raw_address_is_caught(run: Any) -> None:
+    snippet = analytics.head_snippet()
+    stripped = "var loc = w.location, PAGE = loc.origin + loc.pathname;"
+    assert snippet.count(stripped) == 1
+    broken = snippet.replace(
+        stripped, "var loc = w.location, PAGE = loc.origin + loc.pathname + loc.search;", 1
+    )
+    assert broken != snippet
+    assert _leaks(run(location=SETUP_PAGE)) == []
+    assert SESSION in _leaks(run(broken, location=SETUP_PAGE))
+
+
+def test_negative_control_a_loader_that_trusts_the_transaction_id_is_caught(run: Any) -> None:
+    snippet = analytics.head_snippet()
+    check = "!/^[0-9a-f]{32}$/.test(t)"
+    assert snippet.count(check) == 1
+    broken = snippet.replace(check, "false", 1)
+    assert broken != snippet
+    step = {"event": "purchase", "transaction_id": SESSION}
+    assert _leaks(run(commerce=[step])) == []
+    assert SESSION in _leaks(run(broken, commerce=[step]))
+
+
+def test_negative_control_a_loader_that_forwards_items_whole_is_caught(run: Any) -> None:
+    snippet = analytics.head_snippet()
+    rebuild = "var it = item(raw[i]); if (it) list.push(it);"
+    assert snippet.count(rebuild) == 1
+    broken = snippet.replace(rebuild, "if (item(raw[i])) list.push(raw[i]);", 1)
+    assert broken != snippet
+    step = {
+        "event": "view_item",
+        "currency": "USD",
+        "value": 249,
+        "items": [{**PLAN_15, "email": EMAIL}],
+    }
+    assert _leaks(run(commerce=[step])) == []
+    assert EMAIL in _leaks(run(broken, commerce=[step]))
+
+
+def test_the_privacy_page_names_the_purchase_steps_and_the_checkout_key(site: Path) -> None:
+    privacy = (site / "privacy" / "index.html").read_text(encoding="utf-8")
+    for fact in (
+        "three steps toward a",
+        "hashing Stripe's order reference",
+        "Nothing typed into the setup form is ever recorded",
+        analytics.CHECKOUT_STORAGE_KEY,
+        "without its query string",
+    ):
+        assert fact in privacy, fact

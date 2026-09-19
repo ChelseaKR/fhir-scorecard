@@ -310,6 +310,23 @@ def _sitemap_locs(root: Path) -> list[str] | None:
     return [loc.strip() for loc in _LOC.findall(text)]
 
 
+def _page_is_noindex(root: Path, page: str) -> bool:
+    """Whether a built page carries ``<meta name="robots" content="noindex...">``.
+
+    A page site.py marks ``noindex=True`` (a post-checkout form reachable only from a redirect
+    Stripe sends, and never from anywhere on this site) is deliberately unlisted and
+    deliberately unlinked -- see ``sitemap()`` and ``Page.noindex``. This is the audit's own
+    read of the same fact, from the bytes actually built, rather than a second source of truth
+    the two could drift from: a page with the meta tag is exempt from PAGE_MISSING_FROM_SITEMAP
+    and ORPHAN_PAGE; a page without it is held to both, whatever ``site.py`` intended.
+    """
+    try:
+        text = (root / page_file(page)).read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return 'name="robots"' in text and "noindex" in text
+
+
 def _check_sitemap(root: Path, origin: str, pages: list[str]) -> list[SiteFinding]:
     locs = _sitemap_locs(root)
     if locs is None:
@@ -321,6 +338,8 @@ def _check_sitemap(root: Path, origin: str, pages: list[str]) -> list[SiteFindin
     findings = []
     listed = set(locs)
     for page in pages:
+        if _page_is_noindex(root, page):
+            continue
         url = _url_for(page, origin)
         if url not in listed:
             findings.append(
@@ -659,5 +678,6 @@ def audit_site(root: Path, origin: str) -> list[SiteFinding]:
     findings += [
         SiteFinding("ORPHAN_PAGE", page_file(page), "no internal link path reaches it")
         for page in _unreachable(pages, outgoing)
+        if not _page_is_noindex(root, page)
     ]
     return sorted(findings, key=lambda f: (f.where, f.code, f.detail))

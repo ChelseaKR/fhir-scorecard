@@ -65,6 +65,7 @@ SCOPED = (
     ".github/workflows/verify.yml",
     ".github/workflows/release.yml",
     ".github/workflows/security.yml",
+    ".github/workflows/compliance-bundle.yml",
     "tools/verify_live_site.py",
     "README.md",
     "SECURITY.md",

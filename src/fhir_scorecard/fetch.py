@@ -235,6 +235,74 @@ class DiscoveryRedirectHandler(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+class NoRedirects(urllib.request.HTTPRedirectHandler):
+    """Refuses every redirect, unconditionally.
+
+    :class:`DiscoveryRedirectHandler` allows a redirect that still lands on a discovery path;
+    that check has no meaning for :func:`fetch_bytes`, which fetches something else entirely (a
+    buyer-supplied logo image, for the compliance report bundle -- see bundle.py). Refusing every
+    redirect rather than validating each target closes a narrower but real gap the discovery
+    handler does not have to close: :func:`fetch_bytes`'s caller validates that the *original*
+    hostname resolves to a public address before ever opening a connection
+    (``bundle._validate_public_https_url``), and a redirect is exactly the mechanism that check
+    cannot see through -- a server at a validated address is free to answer with
+    ``302 Location: https://169.254.169.254/`` or an internal hostname, and the stock redirect
+    handler would follow it there without asking the caller again. No redirect is ever safe to
+    follow on a host this project has not itself validated, so none is followed.
+    """
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: IO[bytes],
+        code: int,
+        msg: str,
+        headers: HTTPMessage,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        raise RedirectRefused(
+            newurl,
+            code,
+            f"redirect refused ({newurl}); this fetch follows no redirect",
+            headers,
+            fp,
+        )
+
+
+def fetch_bytes(url: str, *, max_bytes: int, timeout: float = TIMEOUT_S) -> bytes:
+    """Fetch a public HTTPS resource that is not one of the two FHIR discovery documents.
+
+    The one other network call this package makes: the compliance report bundle's logo fetch
+    (``bundle.resolve_logo``), for a URL an unauthenticated buyer supplies through the setup
+    form. It shares this module's non-negotiables -- HTTPS enforced before any connection is
+    attempted, an identifying User-Agent, a bounded read, no redirect ever followed (see
+    :class:`NoRedirects`) -- because ``tests/test_probe_contract.py`` requires this module to be
+    the only place in the package that opens a connection, so that every promise it enforces
+    (README.md, SECURITY.md) actually covers every request this project makes, not only the FHIR
+    ones.
+
+    Raises ``ValueError`` for a non-https URL or an oversized response, and whatever
+    ``urllib``/``OSError`` the underlying request raised for anything else; callers translate
+    both into their own domain error.
+    """
+    if not url.startswith("https://"):
+        raise ValueError("non-https URL refused")
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})  # noqa: S310 - https: enforced above
+    opener = urllib.request.build_opener(NoRedirects())
+    with opener.open(request, timeout=timeout) as response:
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            chunk = response.read(65536)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError(f"response exceeds the {max_bytes} byte read limit")
+            chunks.append(chunk)
+        return b"".join(chunks)
+
+
 def build_default_opener() -> urllib.request.OpenerDirector:
     """The opener :func:`fetch_json` uses when the caller injects none.
 

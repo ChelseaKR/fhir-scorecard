@@ -305,7 +305,11 @@ class TestTheActionPreservesTheExitCode:
         assert {"action.yml", "action/render_result.py", "pyproject.toml"} <= names
         assert "src/fhir_scorecard/cli.py" in names
         assert not any(name.startswith(("data/", "docs/", "tests/", ".github/")) for name in names)
-        assert len(names) < 60
+        # An order of magnitude, not a budget: the package ships whole (the compliance bundle's
+        # four modules and two scripts included, so an install from this tree is the same
+        # package everywhere), and the bound is there to catch the dataset's thousands of files,
+        # not a module more or less. 60 at the time the bundle landed.
+        assert len(names) < 80
 
     def test_the_docs_advertise_exactly_the_release_tag_that_exists(self) -> None:
         """The ref this page tells a consumer to pin has to be one they can actually pin.

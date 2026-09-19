@@ -11,9 +11,10 @@ import html
 import json
 import re
 import shutil
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
 
 from fhir_scorecard import analytics
@@ -181,6 +182,11 @@ class Page:
     #: exists: a page advertising a feed the build did not write is the same defect as a
     #: sitemap entry no file answers.
     feed: str | None = None
+    #: True for a page that says nothing to a reader who did not just arrive from a specific
+    #: place (the post-checkout setup form, reachable only from a Stripe redirect) and that must
+    #: never collect search traffic it can only turn away. Kept out of the sitemap by the same
+    #: flag, in ``sitemap()`` below, so the two can never disagree about one page.
+    noindex: bool = False
 
 
 def org_slug(name: str) -> str:
@@ -1062,6 +1068,7 @@ def sitemap(pages: list[Page], origin: str, feeds: Sequence[str] = ()) -> str:
         f"<changefreq>{p.changefreq}</changefreq>"
         f"<priority>{p.priority}</priority></url>"
         for p in pages
+        if not p.noindex
     ) + "".join(
         f"<url><loc>{origin}/{path}</loc><changefreq>daily</changefreq>"
         "<priority>0.3</priority></url>"
@@ -1220,6 +1227,7 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(page.title)} | FHIR Scorecard</title>
 <meta name="description" content="{html.escape(page.description)}">
+{'<meta name="robots" content="noindex,follow">' if page.noindex else ""}
 <link rel="canonical" href="{html.escape(canonical)}">{_feed_link(page)}
 <meta property="og:title" content="{html.escape(page.title)}">
 <meta property="og:description" content="{html.escape(page.description)}">
@@ -1265,6 +1273,8 @@ def _shell(page: Page, *, canonical: str, origin: str, generated_at: str) -> str
 <li class="usa-nav__primary-item"><a class="usa-nav-link" href="/dataset.csv"><span>Data</span></a></li>
 <li class="usa-nav__primary-item">
 <a class="usa-nav-link" href="/claim/"><span>Correct a record</span></a></li>
+<li class="usa-nav__primary-item">
+<a class="usa-nav-link" href="/bundle/"><span>Compliance bundle</span></a></li>
 </ul>
 </nav>
 </div>
@@ -1812,4 +1822,526 @@ If something here is wrong, please
         body=body,
         changefreq="monthly",
         priority="0.6",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Compliance report bundle: /bundle/, /bundle/setup/, /bundle/trust/
+# ---------------------------------------------------------------------------
+
+#: The plans sold today, in page order, and the only keys a card, an Offer, or a checkout link is
+#: ever rendered for. The quarterly refresh plans are not here: nothing re-dispatches a
+#: subscription's later quarters yet (docs/compliance-bundle-plan.md), and a plan.json entry for
+#: one is ignored rather than sold.
+BUNDLE_PLANS: tuple[str, ...] = ("bundle_15", "bundle_70")
+
+#: Every Payment Link Stripe issues lives under this prefix. A checkout_url anywhere else is not
+#: rendered as a link: a typo in plan.json must not send a buyer's card to an address nobody
+#: checked.
+CHECKOUT_URL_PREFIX = "https://buy.stripe.com/"
+
+_SETUP_API_RE = re.compile(r"https://[a-z0-9.-]+(?:/[A-Za-z0-9._~-]+)*/?")
+_CURRENCY_RE = re.compile(r"[A-Z]{3}")
+_CHECKOUT_PATH_RE = re.compile(r"[A-Za-z0-9_-]+")
+
+_BUNDLE_FAQ: tuple[tuple[str, str], ...] = (
+    (
+        "What arrives?",
+        "One self-contained evidence report per endpoint id you name, in a single archive, "
+        "with a manifest that accounts for every id you asked for.",
+    ),
+    (
+        "What branding does it carry?",
+        "Your organization's name, logo, and accent color on every cover.",
+    ),
+    (
+        "When does it arrive?",
+        "Normally within the hour, always within two business days of payment. If it has not "
+        "arrived by then, the purchase is refunded in full.",
+    ),
+    (
+        "How long does the download link live?",
+        "30 days. Each purchase is one archive, built from the scorecards published on the day "
+        "you send the setup form.",
+    ),
+    (
+        "What does a purchase change about a grade?",
+        "Nothing. Grades, methodology, and which endpoints are listed are not for sale, and an "
+        "endpoint's own evidence page stays free.",
+    ),
+    (
+        "What does a purchase not buy?",
+        "No influence over the scores. Grades, methodology, weights, and which endpoints are "
+        "listed are never for sale, and the bundle's numbers are the same ones on the public "
+        "site. Every report keeps its attribution to the open-source scorecard and cites the "
+        "spec passage behind each finding.",
+    ),
+    (
+        "Does a report ever touch patient data?",
+        "No. Every report, free or paid, is built from two public discovery documents "
+        "(CapabilityStatement and SMART configuration). No authenticated request is ever made, "
+        "and no report this project produces has ever contained anything but publicly "
+        "observable metadata.",
+    ),
+)
+
+
+@dataclass(frozen=True)
+class BundleOffer:
+    """One plan a reader can buy right now, as :func:`bundle_offers` decided it."""
+
+    key: str
+    label: str
+    price: int | float
+    checkout_url: str
+
+
+def bundle_setup_api(plan: Mapping[str, Any]) -> str | None:
+    """The compliance-bundle API base the setup form posts to, or None.
+
+    ``setup_api_base`` in plan.json is the ``api_base`` output of infra/compliance-bundle. It is
+    rendered only when it is a plain https origin (optionally with a path), because the form
+    sends a buyer's details to it.
+    """
+    value = plan.get("setup_api_base")
+    if not isinstance(value, str) or not _SETUP_API_RE.fullmatch(value):
+        return None
+    return value.rstrip("/")
+
+
+def _bundle_currency(plan: Mapping[str, Any]) -> str | None:
+    value = plan.get("currency", "USD")
+    return value if isinstance(value, str) and _CURRENCY_RE.fullmatch(value) else None
+
+
+def _checkout_url(value: object) -> str | None:
+    if not isinstance(value, str) or not value.startswith(CHECKOUT_URL_PREFIX):
+        return None
+    rest = value[len(CHECKOUT_URL_PREFIX) :]
+    return value if _CHECKOUT_PATH_RE.fullmatch(rest) else None
+
+
+def _bundle_price(value: object) -> int | float | None:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return value if value > 0 else None
+
+
+def bundle_offers(plan: Mapping[str, Any]) -> tuple[BundleOffer, ...]:
+    """The plans a reader can buy right now: every price, Buy link, and Offer on /bundle/ comes
+    from this and nothing else.
+
+    It fails closed. Nothing is on sale unless *all* of these hold, and a plan is on sale only
+    if its own two also hold:
+
+    - ``paymentsAvailable`` is exactly ``true``: the owner's switch, flipped only after the
+      checklist in docs/compliance-bundle-owner-steps.md;
+    - ``setup_api_base`` names the deployed setup API: without it a buyer who pays lands on a
+      form that cannot be sent, which is a charge for nothing;
+    - ``currency`` is three capital letters;
+    - the plan is one of :data:`BUNDLE_PLANS`, with a positive numeric ``price`` and a
+      ``checkout_url`` that is a Stripe Payment Link.
+
+    So no key means no checkout: until the owner's Stripe and AWS steps have produced a Payment
+    Link and a setup API, the page shows no price and no link, whatever else plan.json says.
+    """
+    if plan.get("paymentsAvailable") is not True:
+        return ()
+    if bundle_setup_api(plan) is None or _bundle_currency(plan) is None:
+        return ()
+    products = plan.get("products")
+    if not isinstance(products, Mapping):
+        return ()
+    offers: list[BundleOffer] = []
+    for key in BUNDLE_PLANS:
+        product = products.get(key)
+        if not isinstance(product, Mapping):
+            continue
+        price = _bundle_price(product.get("price"))
+        url = _checkout_url(product.get("checkout_url"))
+        if price is None or url is None:
+            continue
+        label = product.get("label")
+        offers.append(
+            BundleOffer(
+                key=key,
+                label=label if isinstance(label, str) and label.strip() else key,
+                price=price,
+                checkout_url=url,
+            )
+        )
+    return tuple(offers)
+
+
+def _price_text(price: int | float) -> str:
+    """``$249`` for a whole-dollar price, ``$249.50`` otherwise. Never ``$249.0``."""
+    return f"${price:,.0f}" if float(price).is_integer() else f"${price:,.2f}"
+
+
+def _bundle_offers_jsonld(
+    origin: str, offers: Sequence[BundleOffer], currency: str
+) -> dict[str, object] | None:
+    """The AggregateOffer node, or None when nothing is on sale.
+
+    A page published ahead of the payment rail must describe nothing it cannot do: an Offer for a
+    checkout link that does not exist would tell a crawler, and a reader's browser extension
+    that reads structured data, that a purchase can be made here today.
+    """
+    if not offers:
+        return None
+    # Kept as the plan file's own int or float, never routed through float(): str(float(249))
+    # prints "249.0", which is not a price anyone charges.
+    return {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "@id": f"{origin}/bundle/#service",
+        "url": f"{origin}/bundle/",
+        "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": currency,
+            "lowPrice": str(min(o.price for o in offers)),
+            "highPrice": str(max(o.price for o in offers)),
+            "offerCount": len(offers),
+            "offers": [
+                {
+                    "@type": "Offer",
+                    "name": offer.label,
+                    "price": str(offer.price),
+                    "priceCurrency": currency,
+                    "availability": "https://schema.org/InStock",
+                    "url": offer.checkout_url,
+                    "category": "one-time",
+                }
+                for offer in offers
+            ],
+        },
+    }
+
+
+def _bundle_plan_cards(plan: Mapping[str, Any], offers: Sequence[BundleOffer]) -> str:
+    """One card per plan in :data:`BUNDLE_PLANS`. A plan on sale shows its price and a Buy link
+    carrying the plan id and price the conversion events read (``assets/bundle.js``); any other
+    shows its label and "Not yet available", with no price."""
+    products = plan.get("products")
+    products = products if isinstance(products, Mapping) else {}
+    on_sale = {offer.key: offer for offer in offers}
+    cards = []
+    for key in BUNDLE_PLANS:
+        offer = on_sale.get(key)
+        product = products.get(key)
+        if offer is None and not isinstance(product, Mapping):
+            continue
+        if offer is not None:
+            label = offer.label
+            body = (
+                f'<p class="plan-price">{html.escape(_price_text(offer.price))}, paid once</p>'
+                f'<a class="usa-button" href="{html.escape(offer.checkout_url)}" '
+                f'data-bundle-plan="{html.escape(key)}" '
+                f'data-bundle-price="{html.escape(str(offer.price))}">'
+                f"Buy through Stripe</a>"
+            )
+        else:
+            raw_label = product.get("label") if isinstance(product, Mapping) else None
+            label = raw_label if isinstance(raw_label, str) and raw_label.strip() else key
+            body = '<span class="usa-tag">Not yet available</span>'
+        cards.append(
+            '<section class="support-path">'
+            '<p class="support-path-kicker">One time</p>'
+            f"<h3>{html.escape(label)}</h3>{body}</section>"
+        )
+    return "".join(cards)
+
+
+def bundle_page(origin: str, plan: Mapping[str, Any]) -> Page:
+    """/bundle/: the compliance report bundle purchase page.
+
+    Every price, Buy link, and Offer renders from ``data/bundle/plan.json`` at build time,
+    through :func:`bundle_offers`, so opening the tier or changing an amount is a data change
+    rather than a copy change. Until that function returns a plan, the page states that the
+    tier is not open, shows no price, links to no checkout, emits no Offer structured data, and
+    loads no conversion script.
+    """
+    offers = bundle_offers(plan)
+    currency = _bundle_currency(plan) or "USD"
+    max_endpoints = plan.get("max_endpoints", 70)
+    notice = (
+        ""
+        if offers
+        else '<div class="usa-alert usa-alert--info usa-alert--slim"><div class="usa-alert__body">'
+        '<p class="usa-alert__text">This tier is not open yet. The page describes what it '
+        "will do once it is; nothing on this page can charge anyone today.</p>"
+        "</div></div>"
+    )
+    faq_items = "".join(
+        f'<div class="method-card"><h3>{html.escape(q)}</h3><p>{html.escape(a)}</p></div>'
+        for q, a in _BUNDLE_FAQ
+    )
+    faq_jsonld: dict[str, object] = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "@id": f"{origin}/bundle/#faq",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": q,
+                "acceptedAnswer": {"@type": "Answer", "text": a},
+            }
+            for q, a in _BUNDLE_FAQ
+        ],
+    }
+    breadcrumb_jsonld: dict[str, object] = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": f"{origin}/"},
+            {"@type": "ListItem", "position": 2, "name": "Compliance report bundle"},
+        ],
+    }
+    service_jsonld: dict[str, object] = {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "@id": f"{origin}/bundle/#service",
+        "name": "Compliance report bundle",
+        "url": f"{origin}/bundle/",
+        "serviceType": "FHIR endpoint compliance evidence reports",
+        "description": (
+            "Branded, self-contained compliance evidence reports for a cohort of FHIR "
+            "endpoints, built from the published scorecards and delivered as one archive."
+        ),
+        "provider": {"@type": "Organization", "name": "FHIR Scorecard", "url": f"{origin}/"},
+        "audience": {
+            "@type": "Audience",
+            "audienceType": (
+                "Compliance consultancies, health IT vendors, and state Medicaid or CHIP "
+                "managed-care oversight teams tracking several payer FHIR endpoints"
+            ),
+        },
+        "isRelatedTo": {
+            "@id": f"{origin}/#dataset",
+            "@type": "Dataset",
+            "name": "FHIR endpoint evidence, free",
+            "url": f"{origin}/",
+        },
+    }
+    offers_jsonld = _bundle_offers_jsonld(origin, offers, currency)
+    jsonld_blocks = json_ld(service_jsonld) + json_ld(breadcrumb_jsonld) + json_ld(faq_jsonld)
+    if offers_jsonld is not None:
+        jsonld_blocks += json_ld(offers_jsonld)
+    # The conversion script ships only with something to buy: it announces the plans on sale and
+    # a followed checkout link, and there is neither while the tier is closed.
+    measure = '<script src="/assets/bundle.js" defer></script>' if offers else ""
+    body = f"""
+<nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list">
+<li class="usa-breadcrumb__list-item"><a href="/" class="usa-breadcrumb__link"><span>Home</span></a></li>
+<li class="usa-breadcrumb__list-item usa-current" aria-current="page"><span>Compliance report bundle</span></li>
+</ol></nav>
+<p class="eyebrow">For compliance teams tracking several endpoints</p>
+<h1>Compliance evidence reports for every endpoint you track</h1>
+<p class="lede">A compliance consultancy tracking several payer clients, a health IT vendor
+benchmarking a client base, or a state Medicaid or CHIP office overseeing several managed-care
+organizations can get every endpoint's compliance evidence report in one archive, with your
+organization's own name, logo, and accent on each cover. Each file is the same self-contained
+evidence document the site already ships for one endpoint; the bundle is the packaging.</p>
+{notice}
+<ul class="buy-terms">
+<li><strong>What arrives?</strong> One self-contained evidence report per endpoint id you name,
+up to {html.escape(str(max_endpoints))}, in a single archive, with a manifest that accounts for
+every id you asked for.</li>
+<li><strong>What branding does it carry?</strong> Your organization's name, logo, and accent
+color on every cover.</li>
+<li><strong>When does it arrive?</strong> Normally within the hour, always within two business
+days of payment. If it has not arrived by then, the purchase is refunded in full.</li>
+<li><strong>What does a purchase change about a grade?</strong> Nothing. See
+<a href="/bundle/trust/">independence, data handling, and refunds</a>.</li>
+</ul>
+<h2>Plans and prices</h2>
+<div class="support-paths" id="bundle-offers" data-currency="{html.escape(currency)}">
+{_bundle_plan_cards(plan, offers)}</div>
+<h2>What stays free</h2>
+<p>Every endpoint's evidence page, the dataset, the API, and the CI action. Open any
+<a href="/#registry">endpoint in the registry</a> and read its full findings for free, or run
+the open-source <code>fhir-scorecard check</code> command yourself. Nothing is subtracted from
+the free tier to create this bundle.</p>
+<h2>How it works</h2>
+<ol>
+<li>Choose a plan above and pay through Stripe. FHIR Scorecard never sees your card.</li>
+<li>Stripe sends you to a short form: organization name, an accent color, an optional logo, the
+endpoint ids you want (up to the number the plan you bought covers), and where to send the
+archive.</li>
+<li>The reports render from the published scorecards and the download link goes to that
+address, normally within the hour and always within two business days.</li>
+<li>The link stays valid for 30 days. Stripe emails your receipt; reply to it with any
+question about the order.</li>
+</ol>
+<h2>Questions</h2>
+<div class="method-list method-list--faq">{faq_items}</div>
+<p><a href="/bundle/trust/">Independence, data handling, and refunds →</a></p>
+{jsonld_blocks}{measure}
+"""
+    return Page(
+        path="bundle",
+        title="Compliance report bundle for FHIR endpoint tracking",
+        description=(
+            "Branded compliance evidence reports for the FHIR endpoints you track, delivered "
+            "as one archive. An endpoint's own evidence page stays free."
+        ),
+        body=body,
+        priority="0.4",
+    )
+
+
+def bundle_setup_page(origin: str, plan: Mapping[str, Any] | None = None) -> Page:
+    """/bundle/setup/: the post-checkout form. Never indexed, and says nothing to a reader who
+    did not just arrive from a Stripe redirect carrying ``?session_id=...``.
+
+    The form carries the setup API base as ``data-api`` whenever plan.json names one, even while
+    the tier is closed to the public: the owner's test-mode purchase goes straight to a test
+    Payment Link and lands here, and has to be able to send the form. Without an API base the
+    script disables the form and says why (``assets/bundle-setup.js``).
+
+    ``action`` and ``method`` are set although the script always sends the form itself. Without
+    them a browser with scripting off would submit by GET to this same address, putting the
+    buyer's organization, email, and endpoint list in the URL, where a history, a server log, or
+    an analytics page view could keep them.
+    """
+    api = bundle_setup_api(plan or {})
+    data_api = f' data-api="{html.escape(api)}"' if api else ""
+    body = f"""
+<nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list">
+<li class="usa-breadcrumb__list-item"><a href="/bundle/" class="usa-breadcrumb__link"><span>Compliance report bundle</span></a></li>
+<li class="usa-breadcrumb__list-item usa-current" aria-current="page"><span>Set up your bundle</span></li>
+</ol></nav>
+<h1>Set up your compliance report bundle</h1>
+<p class="lede">Thank you. Tell us what goes on the cover and which endpoints to include. The
+reports render from the published scorecards and the download link goes to the address below,
+normally within the hour and always within two business days.</p>
+<noscript>
+<p class="usa-alert usa-alert--warning usa-alert--slim"><span class="usa-alert__body">
+This form is sent by a script, and scripting is switched off in this browser, so the button
+below will not do anything. Nothing is lost: the payment is recorded. Open this same address
+again in a browser with scripting enabled and fill the form there, promptly, because the two
+business days are counted from when you paid, not from when this form is sent.
+</span></p>
+</noscript>
+<form id="bundle-setup-form" class="usa-form usa-form--large submit-form" action="/bundle/setup/" method="post" novalidate{data_api}>
+<div class="usa-form-group"><label class="usa-label" for="program_name">Organization name (required)</label>
+<span class="usa-hint" id="program_name-hint">Printed as "Prepared by" on every cover.</span>
+<input class="usa-input" id="program_name" name="program_name" type="text" required maxlength="120"
+autocomplete="organization" aria-describedby="program_name-hint"
+placeholder="e.g. Example Compliance Partners"></div>
+<div class="usa-form-group"><label class="usa-label" for="accent">Accent color</label>
+<span class="usa-hint" id="accent-hint">A #rrggbb value. It colors the cover band and section
+rules only, never text.</span>
+<input class="usa-input usa-input--small" id="accent" name="accent" type="text" maxlength="7"
+pattern="#[0-9A-Fa-f]{{6}}" autocomplete="off" spellcheck="false" aria-describedby="accent-hint"
+placeholder="#162e51"></div>
+<div class="usa-form-group"><label class="usa-label" for="logo">Logo</label>
+<span class="usa-hint" id="logo-hint">An https link to an SVG, PNG, or JPEG up to 512 KiB,
+embedded so each report stays self-contained. Leave blank for no logo.</span>
+<input class="usa-input" id="logo" name="logo" type="url" aria-describedby="logo-hint"
+placeholder="https://.../logo.svg"></div>
+<div class="usa-form-group"><label class="usa-label" for="endpoint_ids">Endpoint ids (required)</label>
+<span class="usa-hint" id="endpoint_ids-hint">Comma or line separated, up to the number your
+plan covers. The id is the last part of an endpoint's address on this site:
+fhir.chelseakr.com/endpoint/<strong>cms-blue-button-2</strong>/. An id we do not track is listed
+in the manifest with the reason, never silently dropped.</span>
+<textarea class="usa-textarea" id="endpoint_ids" name="endpoint_ids" rows="6" required
+aria-describedby="endpoint_ids-hint" placeholder="cms-blue-button-2, ..."></textarea></div>
+<div class="usa-form-group"><label class="usa-label" for="deliver_to">Send the download link to</label>
+<span class="usa-hint" id="deliver_to-hint">Leave blank to use the email you paid with.</span>
+<input class="usa-input" id="deliver_to" name="deliver_to" type="email" autocomplete="email"
+aria-describedby="deliver_to-hint"></div>
+<button type="submit" class="usa-button">Build my reports</button>
+<p id="bundle-setup-status" class="form-status" role="status" aria-live="polite"></p>
+</form>
+<p class="fineprint">Every report keeps its attribution to the open-source scorecard and its
+numbers are the ones on the public site. Purchase buys no influence over grades, methodology,
+or which endpoints are listed.</p>
+<script src="/assets/bundle-setup.js" defer></script>
+"""
+    return Page(
+        path="bundle/setup",
+        title="Set up your compliance report bundle",
+        description=(
+            "After checkout: give the organization name, accent, logo, and the endpoint ids to "
+            "include, and say where the download link should go."
+        ),
+        body=body,
+        noindex=True,
+        changefreq="yearly",
+        priority="0.1",
+    )
+
+
+def bundle_trust_page(origin: str) -> Page:
+    """/bundle/trust/: independence guarantee, data handling, and the refund commitment.
+
+    Written as its own page rather than folded into /bundle/ because a compliance buyer's own
+    reviewers are a realistic reader of this page specifically, and a page they can cite on its
+    own is more useful to them than a paragraph inside a sales page. It is also the Terms of
+    Service address the Stripe Payment Links' consent box points to.
+    """
+    # True only while the build carries GA4; with no measurement ID the bundle pages send nothing
+    # and the page must not say otherwise.
+    measured = (
+        """<h2>What the pages measure</h2>
+<p>The bundle pages count three steps toward a purchase in Google Analytics, as described on
+<a href="/privacy/">the privacy page</a>: that the plans were shown, that a checkout link was
+followed, and that Stripe sent a buyer back after paying. Each step carries the plan and its
+price and nothing about the buyer. Nothing typed into the setup form, and not Stripe's order
+reference itself, is ever sent.</p>"""
+        if analytics.enabled()
+        else ""
+    )
+    body = f"""
+<nav class="usa-breadcrumb" aria-label="Breadcrumbs"><ol class="usa-breadcrumb__list">
+<li class="usa-breadcrumb__list-item"><a href="/bundle/" class="usa-breadcrumb__link"><span>Compliance report bundle</span></a></li>
+<li class="usa-breadcrumb__list-item usa-current" aria-current="page"><span>Independence, data, and refunds</span></li>
+</ol></nav>
+<p class="eyebrow">What a purchase does and does not change</p>
+<h1>Independence, data handling, and refunds</h1>
+<h2>Independence</h2>
+<p>Grades, methodology, weights, and which endpoints are listed are never for sale. A bundle's
+numbers are read from the same published dataset a free visitor reads on the same day; nothing
+about a purchase changes a finding, a score, or a grade for any endpoint, including one owned by
+the buyer. Every report keeps its attribution to the open-source project and cites the FHIR R4
+or SMART App Launch spec passage behind each finding, the same citations the free evidence page
+carries.</p>
+<h2>What is measured, and what never is</h2>
+<p>Every report, free or paid, comes from exactly two public, unauthenticated documents: a
+FHIR CapabilityStatement at <code>/metadata</code> and, where published, a SMART discovery
+document at <code>/.well-known/smart-configuration</code>. No credential is ever used, no
+patient data is ever requested, and no authenticated behavior is ever exercised. This project
+has never held patient data and a purchase does not change that; see
+<a href="/how-we-grade/">how we grade</a> for the full probe contract.</p>
+<h2>What a purchase stores</h2>
+<p>Fulfilling an order stores only what building and delivering it requires: the organization
+name, accent color, and logo you supply for the cover, the endpoint ids you request, and the
+email address the download link goes to. The form's details and the archive are deleted after
+30 days, the life of the download link. The email address Stripe collected at checkout stays
+with the order record, so that a later question or refund can be matched to the purchase.
+Nothing about an order is published. Payment details are handled by Stripe and never reach this
+project. A capability link is the credential for a download; there is no account and no
+password.</p>
+{measured}
+<h2>The delivery promise</h2>
+<p>The archive arrives normally within the hour and always within two business days of payment.
+The date is computed from Stripe's own payment timestamp, stated to the buyer when the form is
+sent, and is not re-estimated later. If the archive has not arrived by then, the purchase is
+refunded in full.</p>
+<h2>Refunds</h2>
+<p>A purchase is refunded in full on request within 30 days, for any reason, and in full when the
+delivery promise above is missed. Reply to the receipt Stripe emailed you. Refunds are issued by
+hand through Stripe and reach the original card, normally within 5 to 10 business days.</p>
+"""
+    return Page(
+        path="bundle/trust",
+        title="Independence, data handling, and refunds for the compliance report bundle",
+        description=(
+            "What a compliance report bundle purchase does and does not change: independence "
+            "from grading, what is stored, and the refund commitment."
+        ),
+        body=body,
+        changefreq="monthly",
+        priority="0.3",
     )

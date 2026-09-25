@@ -12,7 +12,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-20",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-20",
@@ -157,6 +157,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -179,7 +183,7 @@
       "software_version": "3.2.1"
     },
     "first_seen": "2026-08-20",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-20",
@@ -324,6 +328,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -349,7 +357,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -546,6 +554,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -680,6 +692,13 @@
           "forbidden"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "forbidden"
+        ],
+        "up": false
       }
     ],
     "states": [
@@ -702,7 +721,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-09-18",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-18",
@@ -730,6 +749,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -753,7 +776,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-09-18",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-18",
@@ -782,6 +805,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -804,7 +831,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -892,6 +919,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -914,7 +945,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -998,6 +1029,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -1021,7 +1056,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -1105,6 +1140,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -1128,7 +1167,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -1212,6 +1251,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -1235,7 +1278,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-08-20",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-20",
@@ -1379,6 +1422,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -1402,7 +1449,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-08-20",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-20",
@@ -1546,6 +1593,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -1675,6 +1726,13 @@
           "tls"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "tls"
+        ],
+        "up": false
       }
     ]
   },
@@ -1797,6 +1855,13 @@
           "tls"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "tls"
+        ],
+        "up": false
       }
     ]
   },
@@ -1813,7 +1878,7 @@
       "software_version": "4.0.1 1.35.0 v1.0.0-rc+20220530 860d7ac46"
     },
     "first_seen": "2026-08-20",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-20",
@@ -1957,6 +2022,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -2146,6 +2215,13 @@
           "not_found"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "not_found"
+        ],
+        "up": false
       }
     ]
   },
@@ -2162,7 +2238,7 @@
       "software_version": null
     },
     "first_seen": "2026-09-18",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-18",
@@ -2190,6 +2266,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -2213,7 +2293,7 @@
       "software_version": null
     },
     "first_seen": "2026-09-18",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-18",
@@ -2241,6 +2321,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -2370,6 +2454,13 @@
           "forbidden"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "forbidden"
+        ],
+        "up": false
       }
     ]
   },
@@ -2386,7 +2477,7 @@
       "software_version": "2025.1.0HSPD.1005.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -2482,6 +2573,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -2505,7 +2600,7 @@
       "software_version": "May 2026"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -2589,6 +2684,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -2612,7 +2711,7 @@
       "software_version": "0.5.0"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -2808,6 +2907,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -2831,7 +2934,7 @@
       "software_version": "7.6.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -2915,6 +3018,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -2938,7 +3045,7 @@
       "software_version": null
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -3022,6 +3129,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -3045,7 +3156,7 @@
       "software_version": null
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -3129,6 +3240,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -3152,7 +3267,7 @@
       "software_version": "4.0.1 3.11.1 v1.0.0-rc+202609141200 4c9554d"
     },
     "first_seen": "2026-09-18",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-18",
@@ -3180,6 +3295,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -3203,7 +3322,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -3287,6 +3406,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -3310,7 +3433,7 @@
       "software_version": null
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -3395,6 +3518,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -3417,7 +3544,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -3613,6 +3740,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -3649,7 +3780,7 @@
       "software_version": "0.58.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -3733,6 +3864,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -3777,7 +3912,7 @@
       "software_version": "0.58.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -3861,6 +3996,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -3892,7 +4031,7 @@
       "software_version": "5.4.1.13_edfx"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-08",
@@ -4080,6 +4219,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -4103,7 +4246,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-08",
@@ -4291,6 +4434,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -4485,6 +4632,13 @@
           "not_found"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "not_found"
+        ],
+        "up": false
       }
     ]
   },
@@ -4501,7 +4655,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -4697,6 +4851,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -4720,7 +4878,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -4916,6 +5074,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -4988,7 +5150,7 @@
       "software_version": "2.269.0"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -5185,6 +5347,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -5239,7 +5405,7 @@
       "software_version": "4.0.1 3.6.1 v1.0.0-rc+202507231200 459de5a"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -5323,6 +5489,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -5346,7 +5516,7 @@
       "software_version": "4.0.1 3.6.1 v1.0.0-rc+202507231200 459de5a"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -5430,6 +5600,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -5453,7 +5627,7 @@
       "software_version": "4.0.1 3.9.0 v1.0.0-rc+202607151200 bc93922"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -5537,6 +5711,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -5666,6 +5844,13 @@
           "authentication_required"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "authentication_required"
+        ],
+        "up": false
       }
     ]
   },
@@ -5690,7 +5875,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-08-19",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-19",
@@ -5839,6 +6024,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -5874,7 +6063,7 @@
       "software_version": "August 2026"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -6070,6 +6259,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -6132,7 +6325,7 @@
       "software_version": "6.10.0+85497ec0fbbebba6d026fcb7f8ca70efc9955b69"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -6328,6 +6521,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -6366,7 +6563,7 @@
       "software_version": "6.10.0+85497ec0fbbebba6d026fcb7f8ca70efc9955b69"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -6563,6 +6760,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -6589,7 +6790,7 @@
       "software_version": "5.4.1.12_edfx"
     },
     "first_seen": "2026-08-20",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-20",
@@ -6733,6 +6934,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -6756,7 +6961,7 @@
       "software_version": "5.4.1.12_edfx"
     },
     "first_seen": "2026-08-20",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-20",
@@ -6901,6 +7106,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -6923,7 +7132,7 @@
       "software_version": "February 2026"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -7007,6 +7216,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -7136,6 +7349,13 @@
           "server_error"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "server_error"
+        ],
+        "up": false
       }
     ]
   },
@@ -7164,6 +7384,12 @@
           "software_version: '8.11.16-SNAPSHOT/7e7129efb5/2026-07-08' -> '8.13.9-SNAPSHOT/24f65e12fb/2026-09-17'"
         ],
         "date": "2026-09-18"
+      },
+      {
+        "changes": [
+          "software_version: '8.13.9-SNAPSHOT/24f65e12fb/2026-09-17' -> '8.13.10-SNAPSHOT/6bd250944e/2026-09-25'"
+        ],
+        "date": "2026-09-25"
       }
     ],
     "fingerprint": {
@@ -7174,10 +7400,10 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "HAPI FHIR Server",
-      "software_version": "8.13.9-SNAPSHOT/24f65e12fb/2026-09-17"
+      "software_version": "8.13.10-SNAPSHOT/6bd250944e/2026-09-25"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -7374,6 +7600,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -7388,6 +7618,10 @@
       {
         "digest": "a7f9738b9837d5cf",
         "first_seen": "2026-09-18"
+      },
+      {
+        "digest": "ed73434ebe22e1ed",
+        "first_seen": "2026-09-25"
       }
     ]
   },
@@ -7404,6 +7638,12 @@
           "software_version: '8.11.16-SNAPSHOT/7e7129efb5/2026-07-08' -> '8.13.9-SNAPSHOT/24f65e12fb/2026-09-17'"
         ],
         "date": "2026-09-18"
+      },
+      {
+        "changes": [
+          "software_version: '8.13.9-SNAPSHOT/24f65e12fb/2026-09-17' -> '8.13.10-SNAPSHOT/6bd250944e/2026-09-25'"
+        ],
+        "date": "2026-09-25"
       }
     ],
     "fingerprint": {
@@ -7414,10 +7654,10 @@
       "resource_count": 158,
       "resources_with_interactions": 158,
       "software_name": "HAPI FHIR Server",
-      "software_version": "8.13.9-SNAPSHOT/24f65e12fb/2026-09-17"
+      "software_version": "8.13.10-SNAPSHOT/6bd250944e/2026-09-25"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -7614,6 +7854,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -7628,6 +7872,10 @@
       {
         "digest": "3ae9c672dd35798c",
         "first_seen": "2026-09-18"
+      },
+      {
+        "digest": "2ed8b6ede1885ef9",
+        "first_seen": "2026-09-25"
       }
     ]
   },
@@ -7814,6 +8062,13 @@
           "server_error"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "server_error"
+        ],
+        "up": false
       }
     ]
   },
@@ -7868,7 +8123,7 @@
       "software_version": "5.0.65"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -8064,6 +8319,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -8118,7 +8377,7 @@
       "software_version": "4.0.1 3.11.1 v1.0.0-rc+202609141200 4c9554d"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-08",
@@ -8307,6 +8566,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -8333,7 +8596,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -8536,6 +8799,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -8558,7 +8825,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-08",
@@ -8752,6 +9019,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -8775,7 +9046,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-08",
@@ -8969,6 +9240,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -9162,6 +9437,13 @@
           "tls"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "tls"
+        ],
+        "up": false
       }
     ]
   },
@@ -9203,7 +9485,7 @@
       "software_version": "5.0.65"
     },
     "first_seen": "2026-08-19",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-19",
@@ -9352,6 +9634,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -9390,7 +9676,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -9586,6 +9872,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -9813,6 +10103,13 @@
           "timeout"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "timeout"
+        ],
+        "up": false
       }
     ],
     "states": [
@@ -9872,7 +10169,7 @@
       "software_version": "5.4.1.11_edfx"
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-08",
@@ -10061,6 +10358,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -10087,7 +10388,7 @@
       "software_version": "5.4.1.14_edfx"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -10172,6 +10473,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -10183,12 +10488,6 @@
   },
   "medplum": {
     "events": [
-      {
-        "changes": [
-          "software_version: '5.1.36-ee284e5' -> '5.1.36-29e3b85'"
-        ],
-        "date": "2026-09-01"
-      },
       {
         "changes": [
           "software_version: '5.1.36-29e3b85' -> '5.1.36-e23c28a'"
@@ -10302,6 +10601,12 @@
           "software_version: '5.1.39-ab2bf85' -> '5.1.40-c196169'"
         ],
         "date": "2026-09-24"
+      },
+      {
+        "changes": [
+          "software_version: '5.1.40-c196169' -> '5.1.42-89c6095'"
+        ],
+        "date": "2026-09-25"
       }
     ],
     "fingerprint": {
@@ -10312,10 +10617,10 @@
       "resource_count": 146,
       "resources_with_interactions": 146,
       "software_name": "medplum",
-      "software_version": "5.1.40-c196169"
+      "software_version": "5.1.42-89c6095"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -10512,13 +10817,13 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
-      {
-        "digest": "7e53ccffe1e03ed7",
-        "first_seen": "2026-08-27"
-      },
       {
         "digest": "7e55a4ee0bab1bc6",
         "first_seen": "2026-08-28"
@@ -10610,6 +10915,10 @@
       {
         "digest": "574148ea8b0bc159",
         "first_seen": "2026-09-24"
+      },
+      {
+        "digest": "60613366d79c21f0",
+        "first_seen": "2026-09-25"
       }
     ]
   },
@@ -10626,7 +10935,7 @@
       "software_version": "February 2026"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -10710,6 +11019,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -10733,7 +11046,7 @@
       "software_version": "v1"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -10817,6 +11130,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -10840,7 +11157,7 @@
       "software_version": "February 2026"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -10924,6 +11241,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -11053,6 +11374,13 @@
           "server_error"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "server_error"
+        ],
+        "up": false
       }
     ]
   },
@@ -11069,7 +11397,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -11266,6 +11594,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -11320,7 +11652,7 @@
       "software_version": null
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -11405,6 +11737,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -11431,7 +11767,7 @@
       "software_version": "v1"
     },
     "first_seen": "2026-09-18",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-18",
@@ -11459,6 +11795,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -11482,7 +11822,7 @@
       "software_version": "v1"
     },
     "first_seen": "2026-09-18",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-18",
@@ -11510,6 +11850,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -11540,7 +11884,7 @@
       "software_version": "4.0.1 3.11.1 v1.0.0-rc+202609141200 4c9554d"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -11624,6 +11968,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -11757,6 +12105,13 @@
           "server_error"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "server_error"
+        ],
+        "up": false
       }
     ]
   },
@@ -11780,7 +12135,7 @@
       "software_version": "May 2026"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -11864,6 +12219,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -11891,7 +12250,7 @@
       "software_version": "v1"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -11975,6 +12334,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -11998,7 +12361,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-08",
@@ -12186,6 +12549,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -12209,7 +12576,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-08",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-08",
@@ -12398,6 +12765,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -12420,7 +12791,7 @@
       "software_version": "HealthShare Unified Care Record 2024.1.1 Build: 1004 Adhoc: 24053 [HealthShare Modules: Core:27.0 + Patient Index:27.0] - IRIS for Windows (x86-64) 2023.1.2 (Build 450_0_23727U) Thu Oct 17 2024 13:08:07 EDT"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -12504,6 +12875,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -12527,7 +12902,7 @@
       "software_version": "2020.2"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -12611,6 +12986,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -12837,6 +13216,13 @@
       },
       {
         "date": "2026-09-24",
+        "kinds": [
+          "server_error"
+        ],
+        "up": false
+      },
+      {
+        "date": "2026-09-25",
         "kinds": [
           "server_error"
         ],
@@ -13070,6 +13456,13 @@
           "server_error"
         ],
         "up": false
+      },
+      {
+        "date": "2026-09-25",
+        "kinds": [
+          "server_error"
+        ],
+        "up": false
       }
     ],
     "states": [
@@ -13092,7 +13485,7 @@
       "software_version": "2019.08.PRE"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -13291,6 +13684,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -13314,7 +13711,7 @@
       "software_version": "2019.08.PRE"
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -13513,6 +13910,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -13549,7 +13950,7 @@
       "software_version": "4.6.1.7"
     },
     "first_seen": "2026-08-19",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-19",
@@ -13698,6 +14099,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -13728,7 +14133,7 @@
       "software_version": null
     },
     "first_seen": "2026-08-05",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-08-05",
@@ -13925,6 +14330,10 @@
       {
         "date": "2026-09-24",
         "up": true
+      },
+      {
+        "date": "2026-09-25",
+        "up": true
       }
     ],
     "states": [
@@ -13947,7 +14356,7 @@
       "software_version": "1.0.0"
     },
     "first_seen": "2026-09-04",
-    "last_seen": "2026-09-24",
+    "last_seen": "2026-09-25",
     "observations": [
       {
         "date": "2026-09-04",
@@ -14031,6 +14440,10 @@
       },
       {
         "date": "2026-09-24",
+        "up": true
+      },
+      {
+        "date": "2026-09-25",
         "up": true
       }
     ],
@@ -14220,6 +14633,13 @@
       },
       {
         "date": "2026-09-24",
+        "kinds": [
+          "authentication_required"
+        ],
+        "up": false
+      },
+      {
+        "date": "2026-09-25",
         "kinds": [
           "authentication_required"
         ],

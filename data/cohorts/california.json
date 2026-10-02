@@ -1,12 +1,12 @@
 {
-  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the plan's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the plan publishes a base URL that returns 404' and 'the plan publishes nothing' are different findings that a single field would flatten.",
+  "policy": "A cohort is a named view over the registry whose membership list comes from a public roster rather than from what happened to be easy to find. Every member either points at registry endpoints or carries an exclusion with a reason, a review record, and a source, and the loader refuses a member that carries neither or both. Endpoint references are validated against the graded registry, so the verification burden stays in data/registry.json and a cohort only ever points at it. `basis` says how far the review behind an exclusion went, not what it found: `portal_reviewed` means the plan's own developer or interoperability documentation was retrieved on the stated date, `not_located` means no such documentation could be retrieved at all. The outcome lives in `reason`, because 'the plan publishes a base URL that returns 404' and 'the plan publishes nothing' are different findings that a single field would flatten. `obligation_basis` names the CMS-9115-F prong through which the member's place on this cohort's roster makes it an impacted payer: `medicaid-managed-care` for a Medi-Cal managed care plan, and `none-through-this-roster` for an organization that is here only as a Covered California issuer, because the rule's qualified health plan prong reaches the federally-facilitated exchanges and Covered California is state-based. The second value is a statement about the roster, not about the organization, which may be obliged through a line of business this project has not reviewed.",
   "cohort": {
     "id": "california",
     "name": "California payer cohort",
     "description": "The Patient Access and Provider Directory APIs of California's Medi-Cal managed care plans and Covered California qualified health plan issuers, graded on the same public surfaces as every other endpoint here."
   },
   "notes": [
-    "Every endpoint in this cohort is required to exist by the federal CMS Interoperability and Patient Access rule (CMS-9115-F), which obliges Medicaid managed care plans and qualified health plan issuers on the federal exchanges to expose a Patient Access API and a Provider Directory API over FHIR R4. That is the whole reason a cohort like this can be assembled at all: the membership list is public, the obligation is federal, and the surfaces are meant to be discoverable.",
+    "The federal CMS Interoperability and Patient Access rule (CMS-9115-F, 85 FR 25510, published 2020-05-01) obliges Medicare Advantage organizations, Medicaid and CHIP programs and their managed care plans, and qualified health plan issuers on the federally-facilitated exchanges to expose a Patient Access API and a Provider Directory API over FHIR R4. It reaches this cohort through one of its two rosters only. Every Medi-Cal managed care plan is an impacted payer through the Medicaid managed care prong (42 CFR 438.242(b)(5) and (b)(6)). The qualified health plan prong (45 CFR 156.221) reaches issuers on the federally-facilitated exchanges, and Covered California is a state-based exchange, so being on the Covered California issuer list establishes no CMS-9115-F obligation by itself. Four members are on that list alone: Sharp Health Plan, Chinese Community Health Plan, Valley Health Plan, and Western Health Advantage. Each member's obligation_basis field says which case it is. Those four may be impacted payers through another line of business, such as Medicare Advantage, which this project has not reviewed, and nothing on this page says they are or are not. The membership list is public either way, and the surfaces are meant to be discoverable.",
     "The rule requires the API. It does not require a plan to print its base URL where an unregistered visitor can read it, and nothing on this page treats a plan that does not as being out of compliance with anything. What a missing base URL costs is narrower and worth naming exactly: conformance stops being checkable by anyone who has not already entered a business relationship with the plan.",
     "This cohort is not about California's Data Exchange Framework. The DxF runs through the Data Sharing Agreement and qualified health information organizations, and it does not require any of the surfaces graded here. Reading a grade on this page as a DxF result would be wrong in both directions.",
     "CMS-0057-F adds Provider Access, Payer-to-Payer, and Prior Authorization APIs with compliance dates in January 2027. None of that is required yet and none of it is graded here. It is noted because these same endpoints are where it will land, which makes today's grades a baseline worth having before the deadline rather than after it.",
@@ -35,54 +35,63 @@
       "id": "inland-empire-health-plan",
       "name": "Inland Empire Health Plan",
       "programs": ["medi-cal", "covered-ca"],
+      "obligation_basis": "medicaid-managed-care",
       "endpoints": ["iehp-patient-access", "iehp-provider-directory"]
     },
     {
       "id": "kaiser-permanente",
       "name": "Kaiser Permanente",
       "programs": ["medi-cal", "covered-ca"],
+      "obligation_basis": "medicaid-managed-care",
       "endpoints": ["kaiser-permanente-health-plan"]
     },
     {
       "id": "la-care-health-plan",
       "name": "L.A. Care Health Plan",
       "programs": ["medi-cal", "covered-ca"],
+      "obligation_basis": "medicaid-managed-care",
       "endpoints": ["la-care-provider-directory"]
     },
     {
       "id": "sharp-health-plan",
       "name": "Sharp Health Plan",
       "programs": ["covered-ca"],
+      "obligation_basis": "none-through-this-roster",
       "endpoints": ["sharp-health-plan-patient-access", "sharp-health-plan-provider-directory"]
     },
     {
       "id": "santa-clara-family-health-plan",
       "name": "Santa Clara Family Health Plan",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "endpoints": ["scfhp-patient-access", "scfhp-provider-directory"]
     },
     {
       "id": "health-plan-of-san-mateo",
       "name": "Health Plan of San Mateo",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "endpoints": ["hpsm-patient-access"]
     },
     {
       "id": "central-california-alliance",
       "name": "Central California Alliance for Health",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "endpoints": ["ccah-provider-directory"]
     },
     {
       "id": "community-health-group",
       "name": "Community Health Group Partnership Plan",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "endpoints": ["chg-provider-directory"]
     },
     {
       "id": "anthem-blue-cross",
       "name": "Anthem Blue Cross (Elevance Health)",
       "programs": ["medi-cal", "covered-ca"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "the documented brand endpoint answers, but its CapabilityStatement cannot be attributed to the California brand: three consecutive requests to the same Anthem Blue Cross URL returned documents identical except for id and date, whose implementation.url named AnthemBlueCrossBlueShield, then AnthemBlueCross, then Wellpoint",
         "basis": "portal_reviewed",
@@ -97,6 +106,7 @@
       "id": "blue-shield-of-california",
       "name": "Blue Shield of California (including Promise Health Plan)",
       "programs": ["medi-cal", "covered-ca"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "developer portal requires an account; the Patient Access product page lists resource paths but no base URL, and production access needs an attestation form",
         "basis": "portal_reviewed",
@@ -111,6 +121,7 @@
       "id": "health-net",
       "name": "Health Net Community Solutions",
       "programs": ["medi-cal", "covered-ca"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "the plan routes developers to the Centene partner portal, which publishes no base URL to an unregistered visitor; the Centene production host documented by an affiliated Centene plan does not resolve in public DNS",
         "basis": "portal_reviewed",
@@ -125,6 +136,7 @@
       "id": "calviva-health",
       "name": "CalViva Health",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "the plan routes developers to the Centene partner portal, which publishes no base URL to an unregistered visitor",
         "basis": "portal_reviewed",
@@ -139,6 +151,7 @@
       "id": "molina-healthcare-of-california",
       "name": "Molina Healthcare of California",
       "programs": ["medi-cal", "covered-ca"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "developer portal published; Provider Directory calls can be tried against mock data without an account, but Patient Access endpoints require sign-in and no production base URL is printed",
         "basis": "portal_reviewed",
@@ -153,6 +166,7 @@
       "id": "community-health-plan-of-imperial-valley",
       "name": "Community Health Plan of Imperial Valley",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "the plan publishes production base URLs in its own hosted API documentation and the host does not resolve in public DNS",
         "basis": "portal_reviewed",
@@ -167,6 +181,7 @@
       "id": "partnership-healthplan",
       "name": "Partnership HealthPlan of California",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "the plan publishes production base URLs for both APIs on its own developer page and neither answers: the Provider Directory returns 404 and the Patient Access endpoint returns 401",
         "basis": "portal_reviewed",
@@ -181,6 +196,7 @@
       "id": "kern-family-health-care",
       "name": "Kern Family Health Care",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "the plan publishes base URLs for both APIs in its own hosted documentation and both return HTTP 404",
         "basis": "portal_reviewed",
@@ -195,6 +211,7 @@
       "id": "health-plan-of-san-joaquin",
       "name": "Health Plan of San Joaquin",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "only a sandbox base URL is published and it returns 401; in the plan's own documentation the production endpoint is an unfilled placeholder",
         "basis": "portal_reviewed",
@@ -209,6 +226,7 @@
       "id": "mountain-valley-health-plan",
       "name": "Mountain Valley Health Plan",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "covered by the same documentation as Health Plan of San Joaquin, with the same outcome: sandbox only, and it returns 401",
         "basis": "portal_reviewed",
@@ -223,6 +241,7 @@
       "id": "contra-costa-health-plan",
       "name": "Contra Costa Health Plan",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "the live developer page could not be retrieved; an archived copy documents a Patient Access host that does not resolve and a Provider Directory that answers but is attributable only to its vendor",
         "basis": "portal_reviewed",
@@ -237,6 +256,7 @@
       "id": "alameda-alliance-for-health",
       "name": "Alameda Alliance for Health",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "developer portal published on a shared vendor platform; no base URL is rendered to an unregistered visitor",
         "basis": "portal_reviewed",
@@ -251,6 +271,7 @@
       "id": "caloptima-health",
       "name": "CalOptima Health",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "developer portal published on a shared vendor platform; no base URL is rendered to an unregistered visitor",
         "basis": "portal_reviewed",
@@ -265,6 +286,7 @@
       "id": "san-francisco-health-plan",
       "name": "San Francisco Health Plan",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "developer portal published on a shared vendor platform; no base URL is rendered to an unregistered visitor",
         "basis": "portal_reviewed",
@@ -279,6 +301,7 @@
       "id": "cencal-health",
       "name": "CenCal Health",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "developer portal published on a shared vendor platform; no base URL is rendered to an unregistered visitor",
         "basis": "portal_reviewed",
@@ -293,6 +316,7 @@
       "id": "gold-coast-health-plan",
       "name": "Gold Coast Health Plan",
       "programs": ["medi-cal"],
+      "obligation_basis": "medicaid-managed-care",
       "excluded": {
         "reason": "developer portal published on a shared vendor platform; no base URL is rendered to an unregistered visitor",
         "basis": "portal_reviewed",
@@ -307,6 +331,7 @@
       "id": "chinese-community-health-plan",
       "name": "Chinese Community Health Plan (Balance by CCHP)",
       "programs": ["covered-ca"],
+      "obligation_basis": "none-through-this-roster",
       "excluded": {
         "reason": "the interoperability page carries a heading for the endpoint list and the list itself is missing from the page",
         "basis": "portal_reviewed",
@@ -321,6 +346,7 @@
       "id": "valley-health-plan",
       "name": "Valley Health Plan",
       "programs": ["covered-ca"],
+      "obligation_basis": "none-through-this-roster",
       "excluded": {
         "reason": "no interoperability or developer documentation could be located",
         "basis": "not_located",
@@ -335,6 +361,7 @@
       "id": "western-health-advantage",
       "name": "Western Health Advantage",
       "programs": ["covered-ca"],
+      "obligation_basis": "none-through-this-roster",
       "excluded": {
         "reason": "no interoperability or developer documentation could be located",
         "basis": "not_located",

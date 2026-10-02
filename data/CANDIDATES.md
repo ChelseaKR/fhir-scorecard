@@ -134,7 +134,12 @@ Medicare Advantage D-SNP that DHCS lists alongside the MCPs scoped out, that is 
 organizations**, seven of which run in both programs.
 
 These endpoints are required by the federal CMS Interoperability and Patient Access rule
-(CMS-9115-F). That is the only obligation claimed anywhere in this work: California's Data
+(CMS-9115-F). *Corrected 2026-10-01: that holds for the Medi-Cal managed care plans, through the
+rule's Medicaid managed care prong. It does not hold by membership for the four organizations
+that are here only as Covered California issuers (Sharp, Chinese Community Health Plan, Valley,
+Western Health Advantage), because the qualified-health-plan prong reaches the
+federally-facilitated exchanges and Covered California is state-based, as the ninth wave below
+says.* That is the only obligation claimed anywhere in this work: California's Data
 Exchange Framework runs through the DSA and QHIOs and requires none of these surfaces, and
 CMS-0057-F's Provider Access, Payer-to-Payer, and Prior Authorization APIs are not required until
 January 2027 and are not graded.

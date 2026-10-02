@@ -61,6 +61,20 @@ PROGRAMS = {
 # searching and coming up empty, and the page renders them differently.
 EXCLUSION_BASES = {"portal_reviewed", "not_located"}
 
+#: The CMS-9115-F prong through which a member's place on its cohort's roster makes it an
+#: impacted payer (85 FR 25510). Optional, because most cohorts state the prong once for the
+#: whole roster; it exists for a cohort like California's, whose two rosters differ. Covered
+#: California is a state-based exchange and the qualified health plan prong (45 CFR 156.221)
+#: reaches only the federally-facilitated ones, so an issuer that is on Covered California's
+#: list alone carries ``none-through-this-roster``. That value is a statement about the roster,
+#: never about the organization, which may be obliged through a line of business nobody here
+#: has reviewed.
+OBLIGATION_BASES = {
+    "medicaid-managed-care",
+    "qhp-federally-facilitated-exchange",
+    "none-through-this-roster",
+}
+
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -88,6 +102,8 @@ class CohortMember:
     #: normalization of a name would have a denominator only this project could reproduce.
     #: Empty where the cohort's roster is not a committed CSV, as California's is not.
     roster_name: str = ""
+    #: One of ``OBLIGATION_BASES``, or empty where the cohort file does not state one.
+    obligation_basis: str = ""
 
 
 @dataclass(frozen=True)
@@ -205,6 +221,15 @@ def _parse_member(
             "or absent where the cohort has no committed roster file"
         )
 
+    obligation_basis = item.get("obligation_basis", "")
+    if not isinstance(obligation_basis, str) or (
+        "obligation_basis" in item and obligation_basis not in OBLIGATION_BASES
+    ):
+        raise ValueError(
+            f"{where}.obligation_basis must be one of {sorted(OBLIGATION_BASES)}, or absent "
+            "where the cohort does not state one per member"
+        )
+
     return CohortMember(
         member_id=member_id,
         name=_require_str(where, item, "name"),
@@ -212,6 +237,7 @@ def _parse_member(
         endpoint_ids=endpoint_ids,
         exclusion=_parse_exclusion(where, excluded_raw) if excluded_raw is not None else None,
         roster_name=roster_name.strip(),
+        obligation_basis=obligation_basis,
     )
 
 

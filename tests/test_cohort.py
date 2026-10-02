@@ -529,3 +529,51 @@ def test_a_roster_name_that_is_present_but_unusable_is_refused(
     payload["members"][0]["roster_name"] = value
     with pytest.raises(ValueError, match="roster_name"):
         load_cohort(_write(tmp_path, payload), _REGISTRY_IDS)
+
+
+def test_obligation_basis_is_optional_and_carried(tmp_path: Path) -> None:
+    payload = _cohort_payload()
+    payload["members"][0]["obligation_basis"] = "medicaid-managed-care"
+    cohort = load_cohort(_write(tmp_path, payload), _REGISTRY_IDS)
+    assert cohort.members[0].obligation_basis == "medicaid-managed-care"
+    assert cohort.members[1].obligation_basis == "", "a member without one carries an empty string"
+
+
+@pytest.mark.parametrize("value", ["", "covered-california", 17, None, ["medicaid-managed-care"]])
+def test_an_obligation_basis_outside_the_vocabulary_is_refused(
+    tmp_path: Path, value: object
+) -> None:
+    """A basis is a regulatory claim. One outside the closed set is a claim nobody defined."""
+    payload = _cohort_payload()
+    payload["members"][0]["obligation_basis"] = value
+    with pytest.raises(ValueError, match="obligation_basis"):
+        load_cohort(_write(tmp_path, payload), _REGISTRY_IDS)
+
+
+def test_the_california_cohort_does_not_claim_an_obligation_its_roster_cannot_carry() -> None:
+    """CMS-9115-F's qualified health plan prong (45 CFR 156.221) reaches issuers on the
+    federally-facilitated exchanges, and Covered California is state-based. So the Medi-Cal
+    roster makes a member an impacted payer and the Covered California roster does not, and a
+    member on the second list alone must not be described as obliged by its membership."""
+    from fhir_scorecard.registry import load_registry
+
+    repo = Path(__file__).resolve().parent.parent
+    endpoints = load_registry(repo / "data" / "registry.json")
+    cohort = load_cohort(
+        repo / "data" / "cohorts" / "california.json",
+        frozenset(e.endpoint_id for e in endpoints),
+    )
+    for member in cohort.members:
+        expected = (
+            "medicaid-managed-care" if "medi-cal" in member.programs else "none-through-this-roster"
+        )
+        assert member.obligation_basis == expected, member.member_id
+    covered_ca_only = {
+        m.name for m in cohort.members if m.obligation_basis == "none-through-this-roster"
+    }
+    assert len(covered_ca_only) == 4
+    notes = " ".join(cohort.notes)
+    assert "Every endpoint in this cohort is required to exist" not in notes
+    assert "state-based exchange" in notes and "45 CFR 156.221" in notes
+    for name in covered_ca_only:
+        assert name.split(" (")[0] in notes, f"{name} is not named in the obligation note"

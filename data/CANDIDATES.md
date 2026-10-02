@@ -134,7 +134,12 @@ Medicare Advantage D-SNP that DHCS lists alongside the MCPs scoped out, that is 
 organizations**, seven of which run in both programs.
 
 These endpoints are required by the federal CMS Interoperability and Patient Access rule
-(CMS-9115-F). That is the only obligation claimed anywhere in this work: California's Data
+(CMS-9115-F). *Corrected 2026-10-01: that holds for the Medi-Cal managed care plans, through the
+rule's Medicaid managed care prong. It does not hold by membership for the four organizations
+that are here only as Covered California issuers (Sharp, Chinese Community Health Plan, Valley,
+Western Health Advantage), because the qualified-health-plan prong reaches the
+federally-facilitated exchanges and Covered California is state-based, as the ninth wave below
+says.* That is the only obligation claimed anywhere in this work: California's Data
 Exchange Framework runs through the DSA and QHIOs and requires none of these surfaces, and
 CMS-0057-F's Provider Access, Payer-to-Payer, and Prior Authorization APIs are not required until
 January 2027 and are not graded.
@@ -155,7 +160,7 @@ January 2027 and are not graded.
 | Central California Alliance Provider Directory | us120.fhir.edifecsfedcloud.com/ccah/fhir/pd/R4 | **Verified** → registry (anonymous document) |
 | Community Health Group Provider Directory | api-chgsd-prd.safhir.io/v1/api/provider-directory | **Verified** → registry (anonymous document) |
 | Community Health Plan of Imperial Valley | production.api.centene.com/fhir/{patientaccess,providerdirectory} | Rejected: DNS did not resolve |
-| Partnership HealthPlan | us120.fhir.edifecsfedcloud.com/php_pdfhir, /php_fhir | Rejected: 404 and 401 |
+| Partnership HealthPlan | us120.fhir.edifecsfedcloud.com/php_pdfhir, /php_fhir | Rejected: Provider Directory 404; Patient Access answers 401, the credential gate the plan's own page documents (both unchanged 2026-10-01) |
 | Kern Family Health Care | fastplusapi.khs-net.com:8080/{patient/paa,provider/pda}/r4 | Rejected: HTTP 404 |
 | Health Plan of San Joaquin | us120.fhir.edifecsfedcloud.com/hpsj_fhir | Rejected: HTTP 401 (sandbox; production is a placeholder in the plan's own PDF) |
 | Anthem Blue Cross (Elevance) | totalview.healthos.elevancehealth.com/…/AnthemBlueCross/… | Answered; **deliberately not listed** (see below) |

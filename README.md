@@ -274,10 +274,13 @@ The first is the **California payer cohort** at `/california/`: the Medi-Cal man
 lists plus the Covered California qualified health plan issuers, deduplicated to 27 organizations.
 Eight publish a base URL this project verified from their own documentation, on the dates in
 `data/registry.json`; how many of those endpoints answered on any given day is a separate number,
-measured by the run that generated the page and printed beside the curated one. Those endpoints
-are required to exist by the federal CMS
-Interoperability and Patient Access rule (CMS-9115-F), which is the only obligation this project
-claims about them. The rule does not require a plan to print its base URL where an unregistered
+measured by the run that generated the page and printed beside the curated one. For the
+Medi-Cal managed care plans, those APIs are required to exist by the federal CMS
+Interoperability and Patient Access rule (CMS-9115-F), through its Medicaid managed care prong,
+which is the only obligation this project claims about them. The four members that are on the
+Covered California list alone are not obliged by that membership, because the rule's
+qualified-health-plan prong reaches the federally-facilitated exchanges (more on that below);
+each member's `obligation_basis` in the cohort file says which case it is. The rule does not require a plan to print its base URL where an unregistered
 visitor can read it; California's Data Exchange Framework runs through the DSA and QHIOs and
 requires none of these surfaces; and CMS-0057-F's additional APIs are not in force until 2027 and
 are not graded.

@@ -75,14 +75,14 @@
       "id": "partnership-hp-provider-directory",
       "name": "Partnership HealthPlan of California Provider Directory",
       "base_url": "https://us120.fhir.edifecsfedcloud.com/php_pdfhir",
-      "last_outcome": "HTTP 404 (2026-08-07); the plan's own page describes it as 'a publicly accessible API'",
+      "last_outcome": "HTTP 404 (2026-08-07; unchanged 2026-10-01); the plan's own page describes it as 'a publicly accessible API'",
       "source": "developer portal documentation at https://www.partnershiphp.org/About/Pages/Developer-Resources.aspx"
     },
     {
       "id": "partnership-hp-patient-access",
       "name": "Partnership HealthPlan of California Patient Access",
       "base_url": "https://us120.fhir.edifecsfedcloud.com/php_fhir",
-      "last_outcome": "HTTP 401 (2026-08-07)",
+      "last_outcome": "HTTP 401 (2026-08-07; unchanged 2026-10-01). The endpoint answers and requires credentials, which the plan's own page documents: it describes the production Patient Access API as 'secure and requires an account with credentials to access'. So this is not a defect claim; the conformance document is simply not retrievable without an account",
       "source": "developer portal documentation at https://www.partnershiphp.org/About/Pages/Developer-Resources.aspx"
     },
     {

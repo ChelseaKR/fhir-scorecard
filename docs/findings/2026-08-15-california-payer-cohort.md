@@ -14,9 +14,15 @@ The cohort was assembled the way a cohort has to be if a hit rate is going to me
 the membership list was fixed from a public roster before any endpoint was looked for, so the
 plans that publish nothing are part of the result rather than an absence in it.
 
-**What this is not.** Nothing below is a compliance determination. Every organization here is
-obliged by the federal CMS Interoperability and Patient Access rule (CMS-9115-F) to expose a
-Patient Access API and a Provider Directory API over FHIR R4. That rule does not require a
+**What this is not.** Nothing below is a compliance determination. Every Medi-Cal managed care
+plan here is obliged by the federal CMS Interoperability and Patient Access rule (CMS-9115-F,
+85 FR 25510) to expose a Patient Access API and a Provider Directory API over FHIR R4, through
+the rule's Medicaid managed care prong. The four organizations that are here only as Covered
+California issuers are not obliged by that membership: the rule's qualified health plan prong
+(45 CFR 156.221) reaches issuers on the federally-facilitated exchanges, and Covered California
+is a state-based exchange. Whether another line of business obliges them was not reviewed. (This
+paragraph said "every organization here is obliged" until 2026-10-01, which overstated the rule;
+each member's basis is now recorded in the cohort file.) The rule does not require a
 plan to print its base URL where an unregistered visitor can read it, and a plan that does not
 is not violating anything this project reads. It is only not independently checkable from
 outside, which is a narrower claim and the only one made here. No plan is ranked, no plan is
@@ -128,8 +134,10 @@ located at all.
 Seven plans did publish a base URL, and it is not usable as published:
 
 - Four published production base URLs on their own pages that did not answer. One plan's host
-  does not resolve in public DNS. One returns 404 on the Provider Directory and 401 on Patient
-  Access. One returns 404 on both. For one, the live developer page could not be retrieved and
+  does not resolve in public DNS. One returns 404 on the Provider Directory its own page calls
+  publicly accessible; its Patient Access endpoint answers 401, which that page documents as
+  requiring an account, so that half is unverifiable rather than broken (re-checked 2026-10-01,
+  unchanged). One returns 404 on both. For one, the live developer page could not be retrieved and
   an archived copy documents a Patient Access host that does not resolve.
 - Two published a sandbox base URL that returns 401, with the production entry in the plan's
   own documentation left as an unfilled placeholder. Both are covered by one plan's

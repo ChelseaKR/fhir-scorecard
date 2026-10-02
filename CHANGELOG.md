@@ -243,6 +243,27 @@ Merged changes land here until the next tag.
 
 ### Fixed
 
+- **The California cohort claimed a CMS-9115-F obligation for every member, and four are not
+  obliged by membership.** `data/cohorts/california.json`, the 2026-08-15 findings write-up,
+  the README and the eighth-wave log said every organization in the cohort is required by
+  CMS-9115-F (85 FR 25510) to run these APIs. The rule reaches Medicaid managed care plans
+  (42 CFR 438.242(b)(5)-(6)) and QHP issuers on the *federally-facilitated* exchanges
+  (45 CFR 156.221); Covered California is state-based, as `docs/SAMPLING-FRAME.md` already
+  said. Sharp Health Plan, Chinese Community Health Plan, Valley Health Plan and Western Health
+  Advantage are on the Covered California list alone. The wording now claims the obligation
+  for the Medi-Cal plans only, and each member carries an optional, validated
+  `obligation_basis` (`medicaid-managed-care`, `qhp-federally-facilitated-exchange`, or
+  `none-through-this-roster`, the last being a statement about the roster and not the
+  organization). No member, count or classification changed.
+
+- **Partnership HealthPlan's Patient Access 401 was described as "neither answers".** A 401 is
+  an answer: the plan's own developer page says the production Patient Access API "is secure
+  and requires an account with credentials to access". The member's reason now says the
+  Provider Directory returns 404 and Patient Access answers but requires credentials, matching
+  how Florida Blue's OAuth-gated 401 is described. Both URLs were re-checked on 2026-10-01
+  (HTTP status only, no credentials) with unchanged results. The member stays
+  `documented_unreachable` on the strength of the Provider Directory 404.
+
 - **`live-integrity` read a merge as a publishing failure for six hours a day.** The
   sentinel compares the live site with `main`. `grade-and-publish` runs at 14:17 UTC and
   the sentinel at 20:07, so a change to a checked input merged in between is on `main` and

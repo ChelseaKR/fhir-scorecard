@@ -89,7 +89,7 @@
     {
       "member_id": "partnership-healthplan",
       "outcome": "documented_unreachable",
-      "reason_excerpt": "neither answers: the Provider Directory returns 404 and the Patient Access endpoint returns 401"
+      "reason_excerpt": "the Provider Directory, which that page describes as publicly accessible, returns 404"
     },
     {
       "member_id": "san-francisco-health-plan",

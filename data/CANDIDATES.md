@@ -160,7 +160,7 @@ January 2027 and are not graded.
 | Central California Alliance Provider Directory | us120.fhir.edifecsfedcloud.com/ccah/fhir/pd/R4 | **Verified** → registry (anonymous document) |
 | Community Health Group Provider Directory | api-chgsd-prd.safhir.io/v1/api/provider-directory | **Verified** → registry (anonymous document) |
 | Community Health Plan of Imperial Valley | production.api.centene.com/fhir/{patientaccess,providerdirectory} | Rejected: DNS did not resolve |
-| Partnership HealthPlan | us120.fhir.edifecsfedcloud.com/php_pdfhir, /php_fhir | Rejected: 404 and 401 |
+| Partnership HealthPlan | us120.fhir.edifecsfedcloud.com/php_pdfhir, /php_fhir | Rejected: Provider Directory 404; Patient Access answers 401, the credential gate the plan's own page documents (both unchanged 2026-10-01) |
 | Kern Family Health Care | fastplusapi.khs-net.com:8080/{patient/paa,provider/pda}/r4 | Rejected: HTTP 404 |
 | Health Plan of San Joaquin | us120.fhir.edifecsfedcloud.com/hpsj_fhir | Rejected: HTTP 401 (sandbox; production is a placeholder in the plan's own PDF) |
 | Anthem Blue Cross (Elevance) | totalview.healthos.elevancehealth.com/…/AnthemBlueCross/… | Answered; **deliberately not listed** (see below) |

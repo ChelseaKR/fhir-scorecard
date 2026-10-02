@@ -134,8 +134,10 @@ located at all.
 Seven plans did publish a base URL, and it is not usable as published:
 
 - Four published production base URLs on their own pages that did not answer. One plan's host
-  does not resolve in public DNS. One returns 404 on the Provider Directory and 401 on Patient
-  Access. One returns 404 on both. For one, the live developer page could not be retrieved and
+  does not resolve in public DNS. One returns 404 on the Provider Directory its own page calls
+  publicly accessible; its Patient Access endpoint answers 401, which that page documents as
+  requiring an account, so that half is unverifiable rather than broken (re-checked 2026-10-01,
+  unchanged). One returns 404 on both. For one, the live developer page could not be retrieved and
   an archived copy documents a Patient Access host that does not resolve.
 - Two published a sandbox base URL that returns 401, with the production entry in the plan's
   own documentation left as an unfilled placeholder. Both are covered by one plan's

@@ -183,10 +183,10 @@
       "programs": ["medi-cal"],
       "obligation_basis": "medicaid-managed-care",
       "excluded": {
-        "reason": "the plan publishes production base URLs for both APIs on its own developer page and neither answers: the Provider Directory returns 404 and the Patient Access endpoint returns 401",
+        "reason": "the plan publishes production base URLs for both APIs on its own developer page; the Provider Directory, which that page describes as publicly accessible, returns 404, and the Patient Access endpoint answers but requires credentials (HTTP 401), which the same page says it does, so its conformance document cannot be checked from outside",
         "basis": "portal_reviewed",
         "reviewed": {
-          "method": "retrieved the plan's developer resources page, which prints testing and production base URLs for both APIs in a table and describes the Provider Directory API as 'a publicly accessible API'; probed both production URLs",
+          "method": "retrieved the plan's developer resources page, which prints testing and production base URLs for both APIs in a table and describes the Provider Directory API as 'a publicly accessible API'; probed both production URLs. Re-checked 2026-10-01 without credentials, recording the HTTP status only: /metadata on the Provider Directory base still returns 404 and on the Patient Access base still returns 401. The page, which now redirects to https://www.partnershiphp.org/about/developer-resources, describes the production Patient Access API as 'secure and requires an account with credentials to access' and the production Provider Directory API as 'open and does not require secure credentials to access'",
           "date": "2026-08-07",
           "source": "https://www.partnershiphp.org/About/Pages/Developer-Resources.aspx"
         }

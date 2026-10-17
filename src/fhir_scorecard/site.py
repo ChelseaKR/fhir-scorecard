@@ -1328,6 +1328,7 @@ def home_page(
     origin: str,
     cohorts: tuple[Cohort, ...] = (),
     coverage_link: bool = False,
+    readiness_link: bool = False,
 ) -> Page:
     """Landing page: what this is, what it found, where to go next.
 
@@ -1336,6 +1337,7 @@ def home_page(
     same rule for the coverage tracker: the caller says whether that page was built, because a
     build without a frame does not have one and a link to it would be dead. It is not inferred
     from ``cohorts`` being non-empty, since the tracker also needs the frame CSV.
+    ``readiness_link`` is the same rule for the CMS-0057-F readiness report.
     """
     by_kind: dict[str, list[Scorecard]] = {}
     for c in cards:
@@ -1414,6 +1416,11 @@ def home_page(
         ],
         "isAccessibleForFree": True,
     }
+    readiness_item = (
+        '\n<li><a href="/cms-0057-f/"><span>REPORT</span>CMS-0057-F readiness <b>→</b></a></li>'
+        if readiness_link
+        else ""
+    )
     cohort_section = ""
     coverage_note = (
         '<p><a href="/coverage/">How much of the federal marketplace frame has a publicly '
@@ -1500,7 +1507,7 @@ the research note and its corrections →</a></div>
 <li><a href="https://github.com/ChelseaKR/fhir-scorecard"><span>SOURCE</span>Code and registry
 <b>↗</b></a></li>
 <li><a href="/claim/"><span>CORRECT</span>Add or dispute an endpoint
-<b>→</b></a></li>
+<b>→</b></a></li>{readiness_item}
 </ul>
 </section>
 <div class="usa-alert usa-alert--info usa-alert--slim site-caveat"><div class="usa-alert__body">

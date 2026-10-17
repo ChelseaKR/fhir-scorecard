@@ -71,6 +71,7 @@ from fhir_scorecard.operator import (
 )
 from fhir_scorecard.over_time import page as over_time_page
 from fhir_scorecard.published import audit_published_grades
+from fhir_scorecard.readiness import page as readiness_page
 from fhir_scorecard.registry import EXPECTS, KINDS, Endpoint, load_registry, version_prefix
 from fhir_scorecard.report import to_json
 from fhir_scorecard.reprobe import format_report, load_candidates, reprobe
@@ -1906,7 +1907,13 @@ def _write_site(
     coverage = _coverage_page(cohorts_dir, cohorts, endpoints, origin, scorecards)
     bundle_plan = _load_bundle_plan()
     pages = [
-        home_page(scorecards, origin, cohorts, coverage_link=coverage is not None),
+        home_page(
+            scorecards,
+            origin,
+            cohorts,
+            coverage_link=coverage is not None,
+            readiness_link=True,
+        ),
         how_we_grade_page(origin),
         claim_page(origin),
         privacy_page(origin),
@@ -1935,6 +1942,9 @@ def _write_site(
     pages.extend(census_page_list)
 
     blocks = _app_to_server_blocks(scorecards, declared, smart_declared)
+    pages.append(
+        readiness_page(scorecards, declared, smart_declared, as_of=retrieved_on, origin=origin)
+    )
     by_org, org_of = _organizations(scorecards)
     for card in scorecards:
         entry = by_id.get(card.endpoint_id)

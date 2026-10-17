@@ -376,6 +376,18 @@ answered a request for its `/metadata` document, from three hosts on one provide
 over the recorded window - and the page says so where the numbers are. It is not a
 service-level measurement and not a statement about an organization.
 
+`/cms-0057-f/` is a readiness report for payers and API vendors, built on every publish from
+observations the run already holds. For each payer-side endpoint it prints what the two public
+files declare about SMART Backend Services and Bulk Data (the app-to-server block on the endpoint
+page), counted per question in five states that are never merged: declared, not listed, absent,
+could not be read, not retrieved. It also groups the endpoints by the software name their
+CapabilityStatement declares. It is not a grade and not a compliance determination, it changes no
+grade, and it does not grade the APIs CMS-0057-F adds, which are not in force yet. Every sentence
+it says about the regulation is a closed list in `src/fhir_scorecard/readiness.py`, each with the
+words in this repository that support it, and each marked as unverified against the rule text,
+because this repository does not cite or retain that text
+([ADR 0009](docs/adr/0009-readiness-report-regulatory-statements.md)).
+
 Each record also carries the endpoint's declaration timeline: every recorded change to what its
 CapabilityStatement says about itself, dated and in order, with the declarations it has *gone
 back to* listed separately and counted rather than repeated. One hostname in front of two

@@ -14,6 +14,13 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **A CMS-0057-F readiness report at `/cms-0057-f/` (ADR 0009).** Per payer-side endpoint, what
+  its `/metadata` and SMART discovery documents declare about SMART Backend Services and Bulk Data,
+  counted in five states that are never merged, plus a grouping by the software name the
+  CapabilityStatement declares (`src/fhir_scorecard/readiness.py`). Not a grade, not a
+  compliance determination, and no grade or weight elsewhere moves. Statements about the
+  regulation are a closed list, each tied to words in this repository and marked unverified
+  against the rule text, which the repository does not cite. Linked from the home page.
 - **An opt-in, append-only record of the letter each run published, and a `grade_change` field
   (ADR 0008, proposed).** `grade --grade-history PATH` keeps one dated row per endpoint per run
   in a file of its own (`src/fhir_scorecard/grade_history.py`), schema-versioned, deterministic,

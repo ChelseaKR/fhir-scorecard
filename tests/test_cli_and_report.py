@@ -618,25 +618,25 @@ def test_an_unwritable_out_directory_is_a_tool_error_not_a_failed_threshold(
     """
     registry = _registry(tmp_path)
     (tmp_path / "fixtures").mkdir()
-    readonly = tmp_path / "readonly"
-    readonly.mkdir(mode=0o500)
-    try:
-        code = main(
-            [
-                "grade",
-                "--registry",
-                str(registry),
-                "--offline",
-                "--fixtures",
-                str(tmp_path / "fixtures"),
-                "--out",
-                str(readonly / "site"),
-                "--history",
-                str(tmp_path / "h.json"),
-            ]
-        )
-    finally:
-        readonly.chmod(0o700)
+    # An output path whose parent is a regular file cannot be created by anyone, root included.
+    # A read-only directory (chmod 0o500) would not do: root ignores directory permission bits,
+    # so the write would succeed and the test would fail in containers that run as root.
+    blocker = tmp_path / "not-a-directory"
+    blocker.write_text("a file where the --out parent directory would have to be")
+    code = main(
+        [
+            "grade",
+            "--registry",
+            str(registry),
+            "--offline",
+            "--fixtures",
+            str(tmp_path / "fixtures"),
+            "--out",
+            str(blocker / "site"),
+            "--history",
+            str(tmp_path / "h.json"),
+        ]
+    )
     assert code == 2
 
 

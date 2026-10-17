@@ -348,6 +348,9 @@ fingerprint would invent a measurement nobody took.
 `test_the_committed_history_really_does_not_retain_a_grade` fails the build if a grade ever
 starts being recorded, at which point this is worth revisiting. Recording one per run changes
 what the daily workflow persists, which is the maintainer's call rather than this phase's.
+A proposal for an opt-in, separate record is in
+[ADR 0008](docs/adr/0008-grade-history.md); it is not switched on by the daily workflow, and
+this paragraph stays true of `history.json` either way.
 **What share of the registry was observable throughout** is not delivered either: the
 observation window is bounded and rolling, so "throughout" names a period the record stops
 covering, and the report states the window's two edges instead of computing a share across

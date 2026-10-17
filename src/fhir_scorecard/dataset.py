@@ -13,6 +13,9 @@ import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from fhir_scorecard.grade_history import API_DIR as GRADE_HISTORY_DIR
+from fhir_scorecard.grade_history import Published as GradeHistory
+from fhir_scorecard.grade_history import record_json as grade_record_json
 from fhir_scorecard.grading import Scorecard
 from fhir_scorecard.matrix import API_DIR as DECLARATIONS_DIR
 from fhir_scorecard.matrix import SCHEMA_FILE as DECLARATIONS_SCHEMA
@@ -201,6 +204,7 @@ def write_dataset(
     feeds: Sequence[str] = (),
     declarations: Sequence[str] = (),
     app_to_server: Mapping[str, Mapping[str, object]] | None = None,
+    grades: GradeHistory | None = None,
 ) -> None:
     """Write dataset.csv, its schema, and a static per-endpoint JSON API.
 
@@ -211,6 +215,11 @@ def write_dataset(
 
     ``declarations`` is the same contract for the declared-capability files (#102): the endpoint
     ids whose ``api/capabilities/<id>.json`` the site build reported having written.
+
+    ``grades`` is the grade record of a run that was given one (``--grade-history``). Without
+    it nothing about grade history is written and every file here is byte-for-byte what it was
+    before the record existed: a ``grade_change`` key is never published as ``null`` or as
+    "unchanged" for a run that kept no record, because that would state a comparison nobody made.
     """
     out.mkdir(parents=True, exist_ok=True)
     (out / "dataset.csv").write_text(to_csv(cards, endpoints), encoding="utf-8")
@@ -302,6 +311,8 @@ def write_dataset(
         # where the build kept the facts it was built from.
         if app_to_server is not None and card.endpoint_id in app_to_server:
             payload["app_to_server"] = dict(app_to_server[card.endpoint_id])
+        if grades is not None and card.endpoint_id in grades.changes:
+            payload["grade_change"] = grades.changes[card.endpoint_id].as_json()
         (api_dir / f"{card.endpoint_id}.json").write_text(
             json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
         )
@@ -318,6 +329,21 @@ def write_dataset(
             entry["feed"] = f"{origin}/{feed_path}"
         if card.endpoint_id in declared_ids:
             entry["capabilities"] = f"{origin}/{DECLARATIONS_DIR}/{card.endpoint_id}.json"
+        if grades is not None and card.endpoint_id in grades.changes:
+            change = grades.changes[card.endpoint_id]
+            entry["grade_change"] = {
+                "status": change.status,
+                "previous_grade": change.previous_grade,
+                "previous_date": change.previous_date,
+                "direction": change.direction,
+            }
+            history_dir = out / "api" / GRADE_HISTORY_DIR
+            history_dir.mkdir(parents=True, exist_ok=True)
+            (history_dir / f"{card.endpoint_id}.json").write_text(
+                grade_record_json(card.endpoint_id, card.name, grades.rows[card.endpoint_id]),
+                encoding="utf-8",
+            )
+            entry["grade_history"] = f"{origin}/api/{GRADE_HISTORY_DIR}/{card.endpoint_id}.json"
         index.append(entry)
     site_feed = {"feed": f"{origin}/feed.xml"} if "feed.xml" in written_feeds else {}
     if declared_ids:

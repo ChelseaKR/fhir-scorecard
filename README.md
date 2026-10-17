@@ -378,6 +378,18 @@ answered a request for its `/metadata` document, from three hosts on one provide
 over the recorded window - and the page says so where the numbers are. It is not a
 service-level measurement and not a statement about an organization.
 
+`/cms-0057-f/` is a readiness report for payers and API vendors, built on every publish from
+observations the run already holds. For each payer-side endpoint it prints what the two public
+files declare about SMART Backend Services and Bulk Data (the app-to-server block on the endpoint
+page), counted per question in five states that are never merged: declared, not listed, absent,
+could not be read, not retrieved. It also groups the endpoints by the software name their
+CapabilityStatement declares. It is not a grade and not a compliance determination, it changes no
+grade, and it does not grade the APIs CMS-0057-F adds, which are not in force yet. Every sentence
+it says about the regulation is a closed list in `src/fhir_scorecard/readiness.py`, each with the
+words in this repository that support it, and each marked as unverified against the rule text,
+because this repository does not cite or retain that text
+([ADR 0009](docs/adr/0009-readiness-report-regulatory-statements.md)).
+
 Each record also carries the endpoint's declaration timeline: every recorded change to what its
 CapabilityStatement says about itself, dated and in order, with the declarations it has *gone
 back to* listed separately and counted rather than repeated. One hostname in front of two
@@ -494,6 +506,7 @@ and registry size is gated on payers publishing base URLs.
 | `endpoint/<id>/feed.xml` | The same for one endpoint, uncapped. Also `<cohort>/feed.xml` per cohort. `api/index.json` names every feed this build wrote, and never one it did not |
 | `endpoint/<id>/capabilities/` | Every resource the endpoint's CapabilityStatement declares, with its interactions, search parameters, operations and profile count. Split by resource on the largest declarations, never truncated |
 | `api/capabilities/<id>.json` | The same declaration as flat rows (`resource`, `interaction`, `search_parameter`, `operation`, `profile`), with the retrieval date and the document's SHA-256. `rows` is `null` where nothing could be read and `[]` only where a CapabilityStatement declares nothing. Documented by `capabilities.schema.json` |
+| `api/endpoint/<id>.json` `grade_change`, `api/grade-history/<id>.json` | **Opt-in, off on the daily publish** ([ADR 0008](docs/adr/0008-grade-history.md), proposed). Only a run given `--grade-history PATH` keeps an append-only record of the letter each run published and writes these. `grade_change` says whether this run's letter is `first_recorded`, `unchanged`, `changed` (with a direction) or `not_observed_this_run`, and which earlier run it was compared against. A run that observed nothing is skipped when looking back and is never read as a fall. The key is absent, not `null`, on a run that kept no record |
 | `badge/<id>.svg` | Embeddable current-grade badge linking back to the endpoint evidence |
 
 A dated copy of the dataset, with a manifest a reader can check with `sha256sum`:

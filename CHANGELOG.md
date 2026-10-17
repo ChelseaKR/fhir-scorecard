@@ -14,6 +14,15 @@ Merged changes land here until the next tag.
 
 ### Added
 
+- **An opt-in, append-only record of the letter each run published, and a `grade_change` field
+  (ADR 0008, proposed).** `grade --grade-history PATH` keeps one dated row per endpoint per run
+  in a file of its own (`src/fhir_scorecard/grade_history.py`), schema-versioned, deterministic,
+  and idempotent for a same-day re-run. With it, `api/endpoint/<id>.json` gains `grade_change`
+  (`first_recorded`, `unchanged`, `changed` with a direction, or `not_observed_this_run`),
+  `api/index.json` entries gain a compact copy, and `api/grade-history/<id>.json` lists the
+  rows. A run that observed nothing is skipped when looking back and is never a fall. Without
+  the flag nothing is read, written or published, so output is unchanged, and the daily
+  workflow does not pass it. `data/history.json` still retains no grade.
 - **Google Analytics 4 on the HTML pages, and a `/privacy/` page that says what it records
   (ADR 0006).** Per the owner's 2026-09-17 decision to run GA4 on every public site in the
   portfolio. `src/fhir_scorecard/analytics.py` holds the measurement ID (`G-5XE50LHZDJ`) and an

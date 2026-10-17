@@ -54,6 +54,12 @@ from fhir_scorecard.fetch import (
     normalize_failure_kind,
 )
 from fhir_scorecard.gate import GRADE_ORDER, evaluate
+from fhir_scorecard.grade_history import Published as GradeHistory
+from fhir_scorecard.grade_history import ensure_mode as ensure_grade_mode
+from fhir_scorecard.grade_history import load as load_grade_history
+from fhir_scorecard.grade_history import record as record_grades
+from fhir_scorecard.grade_history import refuse_past_dates
+from fhir_scorecard.grade_history import save as save_grade_history
 from fhir_scorecard.grading import Scorecard, build_scorecard, failure_kinds_of
 from fhir_scorecard.intake import ClaimError, assess, claim_from_form
 from fhir_scorecard.intake import build_proposal as build_claim_proposal
@@ -829,6 +835,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "cannot write observations into the real availability record",
     )
     grade.add_argument(
+        "--grade-history",
+        type=Path,
+        default=None,
+        help="append-only record of the letter each run published (docs/adr/0008-grade-history.md). "
+        "Opt-in: without it nothing about grade history is read, written or published. With "
+        "it, api/endpoint/<id>.json gains a grade_change object and api/grade-history/<id>.json "
+        "is written. An --offline run needs its own scratch path; fixture grades are refused in "
+        "a live record",
+    )
+    grade.add_argument(
         "--origin",
         default=DEFAULT_ORIGIN,
         help="canonical site origin, used for canonical URLs and the sitemap",
@@ -1195,7 +1211,9 @@ def _cohorts_path(args: argparse.Namespace) -> Path | None:
     return None if args.offline else Path("data/cohorts")
 
 
-def _prepare_history(args: argparse.Namespace) -> tuple[Path, dict[str, Any]] | str:
+def _prepare_history(
+    args: argparse.Namespace, today: str
+) -> tuple[Path, dict[str, Any], dict[str, Any]] | str:
     """Open the run's history file, or return why this run must not write to it.
 
     An offline run must never append "did not answer" to a record of live observations, and a
@@ -1206,11 +1224,32 @@ def _prepare_history(args: argparse.Namespace) -> tuple[Path, dict[str, Any]] | 
     try:
         history = load_history(path)
         ensure_mode(history, offline=args.offline)
+        # The opt-in grade record is opened here too, before any probe leaves this machine, so a
+        # record that cannot be read, was written by the other kind of run, or already holds a
+        # later date stops the run at the start rather than after the network work is done.
+        ledger = load_grade_history(args.grade_history) if args.grade_history else {}
+        if args.grade_history:
+            ensure_grade_mode(ledger, offline=args.offline)
+            refuse_past_dates(ledger, today)
     except (OSError, ValueError) as exc:
         return str(exc)
     if args.offline and args.history is None:
         print(f"offline run: history goes to {path}, not data/history.json", file=sys.stderr)
-    return path, history
+    return path, history, ledger
+
+
+def _record_grades(
+    args: argparse.Namespace, ledger: dict[str, Any], scorecards: list[Scorecard], today: str
+) -> GradeHistory | None:
+    """Append this run's letters to the opt-in grade record, or do nothing when not asked."""
+    if args.grade_history is None:
+        return None
+    return record_grades(ledger, scorecards, today)
+
+
+def _save_grades(args: argparse.Namespace, ledger: dict[str, Any]) -> None:
+    if args.grade_history is not None:
+        save_grade_history(args.grade_history, ledger)
 
 
 def _flag_conflict(args: argparse.Namespace) -> str | None:
@@ -1551,11 +1590,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     today = time.strftime("%Y-%m-%d", time.gmtime())
-    prepared = _prepare_history(args)
+    prepared = _prepare_history(args, today)
     if isinstance(prepared, str):
         print(f"history error: {prepared}", file=sys.stderr)
         return 2
-    history_path, history = prepared
+    history_path, history, grade_ledger = prepared
     other_probes = load_probe_files(list(args.probes_in or []))
     probes_seen: dict[str, VantageProbe] = {}
     declared: dict[str, CapabilityFacts] = {}
@@ -1593,6 +1632,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             for e in endpoints
         ]
+    # Opt-in grade record, updated in memory here and written beside the observation history.
+    grades = _record_grades(args, grade_ledger, scorecards, today)
     # History is saved before the site is written, and stays there. The observation is a fact
     # about whether the endpoint answered, which is true whether or not this run manages to
     # render a page from it, and `_record_observation` replaces any existing row for the same
@@ -1600,6 +1641,7 @@ def main(argv: list[str] | None = None) -> int:
     generated_at = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
     try:
         save_history(history_path, history)
+        _save_grades(args, grade_ledger)
         if args.probes_out is not None:
             write_probes(args.probes_out, args.vantage, probes_seen)
 
@@ -1630,6 +1672,7 @@ def main(argv: list[str] | None = None) -> int:
             feeds=written.feeds,
             declarations=written.declarations,
             app_to_server=written.app_to_server,
+            grades=grades,
         )
     except OSError as exc:
         # Exit 2, not 1. `docs/ci-action.md` reserves 1 for "a threshold the caller set was not

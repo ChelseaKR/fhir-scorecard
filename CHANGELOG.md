@@ -30,6 +30,10 @@ Merged changes land here until the next tag.
   rows. A run that observed nothing is skipped when looking back and is never a fall. Without
   the flag nothing is read, written or published, so output is unchanged, and the daily
   workflow does not pass it. `data/history.json` still retains no grade.
+- **OpenSSF Scorecard (`.github/workflows/scorecard.yml`).** Runs on every push to `main`, weekly
+  and on dispatch, uploads its SARIF to code scanning beside CodeQL, and publishes to the public
+  Scorecard API that the new README badge reads. Closes the Scorecard half of the ROADMAP's
+  supply-chain item; signed dataset releases remain open.
 - **Google Analytics 4 on the HTML pages, and a `/privacy/` page that says what it records
   (ADR 0006).** Per the owner's 2026-09-17 decision to run GA4 on every public site in the
   portfolio. `src/fhir_scorecard/analytics.py` holds the measurement ID (`G-5XE50LHZDJ`) and an

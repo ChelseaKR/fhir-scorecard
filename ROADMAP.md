@@ -141,9 +141,11 @@ read.*
       Finishing this means **one genuinely independent vantage** — a residential or other-provider
       runner posting a `probes-*.json`, however irregular — after which the wording can change and
       not before
-- [~] OpenSSF Scorecard and signed dataset releases still open; CodeQL, full-history secret
-      scanning, dependency audit of the locked set, and SHA-pinned actions are in place
-      (`.github/workflows/security.yml`)
+- [~] Signed dataset releases still open; CodeQL, full-history secret scanning, dependency
+      audit of the locked set, and SHA-pinned actions are in place
+      (`.github/workflows/security.yml`), and OpenSSF Scorecard runs on every push to `main`
+      and weekly, publishing to the public Scorecard API behind the README badge
+      (`.github/workflows/scorecard.yml`)
 - [x] `CHANGELOG.md` and semantic versioning with a real `v0.1.0` tag: cut 2026-08-16, released
       by `.github/workflows/release.yml` from an SSH-signed tag
       (`docs/adr/0002-release-versioning-applies-action-export.md`)
